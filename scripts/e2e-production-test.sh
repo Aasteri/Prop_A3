@@ -50,11 +50,17 @@ curl -sf "$BASE/client-portal/invoices" -H "Authorization: Bearer $CLIENT_TOKEN"
 INVOICE_ID=$(curl -sf "$BASE/client-portal/invoices" -H "Authorization: Bearer $CLIENT_TOKEN" | jget "process.stdout.write(d[0]?.id||'')")
 if [ -n "$INVOICE_ID" ]; then
   echo "==> Client payment proof upload"
-  echo 'fake-proof' > /tmp/propa3-proof.txt
-  curl -sf -X POST "$BASE/invoices/$INVOICE_ID/payments" \
+  PROOF_FILE="e:/software_projects/propa3/.e2e-proof.tmp"
+  echo 'fake-proof-content' > "$PROOF_FILE"
+  PAY_RESP=$(curl -s -w "\n%{http_code}" -X POST "$BASE/invoices/$INVOICE_ID/payments" \
     -H "Authorization: Bearer $CLIENT_TOKEN" \
     -F "amount=5000000" \
-    -F "proof=@/tmp/propa3-proof.txt;type=image/png" | jget "console.log('payment',d.status,d.amount)"
+    -F "proof=@$PROOF_FILE;type=image/png")
+  PAY_BODY=$(echo "$PAY_RESP" | head -n -1)
+  PAY_CODE=$(echo "$PAY_RESP" | tail -1)
+  echo "payment http=$PAY_CODE"
+  echo "$PAY_BODY" | jget "console.log('payment',d.status,d.amount)"
+  rm -f "$PROOF_FILE"
 
   FIN_TOKEN=$(login 'finance@triplea.ng')
   PAY_ID=$(curl -sf "$BASE/invoices/$INVOICE_ID" -H "Authorization: Bearer $FIN_TOKEN" | jget "const p=d.payments.find(x=>x.status==='PENDING'); process.stdout.write(p?.id||'')")
