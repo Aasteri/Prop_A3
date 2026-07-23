@@ -27,7 +27,7 @@ echo "==> Building API + Web..."
 npm run build
 
 echo "==> Ensuring upload directories exist..."
-mkdir -p uploads/{site-logs,payments,fcda}
+mkdir -p uploads/{site-logs,payments,fcda,documents}
 
 echo "==> Starting / reloading PM2..."
 if pm2 describe propa3-api >/dev/null 2>&1; then

@@ -48,6 +48,9 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
           <NavLink href="/portal/changes" active={pathname.startsWith('/portal/changes')}>
             Changes
           </NavLink>
+          <NavLink href="/portal/documents" active={pathname.startsWith('/portal/documents')}>
+            Documents
+          </NavLink>
         </nav>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>

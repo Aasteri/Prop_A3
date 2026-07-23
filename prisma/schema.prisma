@@ -60,6 +60,7 @@ model User {
   clientProfile       Client?             @relation("ClientPortalUser")
   notifications       Notification[]
   reportedHseIncidents HseIncident[]      @relation("HseReportedBy")
+  uploadedDocuments    Document[]          @relation("DocumentUploadedBy")
 
   @@map("users")
 }
@@ -888,4 +889,45 @@ model ClientProject {
 
   @@unique([clientId, projectId])
   @@map("client_projects")
+}
+
+// ─── Documents ──────────────────────────────────────────────────────────────
+
+enum DocumentCategory {
+  CONTRACT
+  PERMIT
+  RECEIPT
+  DRAWING
+  CERTIFICATE
+  BOQ
+  ALLOCATION_LETTER
+  OTHER
+}
+
+enum DocumentEntityType {
+  PROJECT
+  CLIENT
+  TENANT
+}
+
+model Document {
+  id           String             @id @default(cuid())
+  category     DocumentCategory
+  entityType   DocumentEntityType @map("entity_type")
+  entityId     String             @map("entity_id")
+  title        String
+  version      Int                @default(1)
+  isLatest     Boolean            @default(true) @map("is_latest")
+  fileUrl      String             @map("file_url")
+  filename     String
+  mimeType     String?            @map("mime_type")
+  fileSize     Int?               @map("file_size")
+  uploadedById String?            @map("uploaded_by_id")
+  notes        String?            @db.Text
+  createdAt    DateTime           @default(now()) @map("created_at")
+
+  uploadedBy User? @relation("DocumentUploadedBy", fields: [uploadedById], references: [id])
+
+  @@index([entityType, entityId, category, isLatest])
+  @@map("documents")
 }

@@ -70,4 +70,28 @@ if [ -n "$INVOICE_ID" ]; then
   fi
 fi
 
+echo "==> Document upload (FCDA permit v1)"
+SALES_TOKEN=$(login 'sales@triplea.ng')
+DOC_FILE="e:/software_projects/propa3/.e2e-doc.tmp"
+echo '%PDF-1.4 fake fcda permit' > "$DOC_FILE"
+curl -sf -X POST "$BASE/documents/upload" -H "Authorization: Bearer $PM_TOKEN" \
+  -F "entityType=PROJECT" -F "entityId=$PROJECT_ID" -F "category=PERMIT" \
+  -F "title=FCDA Permit E2E" -F "file=@$DOC_FILE;type=application/pdf" \
+  | jget "console.log('doc',d.version,d.category,d.fileUrl)"
+rm -f "$DOC_FILE"
+
+echo "==> Allocation letter PDF"
+CLIENT_ID=$(curl -sf "$BASE/crm/clients" -H "Authorization: Bearer $SALES_TOKEN" \
+  | jget "const c=d.find(x=>x.clientRef==='CLT-0001')||d[0]; process.stdout.write(c?.id||'')")
+if [ -n "$CLIENT_ID" ]; then
+  curl -sf -X POST "$BASE/documents/allocation-letter" -H "Authorization: Bearer $SALES_TOKEN" \
+    -H 'Content-Type: application/json' \
+    -d "{\"clientId\":\"$CLIENT_ID\",\"projectId\":\"seed-gz2-duplex\"}" \
+    | jget "console.log('allocation',d.title,d.version)"
+fi
+
+echo "==> Client portal documents"
+curl -sf "$BASE/client-portal/documents" -H "Authorization: Bearer $CLIENT_TOKEN" \
+  | jget "console.log('clientDocs',d.length,d[0]?.category)"
+
 echo "E2E_OK"

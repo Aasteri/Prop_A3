@@ -294,3 +294,63 @@ export async function uploadPaymentProof(
 
   return res.json();
 }
+
+export type DocumentRecord = {
+  id: string;
+  category: string;
+  entityType: string;
+  entityId: string;
+  title: string;
+  version: number;
+  isLatest: boolean;
+  fileUrl: string;
+  filename: string;
+  createdAt: string;
+  uploadedBy?: { firstName: string; lastName: string } | null;
+};
+
+export async function uploadDocument(
+  params: {
+    entityType: string;
+    entityId: string;
+    category: string;
+    title: string;
+    notes?: string;
+  },
+  file: File,
+) {
+  const token = getToken();
+  const form = new FormData();
+  form.append('entityType', params.entityType);
+  form.append('entityId', params.entityId);
+  form.append('category', params.category);
+  form.append('title', params.title);
+  if (params.notes) form.append('notes', params.notes);
+  form.append('file', file);
+
+  const res = await fetch(`${API_URL}/api/documents/upload`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+
+  if (!res.ok) {
+    let message = res.statusText;
+    try {
+      const body = await res.json();
+      message = body.message ?? message;
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(message, res.status);
+  }
+
+  return res.json() as Promise<DocumentRecord>;
+}
+
+export async function generateAllocationLetter(clientId: string, projectId: string) {
+  return api<DocumentRecord>('/documents/allocation-letter', {
+    method: 'POST',
+    body: JSON.stringify({ clientId, projectId }),
+  });
+}

@@ -1,20 +1,19 @@
 import {
-  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
-import * as fs from 'fs';
-import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
+import { DocumentsService } from '../documents/documents.service';
 
 @Injectable()
 export class ProjectsService {
-  private readonly fcdaDir = path.join(process.cwd(), '..', '..', 'uploads', 'fcda');
-
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly documents: DocumentsService,
+  ) {}
 
   findAll(user: AuthUser) {
     const allSites =
@@ -61,22 +60,7 @@ export class ProjectsService {
 
     const project = await this.findOne(id, user);
     if (!project) throw new NotFoundException('Project not found');
-    if (!file?.buffer?.length) {
-      throw new BadRequestException('No file uploaded');
-    }
 
-    fs.mkdirSync(this.fcdaDir, { recursive: true });
-    const ext = path.extname(file.originalname) || '.pdf';
-    const filename = `${project.id}-fcda${ext}`;
-    fs.writeFileSync(path.join(this.fcdaDir, filename), file.buffer);
-
-    return this.prisma.project.update({
-      where: { id: project.id },
-      data: { fcdaPermitUrl: `/uploads/fcda/${filename}` },
-      include: {
-        site: true,
-        milestones: { orderBy: { stage: 'asc' } },
-      },
-    });
+    return this.documents.uploadFcdaPermit(id, file, user);
   }
 }

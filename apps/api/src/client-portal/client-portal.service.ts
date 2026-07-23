@@ -6,10 +6,14 @@ import {
 import { ChangeLogStatus, DailyLogStatus, PaymentStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
+import { DocumentsService } from '../documents/documents.service';
 
 @Injectable()
 export class ClientPortalService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly documentsService: DocumentsService,
+  ) {}
 
   async dashboard(user: AuthUser) {
     const client = await this.requireClient(user);
@@ -190,6 +194,10 @@ export class ClientPortalService {
       },
       orderBy: [{ approvedAt: 'desc' }],
     });
+  }
+
+  documents(user: AuthUser) {
+    return this.documentsService.clientDocuments(user);
   }
 
   private async requireClient(user: AuthUser) {

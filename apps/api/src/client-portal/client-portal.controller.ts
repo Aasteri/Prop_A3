@@ -27,4 +27,9 @@ export class ClientPortalController {
   changes(@CurrentUser() user: AuthUser) {
     return this.portal.changeOrders(user);
   }
+
+  @Get('documents')
+  documents(@CurrentUser() user: AuthUser) {
+    return this.portal.documents(user);
+  }
 }

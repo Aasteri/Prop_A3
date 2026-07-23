@@ -72,6 +72,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <NavLink href="/crm" active={pathname.startsWith('/crm')}>
               CRM
             </NavLink>
+            <NavLink href="/documents" active={pathname.startsWith('/documents')}>
+              Documents
+            </NavLink>
           </nav>
         )}
       </header>
