@@ -1,4 +1,4 @@
-import PDFDocument from 'pdfkit';
+import PDFDocument from '../common/pdfkit';
 import { PassThrough } from 'stream';
 
 export type AllocationLetterData = {
