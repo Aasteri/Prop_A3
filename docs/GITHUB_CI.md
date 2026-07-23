@@ -10,7 +10,7 @@ git init
 git add .
 git commit -m "Initial Prop A3 MVP"
 git branch -M main
-git remote add origin https://github.com/YOUR_USER/propa3.git
+git remote add origin https://github.com/Aasteri/Prop_A3.git
 git push -u origin main
 ```
 
@@ -24,7 +24,7 @@ SSH to the server and point `/var/www/propa3` at your repo.
 ssh -i propa3-mvp.pem ubuntu@52.209.36.187
 cd /var/www/propa3
 git init
-git remote add origin https://github.com/YOUR_USER/propa3.git
+git remote add origin https://github.com/Aasteri/Prop_A3.git
 git fetch origin main
 git reset --hard origin/main
 ```

@@ -16,6 +16,7 @@ npm run db:studio    # Browse prop_a3 in browser
 | Path | Purpose |
 |---|---|
 | **`planning/`** | All requirements, specs, Abraham's documents, seed data — **[start here](./planning/README.md)** |
+| **`demo-users-list.md`** | Live demo logins for UAT (roles + passwords) |
 | **`apps/`** | NestJS API + Next.js web |
 | **`README.md`** | This file |
 
