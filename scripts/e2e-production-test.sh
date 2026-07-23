@@ -94,4 +94,9 @@ echo "==> Client portal documents"
 curl -sf "$BASE/client-portal/documents" -H "Authorization: Bearer $CLIENT_TOKEN" \
   | jget "console.log('clientDocs',d.length,d[0]?.category)"
 
+echo "==> CEO dashboard"
+CEO_TOKEN=$(login 'ceo@triplea.ng')
+curl -sf "$BASE/dashboard/ceo" -H "Authorization: Bearer $CEO_TOKEN" \
+  | jget "console.log('ceoSites',d.siteHealth.length,'outstanding',d.revenue.totalOutstanding,'leads',d.leads.active,'fcdaMissing',d.fcdaMissing.length)"
+
 echo "E2E_OK"

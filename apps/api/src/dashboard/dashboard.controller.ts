@@ -12,4 +12,9 @@ export class DashboardController {
   pmSummary(@CurrentUser() user: AuthUser) {
     return this.dashboard.getPmSummary(user);
   }
+
+  @Get('ceo')
+  ceoSummary(@CurrentUser() user: AuthUser) {
+    return this.dashboard.getCeoSummary(user);
+  }
 }
