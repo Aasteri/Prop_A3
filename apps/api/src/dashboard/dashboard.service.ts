@@ -94,9 +94,9 @@ export class DashboardService {
     ]);
 
     return {
-      pendingLogCount: pendingLogs.length,
+      pendingLogCount,
       pendingLogs,
-      pendingMaterialCount: pendingMaterials.length,
+      pendingMaterialCount,
       pendingMaterials,
       openHseCount: openHse,
       todaysIssues,
