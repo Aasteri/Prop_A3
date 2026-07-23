@@ -37,8 +37,12 @@ Repo → **Settings** → **Secrets and variables** → **Actions** → **New re
 
 | Secret | Value |
 |---|---|
-| `EC2_HOST` | `52.209.36.187` |
-| `EC2_SSH_KEY` | Full contents of `propa3-mvp.pem` (including `BEGIN` / `END` lines) |
+| `EC2_HOST` | `52.209.36.187` *(optional — only if using SSH deploy)* |
+| `DEPLOY_HOOK_SECRET` | Same value as `DEPLOY_HOOK_SECRET` in server `.env` |
+
+Generate hook secret on the server: `openssl rand -hex 32`
+
+Deploy uses **HTTPS webhook** (`POST /api/deploy/hook`) because EC2 SSH is restricted to your IP — GitHub Actions cannot SSH in directly.
 
 ## 4. How deploy works
 

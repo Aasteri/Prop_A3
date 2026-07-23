@@ -17,6 +17,7 @@ import { ListingsModule } from './listings/listings.module';
 import { CrmModule } from './crm/crm.module';
 import { PublicModule } from './public/public.module';
 import { ClientPortalModule } from './client-portal/client-portal.module';
+import { DeployHookModule } from './deploy-hook/deploy-hook.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ClientPortalModule } from './client-portal/client-portal.module';
     CrmModule,
     PublicModule,
     ClientPortalModule,
+    DeployHookModule,
   ],
   controllers: [AppController],
 })
