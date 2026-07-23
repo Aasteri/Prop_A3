@@ -4,7 +4,16 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PortalShell } from '@/components/PortalShell';
-import { api, getToken } from '@/lib/api';
+import { api, getToken, uploadPaymentProof } from '@/lib/api';
+
+type Payment = {
+  id: string;
+  amount: number;
+  status: string;
+  receiptNumber: string | null;
+  verifiedAt: string | null;
+  createdAt: string;
+};
 
 type Invoice = {
   id: string;
@@ -14,25 +23,63 @@ type Invoice = {
   revisedTotal: number;
   paidTotal: number;
   outstanding: number;
-  payments: { receiptNumber: string | null; amount: number; verifiedAt: string | null }[];
+  payments: Payment[];
 };
 
 export default function PortalPaymentsPage() {
   const router = useRouter();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [uploading, setUploading] = useState<string | null>(null);
+  const [amounts, setAmounts] = useState<Record<string, string>>({});
+  const [files, setFiles] = useState<Record<string, File | null>>({});
+  const [message, setMessage] = useState<string | null>(null);
+
+  const load = () => {
+    api<Invoice[]>('/client-portal/invoices').then(setInvoices).catch(() => router.replace('/login'));
+  };
 
   useEffect(() => {
     if (!getToken()) {
       router.replace('/login');
       return;
     }
-    api<Invoice[]>('/client-portal/invoices').then(setInvoices).catch(() => router.replace('/login'));
+    load();
   }, [router]);
+
+  const handleUpload = async (invoice: Invoice) => {
+    const amount = parseFloat(amounts[invoice.id] ?? '');
+    const file = files[invoice.id];
+    if (!amount || amount <= 0) {
+      setMessage('Enter a valid payment amount.');
+      return;
+    }
+    if (!file) {
+      setMessage('Select a payment proof image or PDF.');
+      return;
+    }
+    setUploading(invoice.id);
+    setMessage(null);
+    try {
+      await uploadPaymentProof(invoice.id, amount, file);
+      setMessage('Payment proof submitted — finance will verify shortly.');
+      setAmounts((a) => ({ ...a, [invoice.id]: '' }));
+      setFiles((f) => ({ ...f, [invoice.id]: null }));
+      load();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : 'Upload failed');
+    } finally {
+      setUploading(null);
+    }
+  };
 
   return (
     <PortalShell>
       <h1 className="text-2xl font-semibold text-[#1a2744]">Payments & invoices</h1>
-      <p className="text-slate-600">Your payment schedule and verified receipts</p>
+      <p className="text-slate-600">Upload bank transfer proof for outstanding invoices</p>
+
+      {message && (
+        <p className="mt-4 rounded-lg bg-slate-100 px-4 py-2 text-sm text-slate-700">{message}</p>
+      )}
 
       <div className="mt-6 space-y-4">
         {invoices.map((inv) => (
@@ -58,20 +105,51 @@ export default function PortalPaymentsPage() {
                 <p className="font-medium text-[#e87722]">₦{inv.outstanding.toLocaleString()}</p>
               </div>
             </div>
+
             {inv.payments.length > 0 && (
               <div className="mt-3 border-t pt-3 text-sm">
-                <p className="font-medium text-slate-600">Verified payments</p>
-                {inv.payments.map((p, i) => (
-                  <p key={i} className="text-slate-700">
-                    {p.receiptNumber ?? 'Payment'} — ₦{p.amount.toLocaleString()}
+                <p className="font-medium text-slate-600">Payment history</p>
+                {inv.payments.map((p) => (
+                  <p key={p.id} className="text-slate-700">
+                    {p.status === 'VERIFIED' ? (p.receiptNumber ?? 'Receipt') : 'Pending'} — ₦
+                    {p.amount.toLocaleString()}
+                    {p.status === 'PENDING' && (
+                      <span className="ml-2 text-xs text-amber-700">awaiting verification</span>
+                    )}
                   </p>
                 ))}
               </div>
             )}
+
             {Number(inv.outstanding) > 0 && (
-              <p className="mt-3 text-xs text-slate-500">
-                To upload payment proof, contact your project manager or finance team.
-              </p>
+              <div className="mt-4 space-y-2 border-t pt-4">
+                <p className="text-sm font-medium text-slate-700">Upload payment proof</p>
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    type="number"
+                    placeholder="Amount (₦)"
+                    className="rounded border border-slate-300 px-3 py-2 text-sm"
+                    value={amounts[inv.id] ?? ''}
+                    onChange={(e) => setAmounts((a) => ({ ...a, [inv.id]: e.target.value }))}
+                  />
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="text-sm"
+                    onChange={(e) =>
+                      setFiles((f) => ({ ...f, [inv.id]: e.target.files?.[0] ?? null }))
+                    }
+                  />
+                  <button
+                    type="button"
+                    disabled={uploading === inv.id}
+                    onClick={() => handleUpload(inv)}
+                    className="rounded bg-[#e87722] px-4 py-2 text-sm font-medium text-white hover:bg-[#d66a1a] disabled:opacity-50"
+                  >
+                    {uploading === inv.id ? 'Uploading…' : 'Submit proof'}
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         ))}

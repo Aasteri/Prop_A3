@@ -8,12 +8,14 @@ import {
 import {
   ChangeLogStatus,
   InvoiceStatus,
+  NotificationType,
   PaymentStatus,
   UserRole,
 } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { CreateInvoiceDto, RejectPaymentDto, UpdateInvoiceDto } from './dto/invoice.dto';
 import {
@@ -49,7 +51,10 @@ const include = {
 export class InvoicesService {
   private readonly uploadsDir = path.join(process.cwd(), '..', '..', 'uploads', 'payments');
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {
     fs.mkdirSync(this.uploadsDir, { recursive: true });
   }
 
@@ -325,17 +330,38 @@ export class InvoicesService {
       throw new BadRequestException('Invoice must be sent before accepting payment');
     }
 
+    if (user.role === UserRole.CLIENT) {
+      const client = await this.prisma.client.findUnique({
+        where: { portalUserId: user.id },
+      });
+      if (!client || invoice.clientId !== client.id) {
+        throw new ForbiddenException('This invoice is not on your account');
+      }
+      if (!file) {
+        throw new BadRequestException('Payment proof file is required');
+      }
+    } else {
+      this.assertCanManageInvoices(user);
+    }
+
+    if (!amount || amount <= 0) {
+      throw new BadRequestException('Payment amount must be greater than zero');
+    }
+    if (amount > Number(invoice.outstanding)) {
+      throw new BadRequestException('Amount exceeds outstanding balance');
+    }
+
     let proofUrl: string | undefined;
     let proofFilename: string | undefined;
 
     if (file) {
-      proofFilename = `${Date.now()}-${file.originalname}`;
+      proofFilename = `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
       const dest = path.join(this.uploadsDir, proofFilename);
       fs.writeFileSync(dest, file.buffer);
       proofUrl = `/uploads/payments/${proofFilename}`;
     }
 
-    return this.prisma.payment.create({
+    const payment = await this.prisma.payment.create({
       data: {
         invoiceId,
         amount,
@@ -346,8 +372,25 @@ export class InvoicesService {
       },
       include: {
         uploadedBy: { select: { id: true, firstName: true, lastName: true } },
+        invoice: { select: { invoiceNumber: true } },
       },
     });
+
+    const financeUsers = await this.prisma.user.findMany({
+      where: { role: { in: [UserRole.FINANCE, UserRole.CEO] } },
+      select: { id: true },
+    });
+    await this.notifications.notifyUsers(
+      financeUsers.map((u) => u.id),
+      {
+        type: NotificationType.PAYMENT_PROOF_UPLOADED,
+        title: 'Payment proof uploaded',
+        body: `${payment.invoice.invoiceNumber} — ₦${amount.toLocaleString()} pending verification.`,
+        linkUrl: `/invoices/${invoiceId}`,
+      },
+    );
+
+    return payment;
   }
 
   async verifyPayment(paymentId: string, user: AuthUser) {

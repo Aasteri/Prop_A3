@@ -144,8 +144,15 @@ export class ClientPortalService {
       where: { clientId: client.id },
       include: {
         payments: {
-          where: { status: PaymentStatus.VERIFIED },
-          select: { id: true, amount: true, receiptNumber: true, verifiedAt: true },
+          select: {
+            id: true,
+            amount: true,
+            status: true,
+            receiptNumber: true,
+            verifiedAt: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: 'desc' },
         },
       },
       orderBy: [{ issueDate: 'desc' }],
