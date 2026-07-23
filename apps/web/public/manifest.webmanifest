@@ -1,0 +1,10 @@
+{
+  "name": "Propa3 — Triple A Site Tracker",
+  "short_name": "Propa3",
+  "description": "Daily site activities tracker for Triple A Realty",
+  "start_url": "/site-tracker",
+  "display": "standalone",
+  "background_color": "#1a2744",
+  "theme_color": "#1a2744",
+  "orientation": "portrait-primary"
+}

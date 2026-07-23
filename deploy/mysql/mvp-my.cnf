@@ -1,0 +1,6 @@
+[mysqld]
+# Tuned for t3.micro (1 GiB RAM) + 3 GiB swap — low traffic MVP (~10 users/day)
+innodb_buffer_pool_size = 128M
+innodb_log_file_size = 32M
+max_connections = 30
+performance_schema = OFF

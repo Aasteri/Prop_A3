@@ -1,0 +1,827 @@
+// Propa3 — MySQL schema (local: prop_a3)
+// Full MVP schema: see planning/MVP_INTERNAL.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth & org ─────────────────────────────────────────────────────────────
+
+enum UserRole {
+  CEO
+  PROJECT_MANAGER
+  FOREMAN
+  ENGINEER
+  ARCHITECT
+  STORE_MANAGER
+  FINANCE
+  SALES
+  CLIENT
+  ADMIN
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  firstName     String   @map("first_name")
+  lastName      String   @map("last_name")
+  phone         String?
+  role          UserRole @default(SALES)
+  primarySiteId String?  @map("primary_site_id")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  primarySite       Site?                @relation("PrimarySiteUsers", fields: [primarySiteId], references: [id])
+  siteAssignments   UserSiteAssignment[]
+  submittedLogs     DailySiteLog[]       @relation("LogSubmittedBy")
+  approvedLogs      DailySiteLog[]       @relation("LogApprovedBy")
+  managedProjects   Project[]            @relation("ProjectManager")
+  originatedChanges ProjectChangeLog[]   @relation("ChangeOriginator")
+  revisedChanges    ProjectChangeLog[]   @relation("ChangeRevisedBy")
+  approvedChanges   ProjectChangeLog[]   @relation("ChangeApprovedBy")
+  requestedMaterials MaterialRequest[]   @relation("MaterialRequestedBy")
+  approvedMaterials  MaterialRequest[]   @relation("MaterialApprovedBy")
+  issuedMaterials    MaterialRequest[]   @relation("MaterialIssuedBy")
+  createdInvoices    Invoice[]            @relation("InvoiceCreatedBy")
+  uploadedPayments   Payment[]            @relation("PaymentUploadedBy")
+  verifiedPayments   Payment[]            @relation("PaymentVerifiedBy")
+  certifiedMilestones Milestone[]         @relation("MilestoneCertifiedBy")
+  createdApplications TenantApplication[] @relation("ApplicationCreatedBy")
+  reviewedApplications TenantApplication[] @relation("ApplicationReviewedBy")
+  assignedLeads       Lead[]              @relation("LeadAssignedTo")
+  createdLeads        Lead[]              @relation("LeadCreatedBy")
+  clientProfile       Client?             @relation("ClientPortalUser")
+
+  @@map("users")
+}
+
+model UserSiteAssignment {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  siteId    String   @map("site_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, siteId])
+  @@map("user_site_assignments")
+}
+
+model Site {
+  id        String   @id @default(cuid())
+  code      String   @unique // JKW, MPP, GZ2, GZ3
+  name      String
+  location  String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  projects        Project[]
+  primaryUsers    User[]               @relation("PrimarySiteUsers")
+  userAssignments UserSiteAssignment[]
+  dailyLogs       DailySiteLog[]
+  changeLogs      ProjectChangeLog[]
+  materialRequests MaterialRequest[]
+
+  @@map("sites")
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETE
+}
+
+model Project {
+  id              String        @id @default(cuid())
+  siteId          String        @map("site_id")
+  projectManagerId String?      @map("project_manager_id")
+  name            String
+  projectNumber   String?       @map("project_number")
+  location        String?
+  contractRef     String?       @map("contract_ref")
+  status          ProjectStatus @default(PLANNING)
+  fcdaPermitUrl   String?       @map("fcda_permit_url")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  site           Site           @relation(fields: [siteId], references: [id])
+  projectManager User?          @relation("ProjectManager", fields: [projectManagerId], references: [id])
+  milestones     Milestone[]
+  dailyLogs      DailySiteLog[]
+  changeLogs     ProjectChangeLog[]
+  materialRequests MaterialRequest[]
+  invoices       Invoice[]
+  clientProjects ClientProject[]
+
+  @@map("projects")
+}
+
+// ─── Milestones ─────────────────────────────────────────────────────────────
+
+enum MilestoneStage {
+  FOUNDATION
+  SHELL
+  FINISHING
+  HANDOVER
+}
+
+model Milestone {
+  id            String         @id @default(cuid())
+  projectId     String         @map("project_id")
+  stage         MilestoneStage
+  progressPct   Decimal        @default(0) @map("progress_pct") @db.Decimal(5, 2)
+  targetDate    DateTime?      @map("target_date") @db.Date
+  completedAt   DateTime?      @map("completed_at")
+  certifiedById String?        @map("certified_by_id")
+  certifiedAt   DateTime?      @map("certified_at")
+  notes         String?        @db.Text
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  certifiedBy User?   @relation("MilestoneCertifiedBy", fields: [certifiedById], references: [id])
+
+  @@unique([projectId, stage])
+  @@map("milestones")
+}
+
+// ─── Site Tracker (Daily Site Log) ──────────────────────────────────────────
+
+enum DailyLogStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum ActivityStatus {
+  TODO
+  ONGOING
+  DONE
+}
+
+model DailySiteLog {
+  id              String         @id @default(cuid())
+  projectId       String         @map("project_id")
+  siteId          String         @map("site_id")
+  date            DateTime       @db.Date
+  startTime       String?        @map("start_time")
+  endTime         String?        @map("end_time")
+  projectName     String         @map("project_name")
+  projectLocation String         @map("project_location")
+  refCode         String         @unique @map("ref_code")
+  status          DailyLogStatus @default(DRAFT)
+
+  skilledWorkers   Int     @default(0) @map("skilled_workers")
+  ironBenders      Int     @default(0) @map("iron_benders")
+  carpenters       Int     @default(0)
+  masons           Int     @default(0)
+  plumbers         Int     @default(0)
+  electricians     Int     @default(0)
+  unskilledWorkers Int     @default(0) @map("unskilled_workers")
+  supervisorsCount Int     @default(0) @map("supervisors_count")
+  manpowerRemark   String? @map("manpower_remark") @db.Text
+
+  qualitySlumpTest          Boolean @default(false) @map("quality_slump_test")
+  qualityCubeCasting        Boolean @default(false) @map("quality_cube_casting")
+  qualityReinforcement      Boolean @default(false) @map("quality_reinforcement")
+  qualityConcrete           Boolean @default(false) @map("quality_concrete")
+  qualityOther              String? @map("quality_other")
+
+  safetyPpeCompliance       Boolean @default(false) @map("safety_ppe_compliance")
+  safetyToolboxTalk         Boolean @default(false) @map("safety_toolbox_talk")
+  safetyIncidentsNearMisses Boolean @default(false) @map("safety_incidents_near_misses")
+
+  issueMaterialShortage  Boolean @default(false) @map("issue_material_shortage")
+  issueEquipmentBreakdown Boolean @default(false) @map("issue_equipment_breakdown")
+  issueWeatherDelay      Boolean @default(false) @map("issue_weather_delay")
+  issueOther             String? @map("issue_other") @db.Text
+
+  nextDayActivities String? @map("next_day_activities") @db.Text
+  nextDayMaterials  String? @map("next_day_materials") @db.Text
+  nextDayManpower   String? @map("next_day_manpower") @db.Text
+
+  supervisorSignature   String?   @map("supervisor_signature") @db.Text
+  supervisorSignedAt  DateTime? @map("supervisor_signed_at")
+  pmSignature         String?   @map("pm_signature") @db.Text
+  pmSignedAt          DateTime? @map("pm_signed_at")
+  consultantSignature String?   @map("consultant_signature") @db.Text
+  consultantSignedAt  DateTime? @map("consultant_signed_at")
+
+  submittedById String?   @map("submitted_by_id")
+  approvedById  String?   @map("approved_by_id")
+  submittedAt   DateTime? @map("submitted_at")
+  approvedAt    DateTime? @map("approved_at")
+  rejectReason  String?   @map("reject_reason") @db.Text
+
+  submitLat Decimal? @map("submit_lat") @db.Decimal(10, 7)
+  submitLng Decimal? @map("submit_lng") @db.Decimal(10, 7)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project     Project                  @relation(fields: [projectId], references: [id])
+  site        Site                     @relation(fields: [siteId], references: [id])
+  submittedBy User?                    @relation("LogSubmittedBy", fields: [submittedById], references: [id])
+  approvedBy  User?                    @relation("LogApprovedBy", fields: [approvedById], references: [id])
+  activities  DailySiteLogActivity[]
+  machinery   DailySiteLogMachinery[]
+  materials   DailySiteLogMaterial[]
+  supervisors DailySiteLogSupervisor[]
+  photos      DailySiteLogPhoto[]
+  materialRequests MaterialRequest[]
+
+  @@index([siteId, date])
+  @@index([projectId, date])
+  @@map("daily_site_logs")
+}
+
+model DailySiteLogActivity {
+  id              String         @id @default(cuid())
+  logId           String         @map("log_id")
+  activity        String         @db.Text
+  status          ActivityStatus @default(TODO)
+  progressPercent Int            @default(0) @map("progress_percent")
+  remark          String?        @db.Text
+  sortOrder       Int            @default(0) @map("sort_order")
+
+  log DailySiteLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+
+  @@map("daily_site_log_activities")
+}
+
+model DailySiteLogMachinery {
+  id         String   @id @default(cuid())
+  logId      String   @map("log_id")
+  equipment  String
+  unitsHours Decimal? @map("units_hours") @db.Decimal(10, 2)
+  remark     String?
+  sortOrder  Int      @default(0) @map("sort_order")
+
+  log DailySiteLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+
+  @@map("daily_site_log_machinery")
+}
+
+model DailySiteLogMaterial {
+  id          String  @id @default(cuid())
+  logId       String  @map("log_id")
+  material    String
+  receivedQty Decimal @default(0) @map("received_qty") @db.Decimal(12, 3)
+  consumedQty Decimal @default(0) @map("consumed_qty") @db.Decimal(12, 3)
+  remark      String?
+  sortOrder   Int     @default(0) @map("sort_order")
+
+  log DailySiteLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+
+  @@map("daily_site_log_materials")
+}
+
+model DailySiteLogSupervisor {
+  id        String @id @default(cuid())
+  logId     String @map("log_id")
+  name      String
+  sortOrder Int    @default(0) @map("sort_order")
+
+  log DailySiteLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+
+  @@map("daily_site_log_supervisors")
+}
+
+model DailySiteLogPhoto {
+  id        String    @id @default(cuid())
+  logId     String    @map("log_id")
+  url       String
+  filename  String
+  section   String?
+  caption   String?
+  lat       Decimal?  @db.Decimal(10, 7)
+  lng       Decimal?  @db.Decimal(10, 7)
+  takenAt   DateTime? @map("taken_at")
+  sortOrder Int       @default(0) @map("sort_order")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  log DailySiteLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+
+  @@map("daily_site_log_photos")
+}
+
+// ─── Project Change Log ───────────────────────────────────────────────────────
+
+enum ChangeLogStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum ChangeImpactLevel {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model ProjectChangeLog {
+  id             String            @id @default(cuid())
+  projectId      String            @map("project_id")
+  siteId         String            @map("site_id")
+  changeId       String            @unique @map("change_id")
+  revisionDate   DateTime          @map("revision_date") @db.Date
+  originatorId   String?           @map("originator_id")
+  originatorName String            @map("originator_name")
+  description    String            @db.Text
+  justification  String            @db.Text
+  revisedById    String?           @map("revised_by_id")
+  status         ChangeLogStatus   @default(DRAFT)
+  approvedById   String?           @map("approved_by_id")
+  impactLevel    ChangeImpactLevel @map("impact_level")
+  rejectReason   String?           @map("reject_reason") @db.Text
+  approvedAt     DateTime?         @map("approved_at")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  project    Project @relation(fields: [projectId], references: [id])
+  site       Site    @relation(fields: [siteId], references: [id])
+  originator User?   @relation("ChangeOriginator", fields: [originatorId], references: [id])
+  revisedBy  User?   @relation("ChangeRevisedBy", fields: [revisedById], references: [id])
+  approvedBy User?   @relation("ChangeApprovedBy", fields: [approvedById], references: [id])
+  invoiceVariations InvoiceVariation[]
+
+  @@index([projectId, revisionDate])
+  @@map("project_change_logs")
+}
+
+// ─── Material Requests ──────────────────────────────────────────────────────
+
+enum MaterialRequestStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  ISSUED
+  PARTIALLY_ISSUED
+}
+
+enum MaterialUrgency {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+model MaterialRequest {
+  id            String                @id @default(cuid())
+  projectId     String                @map("project_id")
+  siteId        String                @map("site_id")
+  dailyLogId    String?               @map("daily_log_id")
+  requestRef    String                @unique @map("request_ref")
+  area          String?
+  requiredDate  DateTime              @map("required_date") @db.Date
+  status        MaterialRequestStatus @default(DRAFT)
+  notes         String?               @db.Text
+  requestedById String                @map("requested_by_id")
+  approvedById  String?               @map("approved_by_id")
+  issuedById    String?               @map("issued_by_id")
+  approvedAt    DateTime?             @map("approved_at")
+  issuedAt      DateTime?             @map("issued_at")
+  rejectReason  String?               @map("reject_reason") @db.Text
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  project     Project              @relation(fields: [projectId], references: [id])
+  site        Site                 @relation(fields: [siteId], references: [id])
+  dailyLog    DailySiteLog?        @relation(fields: [dailyLogId], references: [id])
+  requestedBy User                 @relation("MaterialRequestedBy", fields: [requestedById], references: [id])
+  approvedBy  User?                @relation("MaterialApprovedBy", fields: [approvedById], references: [id])
+  issuedBy    User?                @relation("MaterialIssuedBy", fields: [issuedById], references: [id])
+  lines       MaterialRequestLine[]
+
+  @@index([projectId, status])
+  @@map("material_requests")
+}
+
+model MaterialRequestLine {
+  id                String          @id @default(cuid())
+  requestId         String          @map("request_id")
+  material          String
+  specification     String?         @db.Text
+  quantityRequested Decimal         @map("quantity_requested") @db.Decimal(12, 3)
+  quantityApproved  Decimal?        @map("quantity_approved") @db.Decimal(12, 3)
+  quantityIssued    Decimal         @default(0) @map("quantity_issued") @db.Decimal(12, 3)
+  unit              String?
+  urgency           MaterialUrgency @default(NORMAL)
+  remark            String?
+  sortOrder         Int             @default(0) @map("sort_order")
+
+  request MaterialRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@map("material_request_lines")
+}
+
+// ─── Invoicing & Payments ─────────────────────────────────────────────────────
+
+enum InvoiceType {
+  SALES
+  VARIATION
+  AGENCY
+  SERVICE
+  RENTAL
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PARTIALLY_PAID
+  PAID
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model SettlementEntity {
+  id            String   @id @default(cuid())
+  name          String
+  bankName      String   @map("bank_name")
+  accountName   String   @map("account_name")
+  accountNumber String   @map("account_number")
+  isDefault     Boolean  @default(false) @map("is_default")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  invoices Invoice[]
+
+  @@map("settlement_entities")
+}
+
+model Invoice {
+  id                String        @id @default(cuid())
+  projectId         String?       @map("project_id")
+  clientId          String?       @map("client_id")
+  settlementEntityId String       @map("settlement_entity_id")
+  invoiceNumber     String        @unique @map("invoice_number")
+  invoiceType       InvoiceType   @map("invoice_type")
+  status            InvoiceStatus @default(DRAFT)
+  issueDate         DateTime      @map("issue_date") @db.Date
+  contractRef       String?       @map("contract_ref")
+  clientName        String        @map("client_name")
+  clientAddress     String?       @map("client_address") @db.Text
+  projectDetails    String?       @map("project_details") @db.Text
+  paymentTerms      String?       @map("payment_terms") @db.Text
+  baseTotal         Decimal       @default(0) @map("base_total") @db.Decimal(14, 2)
+  variationTotal    Decimal       @default(0) @map("variation_total") @db.Decimal(14, 2)
+  revisedTotal      Decimal       @default(0) @map("revised_total") @db.Decimal(14, 2)
+  paidTotal         Decimal       @default(0) @map("paid_total") @db.Decimal(14, 2)
+  outstanding       Decimal       @default(0) @db.Decimal(14, 2)
+  createdById       String        @map("created_by_id")
+  sentAt            DateTime?     @map("sent_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  project          Project?           @relation(fields: [projectId], references: [id])
+  client           Client?            @relation(fields: [clientId], references: [id])
+  settlementEntity SettlementEntity   @relation(fields: [settlementEntityId], references: [id])
+  createdBy        User               @relation("InvoiceCreatedBy", fields: [createdById], references: [id])
+  lines            InvoiceLine[]
+  variations       InvoiceVariation[]
+  payments         Payment[]
+  tenantApplication TenantApplication? @relation("ApplicationAgencyInvoice")
+
+  @@index([status, issueDate])
+  @@map("invoices")
+}
+
+model InvoiceLine {
+  id          String  @id @default(cuid())
+  invoiceId   String  @map("invoice_id")
+  description String  @db.Text
+  quantity    Decimal @db.Decimal(12, 3)
+  unit        String
+  unitPrice   Decimal @map("unit_price") @db.Decimal(14, 2)
+  totalAmount Decimal @map("total_amount") @db.Decimal(14, 2)
+  sortOrder   Int     @default(0) @map("sort_order")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_lines")
+}
+
+model InvoiceVariation {
+  id            String  @id @default(cuid())
+  invoiceId     String  @map("invoice_id")
+  changeLogId   String? @map("change_log_id")
+  variationCode String  @map("variation_code")
+  title         String
+  description   String  @db.Text
+  amount        Decimal @db.Decimal(14, 2)
+  sortOrder     Int     @default(0) @map("sort_order")
+
+  invoice   Invoice           @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  changeLog ProjectChangeLog? @relation(fields: [changeLogId], references: [id])
+
+  @@unique([invoiceId, variationCode])
+  @@map("invoice_variations")
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  invoiceId       String        @map("invoice_id")
+  amount          Decimal       @db.Decimal(14, 2)
+  status          PaymentStatus @default(PENDING)
+  proofUrl        String?       @map("proof_url")
+  proofFilename   String?       @map("proof_filename")
+  receiptNumber   String?       @unique @map("receipt_number")
+  uploadedById    String?       @map("uploaded_by_id")
+  verifiedById    String?       @map("verified_by_id")
+  verifiedAt      DateTime?     @map("verified_at")
+  rejectReason    String?       @map("reject_reason") @db.Text
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  invoice    Invoice @relation(fields: [invoiceId], references: [id])
+  uploadedBy User?   @relation("PaymentUploadedBy", fields: [uploadedById], references: [id])
+  verifiedBy User?   @relation("PaymentVerifiedBy", fields: [verifiedById], references: [id])
+
+  @@map("payments")
+}
+
+// ─── Rentals: Tenant Application + Estate Terrier ─────────────────────────────
+
+enum TenantApplicationStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum RentPaidFixed {
+  PAID
+  FIXED
+}
+
+model RentalEstate {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  title     String
+  location  String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  rows         EstateTerrierRow[]
+  applications TenantApplication[]
+
+  @@map("rental_estates")
+}
+
+model EstateTerrierRow {
+  id                 String         @id @default(cuid())
+  estateId           String         @map("estate_id")
+  serialNo           Int            @map("serial_no")
+  propertyType       String         @map("property_type")
+  location           String
+  tenantProfileId    String?        @map("tenant_profile_id")
+  tenantName         String?        @map("tenant_name")
+  tenantPhone        String?        @map("tenant_phone")
+  rentPaidFixed      RentPaidFixed? @map("rent_paid_fixed")
+  rentAmountNgn      Decimal?       @map("rent_amount_ngn") @db.Decimal(14, 2)
+  paymentMode        String?        @map("payment_mode")
+  datePaid           DateTime?      @map("date_paid") @db.Date
+  tenancyStart       DateTime?      @map("tenancy_start") @db.Date
+  tenancyEnd         DateTime?      @map("tenancy_end") @db.Date
+  cautionDeposit     Decimal?       @map("caution_deposit") @db.Decimal(14, 2)
+  serviceCharge      Decimal?       @map("service_charge") @db.Decimal(14, 2)
+  expenseDescription String?        @map("expense_description") @db.Text
+  expenseAmount      Decimal        @default(0) @map("expense_amount") @db.Decimal(14, 2)
+  netRentalIncome    Decimal        @default(0) @map("net_rental_income") @db.Decimal(14, 2)
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  estate        RentalEstate        @relation(fields: [estateId], references: [id], onDelete: Cascade)
+  tenantProfile TenantProfile?    @relation(fields: [tenantProfileId], references: [id])
+  applications  TenantApplication[]
+
+  @@unique([estateId, serialNo])
+  @@map("estate_terrier_rows")
+}
+
+model TenantProfile {
+  id               String   @id @default(cuid())
+  surname          String
+  otherNames       String   @map("other_names")
+  phone            String
+  email            String?
+  nationality      String?
+  stateOfOrigin    String?  @map("state_of_origin")
+  permanentAddress String?  @map("permanent_address") @db.Text
+  occupation       String?
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  application TenantApplication?
+  terrierRows EstateTerrierRow[]
+
+  @@map("tenant_profiles")
+}
+
+model TenantApplication {
+  id                   String                  @id @default(cuid())
+  applicationRef       String                  @unique @map("application_ref")
+  estateId             String                  @map("estate_id")
+  terrierRowId         String?                 @map("terrier_row_id")
+  surname              String
+  otherNames           String                  @map("other_names")
+  nationality          String
+  stateOfOrigin        String                  @map("state_of_origin")
+  maritalStatus        String                  @map("marital_status")
+  phone                String
+  formerAddress        String                  @map("former_address") @db.Text
+  vacateReason         String                  @map("vacate_reason") @db.Text
+  permanentAddress     String                  @map("permanent_address") @db.Text
+  occupation           String
+  officeAddress        String                  @map("office_address") @db.Text
+  propertyTypeAccepted String                  @map("property_type_accepted")
+  rentAccepted         Decimal                 @map("rent_accepted") @db.Decimal(14, 2)
+  rentPayer            String                  @map("rent_payer")
+  nextOfKinName        String                  @map("next_of_kin_name")
+  nextOfKinPhone       String                  @map("next_of_kin_phone")
+  nextOfKinAddress     String                  @map("next_of_kin_address") @db.Text
+  nextOfKinRelationship String                 @map("next_of_kin_relationship")
+  guarantorName        String                  @map("guarantor_name")
+  guarantorWorkAddress String                  @map("guarantor_work_address") @db.Text
+  guarantorPhone       String                  @map("guarantor_phone")
+  guarantorSignature   String?                 @map("guarantor_signature") @db.Text
+  inspectionDate       DateTime?               @map("inspection_date") @db.Date
+  applicantSignature   String?                 @map("applicant_signature") @db.Text
+  clause1Accepted      Boolean                 @default(false) @map("clause1_accepted")
+  clause2Accepted      Boolean                 @default(false) @map("clause2_accepted")
+  agencyFeeAmount      Decimal                 @default(0) @map("agency_fee_amount") @db.Decimal(14, 2)
+  agencyFeeInvoiceId   String?                 @unique @map("agency_fee_invoice_id")
+  status               TenantApplicationStatus @default(DRAFT)
+  tenantProfileId      String?                 @unique @map("tenant_profile_id")
+  createdById          String?                 @map("created_by_id")
+  reviewedById         String?                 @map("reviewed_by_id")
+  submittedAt          DateTime?               @map("submitted_at")
+  approvedAt           DateTime?               @map("approved_at")
+  rejectReason         String?                 @map("reject_reason") @db.Text
+  createdAt            DateTime                @default(now()) @map("created_at")
+  updatedAt            DateTime                @updatedAt @map("updated_at")
+
+  estate           RentalEstate      @relation(fields: [estateId], references: [id])
+  terrierRow       EstateTerrierRow? @relation(fields: [terrierRowId], references: [id])
+  agencyFeeInvoice Invoice?          @relation("ApplicationAgencyInvoice", fields: [agencyFeeInvoiceId], references: [id])
+  tenantProfile    TenantProfile?    @relation(fields: [tenantProfileId], references: [id])
+  createdBy        User?             @relation("ApplicationCreatedBy", fields: [createdById], references: [id])
+  reviewedBy       User?             @relation("ApplicationReviewedBy", fields: [reviewedById], references: [id])
+
+  @@index([estateId, status])
+  @@map("tenant_applications")
+}
+
+// ─── CRM & Sales Listings ─────────────────────────────────────────────────────
+
+enum ListingFinish {
+  FF
+  SF
+  DPC
+}
+
+enum ListingStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  ARCHIVED
+}
+
+enum ListingType {
+  SALE
+  RENT
+}
+
+enum LeadStage {
+  INQUIRY
+  CONTACTED
+  VIEWING
+  NEGOTIATION
+  RESERVED
+  WON
+  LOST
+}
+
+enum LeadSource {
+  WEB
+  WHATSAPP
+  INSTAGRAM
+  WALK_IN
+  REFERRAL
+  PHONE
+  MANUAL
+}
+
+model Listing {
+  id               String        @id @default(cuid())
+  listingRef       String        @unique @map("listing_ref")
+  location         String
+  propertyType     String        @map("property_type")
+  finish           ListingFinish
+  paymentPlan      String        @map("payment_plan")
+  listingType      ListingType   @default(SALE) @map("listing_type")
+  status           ListingStatus @default(AVAILABLE)
+  priceNgn         Decimal?      @map("price_ngn") @db.Decimal(14, 2)
+  priceOutrightNgn Decimal?      @map("price_outright_ngn") @db.Decimal(14, 2)
+  price6mNgn       Decimal?      @map("price_6m_ngn") @db.Decimal(14, 2)
+  price12mNgn      Decimal?      @map("price_12m_ngn") @db.Decimal(14, 2)
+  price18mNgn      Decimal?      @map("price_18m_ngn") @db.Decimal(14, 2)
+  sourceDocument   String?       @map("source_document")
+  notes            String?       @db.Text
+  isPublic         Boolean       @default(true) @map("is_public")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  leads Lead[]
+
+  @@index([status, location])
+  @@map("listings")
+}
+
+model Lead {
+  id                String     @id @default(cuid())
+  leadRef           String     @unique @map("lead_ref")
+  firstName         String     @map("first_name")
+  lastName          String     @map("last_name")
+  phone             String
+  email             String?
+  source            LeadSource @default(MANUAL)
+  stage             LeadStage  @default(INQUIRY)
+  listingId         String?    @map("listing_id")
+  assignedToId      String?    @map("assigned_to_id")
+  budgetNgn         Decimal?   @map("budget_ngn") @db.Decimal(14, 2)
+  preferences       String?    @db.Text
+  dealValueNgn      Decimal?   @map("deal_value_ngn") @db.Decimal(14, 2)
+  notes             String?    @db.Text
+  lostReason        String?    @map("lost_reason") @db.Text
+  utmSource         String?    @map("utm_source")
+  utmCampaign       String?    @map("utm_campaign")
+  createdById       String?    @map("created_by_id")
+  stageUpdatedAt    DateTime   @default(now()) @map("stage_updated_at")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  listing    Listing? @relation(fields: [listingId], references: [id])
+  assignedTo User?    @relation("LeadAssignedTo", fields: [assignedToId], references: [id])
+  createdBy  User?    @relation("LeadCreatedBy", fields: [createdById], references: [id])
+  client     Client?
+
+  @@index([stage, createdAt])
+  @@map("leads")
+}
+
+model Client {
+  id                  String   @id @default(cuid())
+  clientRef           String   @unique @map("client_ref")
+  firstName           String   @map("first_name")
+  lastName            String   @map("last_name")
+  phone               String
+  email               String?
+  address             String?  @db.Text
+  preferences         String?  @db.Text
+  convertedFromLeadId String?  @unique @map("converted_from_lead_id")
+  portalUserId        String?  @unique @map("portal_user_id")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  lead       Lead?            @relation(fields: [convertedFromLeadId], references: [id])
+  portalUser User?            @relation("ClientPortalUser", fields: [portalUserId], references: [id])
+  projects   ClientProject[]
+  invoices   Invoice[]
+
+  @@map("clients")
+}
+
+model ClientProject {
+  id        String   @id @default(cuid())
+  clientId  String   @map("client_id")
+  projectId String   @map("project_id")
+  plotRef   String?  @map("plot_ref")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  client  Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, projectId])
+  @@map("client_projects")
+}

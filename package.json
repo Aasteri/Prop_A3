@@ -1,0 +1,36 @@
+{
+  "name": "propa3",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Triple A Realty — property, project & procurement platform",
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,orange \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "build:api": "npm run build --workspace=apps/api",
+    "build:web": "npm run build --workspace=apps/web",
+    "build": "npm run build:api && npm run build:web",
+    "deploy": "bash deploy/deploy.sh",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:seed": "npx tsx prisma/seed.ts",
+    "postinstall": "prisma generate"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "prisma": "^6.9.0",
+    "tsx": "^4.23.1"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.9.0",
+    "bcrypt": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
