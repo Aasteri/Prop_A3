@@ -6,6 +6,8 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import {
+  AuditAction,
+  AuditEntityType,
   ChangeLogStatus,
   InvoiceStatus,
   NotificationType,
@@ -16,6 +18,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { CreateInvoiceDto, RejectPaymentDto, UpdateInvoiceDto } from './dto/invoice.dto';
 import {
@@ -54,6 +57,7 @@ export class InvoicesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly audit: AuditService,
   ) {
     fs.mkdirSync(this.uploadsDir, { recursive: true });
   }
@@ -390,6 +394,16 @@ export class InvoicesService {
       },
     );
 
+    await this.audit.log({
+      entityType: AuditEntityType.PAYMENT,
+      entityId: payment.id,
+      action: AuditAction.UPLOAD,
+      summary: `Payment proof uploaded — ${payment.invoice.invoiceNumber} ₦${amount.toLocaleString()}`,
+      actor: user,
+      after: { amount, status: PaymentStatus.PENDING, invoiceId },
+      metadata: { invoiceNumber: payment.invoice.invoiceNumber },
+    });
+
     return payment;
   }
 
@@ -406,8 +420,10 @@ export class InvoicesService {
     }
 
     const year = new Date().getFullYear();
+    const beforeInvoiceStatus = payment.invoice.status;
+    const beforeOutstanding = Number(payment.invoice.outstanding);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const receiptNumber = await generateReceiptNumber(tx, year);
 
       await tx.payment.update({
@@ -448,6 +464,31 @@ export class InvoicesService {
         },
       });
     });
+
+    if (result) {
+      await this.audit.log({
+        entityType: AuditEntityType.PAYMENT,
+        entityId: paymentId,
+        action: AuditAction.VERIFY,
+        summary: `Payment verified — ${payment.invoice.invoiceNumber} ₦${Number(payment.amount).toLocaleString()} (${result.receiptNumber})`,
+        actor: user,
+        before: {
+          status: PaymentStatus.PENDING,
+          invoiceStatus: beforeInvoiceStatus,
+          outstanding: beforeOutstanding,
+        },
+        after: {
+          status: PaymentStatus.VERIFIED,
+          receiptNumber: result.receiptNumber,
+          invoiceStatus: result.invoice.status,
+          paidTotal: Number(result.invoice.paidTotal),
+          outstanding: Number(result.invoice.outstanding),
+        },
+        metadata: { invoiceNumber: payment.invoice.invoiceNumber, invoiceId: payment.invoice.id },
+      });
+    }
+
+    return result;
   }
 
   async rejectPayment(paymentId: string, dto: RejectPaymentDto, user: AuthUser) {
@@ -459,7 +500,7 @@ export class InvoicesService {
       throw new BadRequestException('Payment already processed');
     }
 
-    return this.prisma.payment.update({
+    const updated = await this.prisma.payment.update({
       where: { id: paymentId },
       data: {
         status: PaymentStatus.REJECTED,
@@ -467,7 +508,21 @@ export class InvoicesService {
         verifiedById: user.id,
         verifiedAt: new Date(),
       },
+      include: { invoice: { select: { invoiceNumber: true, id: true } } },
     });
+
+    await this.audit.log({
+      entityType: AuditEntityType.PAYMENT,
+      entityId: paymentId,
+      action: AuditAction.REJECT,
+      summary: `Payment rejected — ${updated.invoice.invoiceNumber}`,
+      actor: user,
+      before: { status: PaymentStatus.PENDING, amount: Number(payment.amount) },
+      after: { status: PaymentStatus.REJECTED, rejectReason: dto.rejectReason },
+      metadata: { invoiceNumber: updated.invoice.invoiceNumber, invoiceId: updated.invoice.id },
+    });
+
+    return updated;
   }
 
   async getReceiptPdf(paymentId: string): Promise<StreamableFile> {

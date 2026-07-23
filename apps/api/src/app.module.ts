@@ -22,6 +22,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { HseModule } from './hse/hse.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { DocumentsModule } from './documents/documents.module';
+import { AuditModule } from './audit/audit.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -52,6 +53,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     HseModule,
     DashboardModule,
     DocumentsModule,
+    AuditModule,
   ],
   controllers: [AppController],
 })

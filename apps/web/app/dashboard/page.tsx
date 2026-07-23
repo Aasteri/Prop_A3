@@ -246,6 +246,12 @@ export default function DashboardPage() {
                         {ceoSummary.compliance.expiringCorenCount}
                       </span>
                     </li>
+                    <li className="flex justify-between">
+                      <span>Audit trail</span>
+                      <Link href="/audit-log" className="font-medium text-[#e87722]">
+                        View log →
+                      </Link>
+                    </li>
                   </ul>
                 </section>
 

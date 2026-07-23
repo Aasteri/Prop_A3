@@ -4,8 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { MilestoneStage, UserRole } from '@prisma/client';
+import { AuditAction, AuditEntityType, MilestoneStage, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { CertifyMilestoneDto, UpdateMilestoneProgressDto } from './dto/milestone.dto';
 import { capMilestoneProgress, stageLabel } from './milestones.utils';
@@ -19,7 +20,10 @@ const include = {
 
 @Injectable()
 export class MilestonesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   findByProject(projectId: string, user: AuthUser) {
     return this.getProjectWithAccess(projectId, user).then((project) =>
@@ -74,7 +78,7 @@ export class MilestonesService {
       !!milestone.project.fcdaPermitUrl,
     );
 
-    return this.prisma.milestone.update({
+    const updated = await this.prisma.milestone.update({
       where: { id },
       data: {
         progressPct,
@@ -83,6 +87,19 @@ export class MilestonesService {
       },
       include,
     });
+
+    await this.audit.log({
+      entityType: AuditEntityType.MILESTONE,
+      entityId: id,
+      action: AuditAction.UPDATE,
+      summary: `${milestone.stage} progress ${Number(milestone.progressPct)}% → ${progressPct}%`,
+      actor: user,
+      before: { progressPct: Number(milestone.progressPct), stage: milestone.stage },
+      after: { progressPct, stage: milestone.stage },
+      metadata: { projectId: milestone.projectId },
+    });
+
+    return updated;
   }
 
   async certify(id: string, dto: CertifyMilestoneDto, user: AuthUser) {
@@ -119,7 +136,7 @@ export class MilestonesService {
       throw new BadRequestException('Milestone already certified');
     }
 
-    return this.prisma.milestone.update({
+    const updated = await this.prisma.milestone.update({
       where: { id },
       data: {
         certifiedById: user.id,
@@ -129,6 +146,19 @@ export class MilestonesService {
       },
       include,
     });
+
+    await this.audit.log({
+      entityType: AuditEntityType.MILESTONE,
+      entityId: id,
+      action: AuditAction.CERTIFY,
+      summary: `${milestone.stage} milestone certified at 100%`,
+      actor: user,
+      before: { certifiedAt: null, progressPct: Number(milestone.progressPct) },
+      after: { certifiedAt: updated.certifiedAt, certifiedById: user.id },
+      metadata: { projectId: milestone.projectId, stage: milestone.stage },
+    });
+
+    return updated;
   }
 
   private async getProjectWithAccess(projectId: string, user: AuthUser) {

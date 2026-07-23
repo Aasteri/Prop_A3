@@ -4,6 +4,8 @@ import { UserRole } from '@prisma/client';
 export type AuthUser = {
   id: string;
   email: string;
+  firstName: string;
+  lastName: string;
   role: UserRole;
   primarySiteId: string | null;
   siteIds: string[];

@@ -99,4 +99,8 @@ CEO_TOKEN=$(login 'ceo@triplea.ng')
 curl -sf "$BASE/dashboard/ceo" -H "Authorization: Bearer $CEO_TOKEN" \
   | jget "console.log('ceoSites',d.siteHealth.length,'outstanding',d.revenue.totalOutstanding,'leads',d.leads.active,'fcdaMissing',d.fcdaMissing.length)"
 
+echo "==> Audit log"
+curl -sf "$BASE/audit?limit=5" -H "Authorization: Bearer $CEO_TOKEN" \
+  | jget "console.log('audit',d.length,d[0]?.action,d[0]?.entityType,d[0]?.summary?.slice(0,40))"
+
 echo "E2E_OK"

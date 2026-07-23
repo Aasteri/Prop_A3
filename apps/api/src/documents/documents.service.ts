@@ -8,11 +8,14 @@ import {
   DocumentCategory,
   DocumentEntityType,
   UserRole,
+  AuditAction,
+  AuditEntityType,
 } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { buildAllocationLetterPdf } from './allocation-letter.pdf';
 import { GenerateAllocationDto } from './dto/generate-allocation.dto';
 import { UploadDocumentDto } from './dto/upload-document.dto';
@@ -21,7 +24,10 @@ import { UploadDocumentDto } from './dto/upload-document.dto';
 export class DocumentsService {
   private readonly uploadRoot = path.join(process.cwd(), '..', '..', 'uploads', 'documents');
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   async findAll(
     user: AuthUser,
@@ -126,6 +132,25 @@ export class DocumentsService {
         data: { fcdaPermitUrl: fileUrl },
       });
     }
+
+    await this.audit.log({
+      entityType: AuditEntityType.DOCUMENT,
+      entityId: document.id,
+      action: AuditAction.UPLOAD,
+      summary: `${dto.category} v${version} uploaded — ${dto.title}`,
+      actor: user,
+      before: latest
+        ? { version: latest.version, filename: latest.filename, isLatest: false }
+        : null,
+      after: {
+        version,
+        category: dto.category,
+        title: dto.title,
+        filename: file.originalname,
+        entityType: dto.entityType,
+        entityId: dto.entityId,
+      },
+    });
 
     return document;
   }

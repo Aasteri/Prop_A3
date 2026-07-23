@@ -75,6 +75,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <NavLink href="/documents" active={pathname.startsWith('/documents')}>
               Documents
             </NavLink>
+            {(user.role === 'CEO' || user.role === 'FINANCE' || user.role === 'ADMIN') && (
+              <NavLink href="/audit-log" active={pathname.startsWith('/audit-log')}>
+                Audit
+              </NavLink>
+            )}
           </nav>
         )}
       </header>

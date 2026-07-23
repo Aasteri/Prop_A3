@@ -61,6 +61,7 @@ model User {
   notifications       Notification[]
   reportedHseIncidents HseIncident[]      @relation("HseReportedBy")
   uploadedDocuments    Document[]          @relation("DocumentUploadedBy")
+  auditEvents          AuditEvent[]        @relation("AuditActor")
 
   @@map("users")
 }
@@ -930,4 +931,43 @@ model Document {
 
   @@index([entityType, entityId, category, isLatest])
   @@map("documents")
+}
+
+// ─── Audit log (append-only) ────────────────────────────────────────────────
+
+enum AuditEntityType {
+  INVOICE
+  PAYMENT
+  MILESTONE
+  DOCUMENT
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  STATUS_CHANGE
+  UPLOAD
+  VERIFY
+  REJECT
+  CERTIFY
+}
+
+model AuditEvent {
+  id          String          @id @default(cuid())
+  entityType  AuditEntityType @map("entity_type")
+  entityId    String          @map("entity_id")
+  action      AuditAction
+  summary     String          @db.VarChar(500)
+  actorId     String?         @map("actor_id")
+  actorName   String?         @map("actor_name")
+  beforeValue Json?           @map("before_value")
+  afterValue  Json?           @map("after_value")
+  metadata    Json?
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_events")
 }
