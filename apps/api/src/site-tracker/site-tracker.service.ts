@@ -28,6 +28,9 @@ import {
 } from './site-tracker.utils';
 import { buildSiteLogPdf } from './site-log.pdf';
 import { gateFoundationProgress } from '../milestones/milestones.utils';
+import { NotificationsService } from '../notifications/notifications.service';
+import { HseService } from '../hse/hse.service';
+import { NotificationType } from '@prisma/client';
 
 const logInclude = {
   project: { include: { site: true } },
@@ -49,7 +52,11 @@ const logInclude = {
 export class SiteTrackerService {
   private readonly photosDir = path.join(process.cwd(), '..', '..', 'uploads', 'site-logs');
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+    private readonly hse: HseService,
+  ) {
     fs.mkdirSync(this.photosDir, { recursive: true });
   }
 
@@ -281,10 +288,95 @@ export class SiteTrackerService {
         submitLat: dto.submitLat,
         submitLng: dto.submitLng,
       },
-      include: logInclude,
+      include: { ...logInclude, materials: true },
     });
 
-    return this.withMaterialBalances(log);
+    const withBalances = this.withMaterialBalances(log);
+    await this.handlePostSubmitAlerts(withBalances, user.id);
+
+    return withBalances;
+  }
+
+  private async handlePostSubmitAlerts(
+    log: ReturnType<SiteTrackerService['withMaterialBalances']> & {
+      id: string;
+      siteId: string;
+      projectId: string;
+      refCode: string;
+      projectName: string;
+      issueOther: string | null;
+      issueMaterialShortage: boolean;
+      issueEquipmentBreakdown: boolean;
+      issueWeatherDelay: boolean;
+      safetyIncidentsNearMisses: boolean;
+      materials: { material: string; receivedQty: Prisma.Decimal; consumedQty: Prisma.Decimal }[];
+    },
+    submittedById: string,
+  ) {
+    const pmId = await this.notifications.projectManagerId(log.projectId);
+    const managerIds = await this.notifications.siteManagerIds(log.siteId);
+    const notifyPm = [...new Set([...managerIds, ...(pmId ? [pmId] : [])])];
+
+    await this.notifications.notifyUsers(notifyPm, {
+      type: NotificationType.DAILY_LOG_SUBMITTED,
+      title: 'Daily log submitted',
+      body: `${log.refCode} — ${log.projectName} awaiting approval.`,
+      linkUrl: `/site-tracker/${log.id}`,
+    });
+
+    if (log.issueMaterialShortage) {
+      const storeIds = await this.notifications.storeManagersForSite(log.siteId);
+      await this.notifications.notifyUsers([...notifyPm, ...storeIds], {
+        type: NotificationType.MATERIAL_SHORTAGE,
+        title: 'Material shortage flagged',
+        body: `${log.refCode} — review materials section.`,
+        linkUrl: `/site-tracker/${log.id}`,
+      });
+    }
+
+    if (log.issueEquipmentBreakdown) {
+      await this.notifications.notifyUsers(notifyPm, {
+        type: NotificationType.ISSUE_EQUIPMENT,
+        title: 'Equipment breakdown',
+        body: `${log.refCode} — equipment issue reported on site.`,
+        linkUrl: `/site-tracker/${log.id}`,
+      });
+    }
+
+    if (log.issueWeatherDelay) {
+      await this.notifications.notifyUsers(notifyPm, {
+        type: NotificationType.ISSUE_WEATHER,
+        title: 'Weather delay',
+        body: `${log.refCode} — weather delay flagged.`,
+        linkUrl: `/site-tracker/${log.id}`,
+      });
+    }
+
+    const negativeMaterials = log.materials.filter(
+      (m) => Number(m.receivedQty) - Number(m.consumedQty) < 0,
+    );
+    if (negativeMaterials.length) {
+      const names = negativeMaterials.map((m) => m.material).join(', ');
+      const storeIds = await this.notifications.storeManagersForSite(log.siteId);
+      await this.notifications.notifyUsers([...notifyPm, ...storeIds], {
+        type: NotificationType.NEGATIVE_MATERIAL_BALANCE,
+        title: 'Negative material balance',
+        body: `${log.refCode} — ${names}`,
+        linkUrl: `/site-tracker/${log.id}`,
+      });
+    }
+
+    if (log.safetyIncidentsNearMisses) {
+      await this.hse.createDraftFromLog({
+        id: log.id,
+        siteId: log.siteId,
+        projectId: log.projectId,
+        refCode: log.refCode,
+        projectName: log.projectName,
+        issueOther: log.issueOther,
+        submittedById,
+      });
+    }
   }
 
   async approve(id: string, user: AuthUser) {

@@ -58,6 +58,8 @@ model User {
   assignedLeads       Lead[]              @relation("LeadAssignedTo")
   createdLeads        Lead[]              @relation("LeadCreatedBy")
   clientProfile       Client?             @relation("ClientPortalUser")
+  notifications       Notification[]
+  reportedHseIncidents HseIncident[]      @relation("HseReportedBy")
 
   @@map("users")
 }
@@ -90,6 +92,7 @@ model Site {
   dailyLogs       DailySiteLog[]
   changeLogs      ProjectChangeLog[]
   materialRequests MaterialRequest[]
+  hseIncidents     HseIncident[]
 
   @@map("sites")
 }
@@ -122,8 +125,67 @@ model Project {
   materialRequests MaterialRequest[]
   invoices       Invoice[]
   clientProjects ClientProject[]
+  hseIncidents   HseIncident[]
 
   @@map("projects")
+}
+
+// ─── Notifications & HSE ────────────────────────────────────────────────────
+
+enum NotificationType {
+  DAILY_LOG_SUBMITTED
+  DAILY_LOG_MISSING
+  MATERIAL_SHORTAGE
+  NEGATIVE_MATERIAL_BALANCE
+  HSE_INCIDENT_DRAFT
+  MATERIAL_REQUEST_PENDING
+  ISSUE_EQUIPMENT
+  ISSUE_WEATHER
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  body      String           @db.Text
+  linkUrl   String?          @map("link_url")
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
+}
+
+enum HseIncidentStatus {
+  DRAFT
+  OPEN
+  INVESTIGATING
+  CLOSED
+}
+
+model HseIncident {
+  id           String            @id @default(cuid())
+  siteId       String            @map("site_id")
+  projectId    String            @map("project_id")
+  dailyLogId   String?           @unique @map("daily_log_id")
+  status       HseIncidentStatus @default(DRAFT)
+  description  String            @db.Text
+  reportedById String?           @map("reported_by_id")
+  reportedAt   DateTime          @default(now()) @map("reported_at")
+  closedAt     DateTime?         @map("closed_at")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  site       Site          @relation(fields: [siteId], references: [id])
+  project    Project       @relation(fields: [projectId], references: [id])
+  dailyLog   DailySiteLog? @relation(fields: [dailyLogId], references: [id])
+  reportedBy User?         @relation("HseReportedBy", fields: [reportedById], references: [id])
+
+  @@index([siteId, status])
+  @@map("hse_incidents")
 }
 
 // ─── Milestones ─────────────────────────────────────────────────────────────
@@ -240,6 +302,7 @@ model DailySiteLog {
   supervisors DailySiteLogSupervisor[]
   photos      DailySiteLogPhoto[]
   materialRequests MaterialRequest[]
+  hseIncident      HseIncident?
 
   @@index([siteId, date])
   @@index([projectId, date])

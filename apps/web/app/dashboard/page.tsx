@@ -14,10 +14,37 @@ type Project = {
   milestones: { stage: string; progressPct: string }[];
 };
 
+type PmSummary = {
+  pendingLogCount: number;
+  pendingLogs: {
+    id: string;
+    refCode: string;
+    projectName: string;
+    site: { code: string; name: string };
+    submittedBy: { firstName: string; lastName: string } | null;
+  }[];
+  pendingMaterialCount: number;
+  pendingMaterials: { id: string; requestRef: string; site: { code: string } }[];
+  openHseCount: number;
+  todaysIssues: {
+    id: string;
+    refCode: string;
+    projectName: string;
+    site: { code: string };
+    issueMaterialShortage: boolean;
+    issueEquipmentBreakdown: boolean;
+    issueWeatherDelay: boolean;
+    safetyIncidentsNearMisses: boolean;
+  }[];
+  unreadNotifications: number;
+  activeProjects: number;
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [summary, setSummary] = useState<PmSummary | null>(null);
 
   useEffect(() => {
     if (!getToken()) {
@@ -26,6 +53,7 @@ export default function DashboardPage() {
     }
     api<AuthUser>('/auth/me').then(setUser).catch(() => router.replace('/login'));
     api<Project[]>('/projects').then(setProjects).catch(console.error);
+    api<PmSummary>('/dashboard/pm').then(setSummary).catch(console.error);
   }, [router]);
 
   return (
@@ -44,6 +72,59 @@ export default function DashboardPage() {
                 : 'All sites access'}
             </p>
           </div>
+
+          {summary && (
+            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard label="Pending log approvals" value={summary.pendingLogCount} href="/site-tracker" />
+              <StatCard label="Material requests" value={summary.pendingMaterialCount} href="/material-requests" />
+              <StatCard label="Open HSE items" value={summary.openHseCount} href="/site-tracker" />
+              <StatCard label="Active projects" value={summary.activeProjects} href="/milestones" />
+            </section>
+          )}
+
+          {summary && summary.pendingLogs.length > 0 && (
+            <section className="rounded-xl border border-[#e87722]/30 bg-white p-4">
+              <h2 className="mb-3 text-lg font-semibold text-[#1a2744]">Logs awaiting approval</h2>
+              <ul className="space-y-2">
+                {summary.pendingLogs.map((log) => (
+                  <li key={log.id}>
+                    <Link href={`/site-tracker/${log.id}`} className="text-sm hover:text-[#e87722]">
+                      {log.refCode} · {log.site.code} · {log.projectName}
+                      {log.submittedBy && (
+                        <span className="text-slate-500">
+                          {' '}
+                          — {log.submittedBy.firstName} {log.submittedBy.lastName}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {summary && summary.todaysIssues.length > 0 && (
+            <section className="rounded-xl border border-red-200 bg-red-50/50 p-4">
+              <h2 className="mb-3 text-lg font-semibold text-[#1a2744]">Today&apos;s site issues</h2>
+              <ul className="space-y-2 text-sm">
+                {summary.todaysIssues.map((log) => (
+                  <li key={log.id}>
+                    <Link href={`/site-tracker/${log.id}`} className="hover:text-[#e87722]">
+                      {log.refCode} ({log.site.code}) —
+                      {[
+                        log.issueMaterialShortage && 'material shortage',
+                        log.issueEquipmentBreakdown && 'equipment',
+                        log.issueWeatherDelay && 'weather',
+                        log.safetyIncidentsNearMisses && 'HSE',
+                      ]
+                        .filter(Boolean)
+                        .join(', ')}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Link
@@ -202,5 +283,17 @@ export default function DashboardPage() {
         </div>
       )}
     </AppShell>
+  );
+}
+
+function StatCard({ label, value, href }: { label: string; value: number; href: string }) {
+  return (
+    <Link
+      href={href}
+      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-[#e87722]"
+    >
+      <p className="text-2xl font-semibold text-[#1a2744]">{value}</p>
+      <p className="mt-1 text-sm text-slate-600">{label}</p>
+    </Link>
   );
 }

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { getUser, logout, type AuthUser } from '@/lib/api';
+import { NotificationBell } from '@/components/NotificationBell';
 import { useEffect, useState } from 'react';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -25,6 +26,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           {user && (
             <div className="flex items-center gap-4 text-sm">
+              <NotificationBell />
               <span className="hidden sm:inline text-slate-200">
                 {user.firstName} {user.lastName} · {user.role.replace(/_/g, ' ')}
               </span>

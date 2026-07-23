@@ -6,9 +6,11 @@ import {
 } from '@nestjs/common';
 import {
   MaterialRequestStatus,
+  NotificationType,
   UserRole,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import {
   ApproveMaterialRequestDto,
@@ -37,7 +39,10 @@ const include = {
 
 @Injectable()
 export class MaterialRequestsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   findAll(user: AuthUser, projectId?: string) {
     const allSites =
@@ -154,13 +159,27 @@ export class MaterialRequestsService {
   }
 
   async submit(id: string, user: AuthUser) {
-    const existing = await this.getEditable(id, user);
+    await this.getEditable(id, user);
 
-    return this.prisma.materialRequest.update({
+    const req = await this.prisma.materialRequest.update({
       where: { id },
       data: { status: MaterialRequestStatus.PENDING_APPROVAL },
       include,
     });
+
+    const pmId = await this.notifications.projectManagerId(req.projectId);
+    const managerIds = await this.notifications.siteManagerIds(req.siteId);
+    await this.notifications.notifyUsers(
+      [...new Set([...managerIds, ...(pmId ? [pmId] : [])])],
+      {
+        type: NotificationType.MATERIAL_REQUEST_PENDING,
+        title: 'Material request pending',
+        body: `${req.requestRef} — awaiting PM approval.`,
+        linkUrl: `/material-requests/${req.id}`,
+      },
+    );
+
+    return req;
   }
 
   async approve(id: string, dto: ApproveMaterialRequestDto, user: AuthUser) {

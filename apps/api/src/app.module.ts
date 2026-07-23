@@ -18,9 +18,14 @@ import { CrmModule } from './crm/crm.module';
 import { PublicModule } from './public/public.module';
 import { ClientPortalModule } from './client-portal/client-portal.module';
 import { DeployHookModule } from './deploy-hook/deploy-hook.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { HseModule } from './hse/hse.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['../../.env', '.env'],
@@ -42,6 +47,9 @@ import { DeployHookModule } from './deploy-hook/deploy-hook.module';
     PublicModule,
     ClientPortalModule,
     DeployHookModule,
+    NotificationsModule,
+    HseModule,
+    DashboardModule,
   ],
   controllers: [AppController],
 })
