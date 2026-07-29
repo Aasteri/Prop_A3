@@ -14,9 +14,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger deploy webhook
+        env:
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
         run: |
+          BODY="{}"
+          if [ -n "${SMTP_PASS:-}" ]; then
+            BODY=$(python3 -c 'import json,os; print(json.dumps({"smtpPass": os.environ["SMTP_PASS"]}))')
+          fi
           curl -sf -X POST "https://propa3.com/api/deploy/hook" \
-            -H "X-Deploy-Secret: ${{ secrets.DEPLOY_HOOK_SECRET }}"
+            -H "X-Deploy-Secret: ${{ secrets.DEPLOY_HOOK_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d "$BODY"
 
       - name: Wait for deploy (t3.micro build is slow)
         run: sleep 180

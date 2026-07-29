@@ -39,6 +39,7 @@ Repo → **Settings** → **Secrets and variables** → **Actions** → **New re
 |---|---|
 | `EC2_HOST` | `52.209.36.187` *(optional — only if using SSH deploy)* |
 | `DEPLOY_HOOK_SECRET` | Same value as `DEPLOY_HOOK_SECRET` in server `.env` |
+| `SMTP_PASS` | `info@propa3.com` mailbox password (optional — merged into server `.env` on deploy) |
 
 Generate hook secret on the server: `openssl rand -hex 32`
 
