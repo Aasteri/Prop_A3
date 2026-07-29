@@ -95,16 +95,11 @@ npm run db:studio        # Prisma Studio (DB browser)
 
 ### Dev login (after seed)
 
-| Email | Role | Password |
-|---|---|---|
-| `ceo@triplea.ng` | CEO | `Propa3Dev!` |
-| `pm.jkw@triplea.ng` | Project Manager (Jikwoyi) | `Propa3Dev!` |
-| `foreman.gz2@triplea.ng` | Foreman (Guzape II) | `Propa3Dev!` |
-| `foreman.jkw@triplea.ng` | Foreman (Jikwoyi) | `Propa3Dev!` |
-| `store.jkw@triplea.ng` | Store Manager (Jikwoyi) | `Propa3Dev!` |
-| `finance@triplea.ng` | Finance | `Propa3Dev!` |
-| `sales@triplea.ng` | Sales | `Propa3Dev!` |
-| `client@triplea.ng` | Client portal | `Propa3Dev!` |
+All accounts use **`@propa3.com`** with **individual passwords**. See **[demo-users-list.md](./demo-users-list.md)** (also lists Namecheap mailbox setup).
+
+```bash
+npm run db:seed   # migrate @triplea.ng → @propa3.com + update password hashes
+```
 
 ### Production deploy (MVP internal)
 

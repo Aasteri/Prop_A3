@@ -21,6 +21,7 @@ import { DeployHookModule } from './deploy-hook/deploy-hook.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { HseModule } from './hse/hse.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { MailModule } from './mail/mail.module';
 import { DocumentsModule } from './documents/documents.module';
 import { AuditModule } from './audit/audit.module';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -54,6 +55,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     DashboardModule,
     DocumentsModule,
     AuditModule,
+    MailModule,
   ],
   controllers: [AppController],
 })

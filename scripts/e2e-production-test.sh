@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 BASE="${1:-https://propa3.com/api}"
-PASS='Propa3Dev!'
 
 jget() { node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); $1"; }
 
 login() {
   curl -sf "$BASE/auth/login" -H 'Content-Type: application/json' \
-    -d "{\"email\":\"$1\",\"password\":\"$PASS\"}" | jget "process.stdout.write(d.accessToken)"
+    -d "{\"email\":\"$1\",\"password\":\"$2\"}" | jget "process.stdout.write(d.accessToken)"
 }
 
 echo "==> Health"
@@ -15,9 +14,9 @@ curl -sf "$BASE/health"
 echo ""
 
 echo "==> Login foreman (JKW) + PM + client"
-FOREMAN_TOKEN=$(login 'foreman.jkw@triplea.ng')
-PM_TOKEN=$(login 'pm.jkw@triplea.ng')
-CLIENT_TOKEN=$(login 'client@triplea.ng')
+FOREMAN_TOKEN=$(login 'foreman.jkw@propa3.com' 'D$RVW&@k^z*#zuhFN#3j')
+PM_TOKEN=$(login 'pm.jkw@propa3.com' 'Bar4QMujSv$gu8fdb32J')
+CLIENT_TOKEN=$(login 'client@propa3.com' 'MMBRg6fJHC^SStcPv$MP')
 echo "tokens OK"
 
 echo "==> PM dashboard"
@@ -62,7 +61,7 @@ if [ -n "$INVOICE_ID" ]; then
   echo "$PAY_BODY" | jget "console.log('payment',d.status,d.amount)"
   rm -f "$PROOF_FILE"
 
-  FIN_TOKEN=$(login 'finance@triplea.ng')
+  FIN_TOKEN=$(login 'finance@propa3.com' 'QNp5miQQr@oaQwWD$UPB')
   PAY_ID=$(curl -sf "$BASE/invoices/$INVOICE_ID" -H "Authorization: Bearer $FIN_TOKEN" | jget "const p=d.payments.find(x=>x.status==='PENDING'); process.stdout.write(p?.id||'')")
   if [ -n "$PAY_ID" ]; then
     echo "==> Finance verify payment"
@@ -71,7 +70,7 @@ if [ -n "$INVOICE_ID" ]; then
 fi
 
 echo "==> Document upload (FCDA permit v1)"
-SALES_TOKEN=$(login 'sales@triplea.ng')
+SALES_TOKEN=$(login 'sales@propa3.com' '!dAscG#7$NhGnhdC7rH#')
 DOC_FILE="e:/software_projects/propa3/.e2e-doc.tmp"
 echo '%PDF-1.4 fake fcda permit' > "$DOC_FILE"
 curl -sf -X POST "$BASE/documents/upload" -H "Authorization: Bearer $PM_TOKEN" \
@@ -95,7 +94,7 @@ curl -sf "$BASE/client-portal/documents" -H "Authorization: Bearer $CLIENT_TOKEN
   | jget "console.log('clientDocs',d.length,d[0]?.category)"
 
 echo "==> CEO dashboard"
-CEO_TOKEN=$(login 'ceo@triplea.ng')
+CEO_TOKEN=$(login 'ceo@propa3.com' 'RwrsW9r8xz&noJv3tept')
 curl -sf "$BASE/dashboard/ceo" -H "Authorization: Bearer $CEO_TOKEN" \
   | jget "console.log('ceoSites',d.siteHealth.length,'outstanding',d.revenue.totalOutstanding,'leads',d.leads.active,'fcdaMissing',d.fcdaMissing.length)"
 

@@ -31,11 +31,11 @@ export default function PrivacyPage() {
           <h2 className="text-xl font-semibold text-[#1a2744]">Your rights</h2>
           <p>
             You may request access, correction, or deletion of your personal data by contacting{' '}
-            <a href="mailto:info@triplea.ng" className="text-[#e87722]">info@triplea.ng</a>.
+            <a href="mailto:info@propa3.com" className="text-[#e87722]">info@propa3.com</a>.
           </p>
 
           <h2 className="text-xl font-semibold text-[#1a2744]">Contact</h2>
-          <p>Triple A Realty Projects Ltd. · Abuja, Nigeria · info@triplea.ng</p>
+          <p>Triple A Realty Projects Ltd. · Abuja, Nigeria · info@propa3.com</p>
         </section>
       </div>
     </PublicShell>

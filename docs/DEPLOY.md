@@ -228,7 +228,8 @@ Manual:
 
 - [ ] Public homepage + property inquiry → CRM lead
 - [ ] Staff login (foreman, PM, sales)
-- [ ] Client portal (`client@triplea.ng`)
+- [ ] Client portal (`client@propa3.com`) — see [demo-users-list.md](../demo-users-list.md)
+- [ ] SMTP in `.env` for `info@propa3.com` — [docs/EMAIL.md](./EMAIL.md)
 - [ ] Site log submit + photo upload (mobile)
 - [ ] PM approve log → milestone updates
 - [ ] Invoice payment proof upload

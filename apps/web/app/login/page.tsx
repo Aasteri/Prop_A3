@@ -6,8 +6,8 @@ import { ApiError, login, getUser, type AuthUser } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('foreman.gz2@triplea.ng');
-  const [password, setPassword] = useState('Propa3Dev!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -70,7 +70,7 @@ export default function LoginPage() {
         </form>
 
           <p className="mt-1 text-center text-xs text-slate-400">
-            Staff: foreman / PM accounts · Client: client@triplea.ng
+            Staff & client: use your @propa3.com mailbox (see demo-users-list.md)
           </p>
           <p className="mt-2 text-center text-xs">
             <a href="/" className="text-[#e87722] hover:underline">

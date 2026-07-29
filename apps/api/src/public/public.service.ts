@@ -12,7 +12,7 @@ export class PublicService {
       name: 'Triple A Realty Projects Ltd.',
       tagline: 'Premium property development & sales in Abuja',
       phone: '+234 800 000 0000',
-      email: 'info@triplea.ng',
+      email: 'info@propa3.com',
       whatsapp: '+2348000000000',
       badges: ['CAC Registered', 'SCUML Compliant', 'COREN Certified Engineers'],
       address: 'Abuja, Nigeria',

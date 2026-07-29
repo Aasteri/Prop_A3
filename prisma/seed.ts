@@ -11,17 +11,51 @@ import {
   LeadStage,
   InvoiceType,
   InvoiceStatus,
+  User,
 } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import * as fs from 'fs';
 import * as path from 'path';
+import { DEMO_USERS, DemoUserDef } from './demo-users';
 
 const prisma = new PrismaClient();
-const DEV_PASSWORD = 'Propa3Dev!';
+
+async function upsertDemoUser(
+  def: DemoUserDef,
+  siteRecords: Record<string, { id: string }>,
+): Promise<User> {
+  const passwordHash = await bcrypt.hash(def.password, 10);
+  const primarySiteId = def.primarySiteCode
+    ? siteRecords[def.primarySiteCode]?.id
+    : undefined;
+
+  const base = {
+    passwordHash,
+    firstName: def.firstName,
+    lastName: def.lastName,
+    role: def.role,
+    phone: def.phone,
+    ...(primarySiteId ? { primarySiteId } : {}),
+  };
+
+  if (def.legacyEmail && def.legacyEmail !== def.email) {
+    const legacy = await prisma.user.findUnique({ where: { email: def.legacyEmail } });
+    if (legacy) {
+      return prisma.user.update({
+        where: { id: legacy.id },
+        data: { email: def.email, ...base },
+      });
+    }
+  }
+
+  return prisma.user.upsert({
+    where: { email: def.email },
+    update: base,
+    create: { email: def.email, ...base },
+  });
+}
 
 async function main() {
-  const passwordHash = await bcrypt.hash(DEV_PASSWORD, 10);
-
   const sites = [
     { code: 'JKW', name: 'Jikwoyi Plaza', location: 'Jikwoyi, Abuja' },
     { code: 'MPP', name: 'Mall Mpape', location: 'Mpape, Abuja' },
@@ -39,87 +73,15 @@ async function main() {
     siteRecords[site.code] = record;
   }
 
-  const ceo = await prisma.user.upsert({
-    where: { email: 'ceo@triplea.ng' },
-    update: {},
-    create: {
-      email: 'ceo@triplea.ng',
-      passwordHash,
-      firstName: 'Abraham',
-      lastName: 'Akinola',
-      role: UserRole.CEO,
-      phone: '+2348000000001',
-    },
-  });
+  const userByEmail: Record<string, User> = {};
+  for (const def of DEMO_USERS) {
+    userByEmail[def.email] = await upsertDemoUser(def, siteRecords);
+  }
 
-  const pmJkw = await prisma.user.upsert({
-    where: { email: 'pm.jkw@triplea.ng' },
-    update: {},
-    create: {
-      email: 'pm.jkw@triplea.ng',
-      passwordHash,
-      firstName: 'Project',
-      lastName: 'Manager',
-      role: UserRole.PROJECT_MANAGER,
-      primarySiteId: siteRecords.JKW.id,
-      phone: '+2348000000002',
-    },
-  });
-
-  const foremanGz2 = await prisma.user.upsert({
-    where: { email: 'foreman.gz2@triplea.ng' },
-    update: {},
-    create: {
-      email: 'foreman.gz2@triplea.ng',
-      passwordHash,
-      firstName: 'Site',
-      lastName: 'Foreman',
-      role: UserRole.FOREMAN,
-      primarySiteId: siteRecords.GZ2.id,
-      phone: '+2348000000003',
-    },
-  });
-
-  const foremanJkw = await prisma.user.upsert({
-    where: { email: 'foreman.jkw@triplea.ng' },
-    update: {},
-    create: {
-      email: 'foreman.jkw@triplea.ng',
-      passwordHash,
-      firstName: 'Jikwoyi',
-      lastName: 'Foreman',
-      role: UserRole.FOREMAN,
-      primarySiteId: siteRecords.JKW.id,
-      phone: '+2348000000004',
-    },
-  });
-
-  const storeJkw = await prisma.user.upsert({
-    where: { email: 'store.jkw@triplea.ng' },
-    update: {},
-    create: {
-      email: 'store.jkw@triplea.ng',
-      passwordHash,
-      firstName: 'Store',
-      lastName: 'Manager',
-      role: UserRole.STORE_MANAGER,
-      primarySiteId: siteRecords.JKW.id,
-      phone: '+2348000000005',
-    },
-  });
-
-  const engineer = await prisma.user.upsert({
-    where: { email: 'engineer@triplea.ng' },
-    update: {},
-    create: {
-      email: 'engineer@triplea.ng',
-      passwordHash,
-      firstName: 'Site',
-      lastName: 'Engineer',
-      role: UserRole.ENGINEER,
-      phone: '+2348000000007',
-    },
-  });
+  const pmJkw = userByEmail['pm.jkw@propa3.com'];
+  const foremanGz2 = userByEmail['foreman.gz2@propa3.com'];
+  const foremanJkw = userByEmail['foreman.jkw@propa3.com'];
+  const storeJkw = userByEmail['store.jkw@propa3.com'];
 
   for (const [userId, siteId] of [
     [pmJkw.id, siteRecords.JKW.id],
@@ -208,32 +170,6 @@ async function main() {
       accountName: 'TRIPLE A REALTY PROJECTS LTD.',
       accountNumber: '0000000000',
       isDefault: false,
-    },
-  });
-
-  await prisma.user.upsert({
-    where: { email: 'finance@triplea.ng' },
-    update: {},
-    create: {
-      email: 'finance@triplea.ng',
-      passwordHash,
-      firstName: 'Finance',
-      lastName: 'Officer',
-      role: UserRole.FINANCE,
-      phone: '+2348000000006',
-    },
-  });
-
-  await prisma.user.upsert({
-    where: { email: 'sales@triplea.ng' },
-    update: {},
-    create: {
-      email: 'sales@triplea.ng',
-      passwordHash,
-      firstName: 'Sales',
-      lastName: 'Officer',
-      role: UserRole.SALES,
-      phone: '+2348000000008',
     },
   });
 
@@ -351,7 +287,7 @@ async function main() {
     if (row.id === 'TAA-SALE-020') sampleListingId = listing.id;
   }
 
-  const salesUser = await prisma.user.findUnique({ where: { email: 'sales@triplea.ng' } });
+  const salesUser = userByEmail['sales@propa3.com'];
   if (salesUser && sampleListingId) {
     await prisma.lead.upsert({
       where: { leadRef: 'LED-0001' },
@@ -372,28 +308,21 @@ async function main() {
     });
   }
 
-  const clientUser = await prisma.user.upsert({
-    where: { email: 'client@triplea.ng' },
-    update: {},
-    create: {
-      email: 'client@triplea.ng',
-      passwordHash,
-      firstName: 'James',
-      lastName: 'Okoro',
-      role: UserRole.CLIENT,
-      phone: '+2348099999999',
-    },
-  });
+  const clientUser = userByEmail['client@propa3.com'];
+  const clientDef = DEMO_USERS.find((u) => u.role === UserRole.CLIENT)!;
 
   const clientRecord = await prisma.client.upsert({
     where: { clientRef: 'CLT-0001' },
-    update: { portalUserId: clientUser.id },
+    update: {
+      portalUserId: clientUser.id,
+      email: clientDef.email,
+    },
     create: {
       clientRef: 'CLT-0001',
-      firstName: 'James',
-      lastName: 'Okoro',
-      phone: '+2348099999999',
-      email: 'client@triplea.ng',
+      firstName: clientUser.firstName,
+      lastName: clientUser.lastName,
+      phone: clientUser.phone ?? clientDef.phone,
+      email: clientDef.email,
       portalUserId: clientUser.id,
     },
   });
@@ -410,7 +339,7 @@ async function main() {
     },
   });
 
-  const financeUser = await prisma.user.findUnique({ where: { email: 'finance@triplea.ng' } });
+  const financeUser = userByEmail['finance@propa3.com'];
   if (financeUser) {
     await prisma.invoice.upsert({
       where: { invoiceNumber: 'AAA/2026/SOL-001' },
@@ -459,17 +388,8 @@ async function main() {
     });
   }
 
-  console.log('Seeded sites, users, projects, listings, client portal, Dawaki Terrier');
-  console.log('Dev login accounts (password: Propa3Dev!):');
-  console.log('  ceo@triplea.ng');
-  console.log('  pm.jkw@triplea.ng');
-  console.log('  finance@triplea.ng');
-  console.log('  sales@triplea.ng');
-  console.log('  client@triplea.ng  (client portal)');
-  console.log('  foreman.jkw@triplea.ng');
-  console.log('  foreman.gz2@triplea.ng');
-  console.log('  store.jkw@triplea.ng');
-  console.log('  engineer@triplea.ng');
+  console.log('Seeded sites, users (@propa3.com), projects, listings, client portal, Dawaki Terrier');
+  console.log('Login accounts — see demo-users-list.md (unique passwords per user)');
 }
 
 main()
