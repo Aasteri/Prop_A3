@@ -23,6 +23,9 @@ npm run db:generate
 echo "==> Syncing database schema..."
 npm run db:push
 
+echo "==> Seeding demo users (idempotent)..."
+npm run db:seed
+
 echo "==> Building API + Web..."
 npm run build
 
