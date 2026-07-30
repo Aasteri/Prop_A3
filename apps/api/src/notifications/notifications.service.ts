@@ -1,5 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NotificationType, UserRole } from '@prisma/client';
+import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 export type NotifyPayload = {
@@ -11,20 +13,61 @@ export type NotifyPayload = {
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(NotificationsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mail: MailService,
+    private readonly config: ConfigService,
+  ) {}
+
+  private appUrl(): string {
+    const web = this.config.get<string>('WEB_URL')?.split(',')[0]?.trim();
+    return web ?? this.config.get<string>('API_URL') ?? 'https://propa3.com';
+  }
+
+  private async sendEmails(userIds: string[], payload: NotifyPayload) {
+    if (!this.mail.isConfigured()) return;
+
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: userIds }, isActive: true },
+      select: { email: true, firstName: true },
+    });
+
+    const link = payload.linkUrl
+      ? `${this.appUrl()}${payload.linkUrl.startsWith('/') ? payload.linkUrl : `/${payload.linkUrl}`}`
+      : `${this.appUrl()}/dashboard`;
+
+    for (const user of users) {
+      try {
+        await this.mail.send({
+          to: user.email,
+          subject: `[Propa3] ${payload.title}`,
+          text: `Hi ${user.firstName},\n\n${payload.body}\n\nOpen: ${link}`,
+          html: `<p>Hi ${user.firstName},</p><p>${payload.body.replace(/\n/g, '<br>')}</p><p><a href="${link}">Open in Propa3</a></p>`,
+        });
+      } catch (err) {
+        this.logger.warn(`Email to ${user.email} failed: ${err instanceof Error ? err.message : err}`);
+      }
+    }
+  }
 
   async notifyUser(userId: string, payload: NotifyPayload) {
-    return this.prisma.notification.create({
+    const row = await this.prisma.notification.create({
       data: { userId, ...payload },
     });
+    void this.sendEmails([userId], payload);
+    return row;
   }
 
   async notifyUsers(userIds: string[], payload: NotifyPayload) {
     const unique = [...new Set(userIds.filter(Boolean))];
     if (!unique.length) return [];
-    return this.prisma.notification.createMany({
+    const result = await this.prisma.notification.createMany({
       data: unique.map((userId) => ({ userId, ...payload })),
     });
+    void this.sendEmails(unique, payload);
+    return result;
   }
 
   async findForUser(userId: string, limit = 30) {
@@ -110,5 +153,21 @@ export class NotificationsService {
       select: { id: true },
     });
     return stores.map((s) => s.id);
+  }
+
+  async salesUserIds(): Promise<string[]> {
+    const sales = await this.prisma.user.findMany({
+      where: { role: UserRole.SALES, isActive: true },
+      select: { id: true },
+    });
+    return sales.map((s) => s.id);
+  }
+
+  async ceoUserIds(): Promise<string[]> {
+    const ceos = await this.prisma.user.findMany({
+      where: { role: { in: [UserRole.CEO, UserRole.ADMIN] }, isActive: true },
+      select: { id: true },
+    });
+    return ceos.map((c) => c.id);
   }
 }

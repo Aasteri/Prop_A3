@@ -18,7 +18,9 @@ Create each mailbox on shared hosting with the **same password** as below.
 | `sales@propa3.com` | `!dAscG#7$NhGnhdC7rH#` | Sales | CRM pipeline, listings admin, tenant applications |
 | `client@propa3.com` | `MMBRg6fJHC^SStcPv$MP` | Client | Client portal at `/portal` — Guzape II duplex, payments, changes |
 
-## Mailboxes to create on Namecheap (9 + info)
+## Settlement bank (invoices)
+
+Default settlement entity on invoices: **Triple A Realty Projects Ltd.** — GTBank `0123456789` (placeholder until corporate account is confirmed). Laucarie sample entity kept as non-default legacy reference.
 
 | Mailbox | Used for |
 |---|---|

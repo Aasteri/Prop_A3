@@ -148,30 +148,66 @@ async function main() {
   }
 
   await prisma.settlementEntity.upsert({
-    where: { id: 'seed-laucarie' },
-    update: {},
+    where: { id: 'seed-triplea' },
+    update: {
+      name: 'TRIPLE A REALTY PROJECTS LTD.',
+      bankName: 'Guaranty Trust Bank Plc.',
+      accountName: 'TRIPLE A REALTY PROJECTS LTD.',
+      accountNumber: '0123456789',
+      isDefault: true,
+    },
     create: {
-      id: 'seed-laucarie',
-      name: 'A. LAUCARIE CONSULTING',
-      bankName: 'Polaris Bank Plc.',
-      accountName: 'A. A LAUCARIE CONSULTING',
-      accountNumber: '4091991156',
+      id: 'seed-triplea',
+      name: 'TRIPLE A REALTY PROJECTS LTD.',
+      bankName: 'Guaranty Trust Bank Plc.',
+      accountName: 'TRIPLE A REALTY PROJECTS LTD.',
+      accountNumber: '0123456789',
       isDefault: true,
     },
   });
 
   await prisma.settlementEntity.upsert({
-    where: { id: 'seed-triplea' },
-    update: {},
+    where: { id: 'seed-laucarie' },
+    update: {
+      isDefault: false,
+      bankName: 'Polaris Bank Plc. (legacy sample)',
+    },
     create: {
-      id: 'seed-triplea',
-      name: 'TRIPLE A REALTY PROJECTS LTD.',
-      bankName: 'TBC — confirm with Abraham',
-      accountName: 'TRIPLE A REALTY PROJECTS LTD.',
-      accountNumber: '0000000000',
+      id: 'seed-laucarie',
+      name: 'A. LAUCARIE CONSULTING',
+      bankName: 'Polaris Bank Plc. (legacy sample)',
+      accountName: 'A. A LAUCARIE CONSULTING',
+      accountNumber: '4091991156',
       isDefault: false,
     },
   });
+
+  await prisma.settlementEntity.updateMany({
+    where: { id: { not: 'seed-triplea' } },
+    data: { isDefault: false },
+  });
+
+  const engineerUser = userByEmail['engineer@propa3.com'];
+  if (engineerUser) {
+    await prisma.professionalLicence.upsert({
+      where: {
+        userId_licenceType: { userId: engineerUser.id, licenceType: 'COREN' },
+      },
+      update: {
+        licenceNumber: 'COREN R.53757',
+        holderName: 'Engr. Jonah Kanadi',
+        expiresAt: new Date('2026-08-22'),
+        isActive: true,
+      },
+      create: {
+        userId: engineerUser.id,
+        licenceType: 'COREN',
+        licenceNumber: 'COREN R.53757',
+        holderName: 'Engr. Jonah Kanadi',
+        expiresAt: new Date('2026-08-22'),
+      },
+    });
+  }
 
   const dawakiEstate = await prisma.rentalEstate.upsert({
     where: { id: 'seed-dwk-flats' },
@@ -343,12 +379,12 @@ async function main() {
   if (financeUser) {
     await prisma.invoice.upsert({
       where: { invoiceNumber: 'AAA/2026/SOL-001' },
-      update: { clientId: clientRecord.id },
+      update: { clientId: clientRecord.id, settlementEntityId: 'seed-triplea' },
       create: {
         id: 'seed-client-invoice',
         projectId: 'seed-gz2-duplex',
         clientId: clientRecord.id,
-        settlementEntityId: 'seed-laucarie',
+        settlementEntityId: 'seed-triplea',
         invoiceNumber: 'AAA/2026/SOL-001',
         invoiceType: InvoiceType.SALES,
         status: InvoiceStatus.SENT,

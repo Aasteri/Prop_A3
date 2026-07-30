@@ -4,8 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { LeadSource, LeadStage, ListingStatus, UserRole } from '@prisma/client';
+import { LeadSource, LeadStage, ListingStatus, NotificationType, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import {
   CreateLeadDto,
@@ -44,7 +45,10 @@ const leadInclude = {
 
 @Injectable()
 export class CrmService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   pipelineMeta(user: AuthUser) {
     this.assertCanView(user);
@@ -148,8 +152,8 @@ export class CrmService {
     });
   }
 
-  createPublicInquiry(dto: PublicInquiryDto) {
-    return this.createLead(
+  async createPublicInquiry(dto: PublicInquiryDto) {
+    const lead = await this.createLead(
       {
         firstName: dto.firstName,
         lastName: dto.lastName,
@@ -161,16 +165,28 @@ export class CrmService {
       },
       null,
       LeadSource.WEB,
-    ).then(async (lead) => {
-      if (dto.utmSource || dto.utmCampaign) {
-        return this.prisma.lead.update({
-          where: { id: lead.id },
-          data: { utmSource: dto.utmSource, utmCampaign: dto.utmCampaign },
-          include: leadInclude,
-        });
-      }
-      return lead;
-    });
+    );
+
+    let result = lead;
+    if (dto.utmSource || dto.utmCampaign) {
+      result = await this.prisma.lead.update({
+        where: { id: lead.id },
+        data: { utmSource: dto.utmSource, utmCampaign: dto.utmCampaign },
+        include: leadInclude,
+      });
+    }
+
+    const salesIds = await this.notifications.salesUserIds();
+    if (salesIds.length) {
+      await this.notifications.notifyUsers(salesIds, {
+        type: NotificationType.LEAD_INQUIRY,
+        title: `New web inquiry — ${dto.firstName} ${dto.lastName}`,
+        body: `Phone: ${dto.phone}${dto.email ? ` · Email: ${dto.email}` : ''}${dto.message ? `\n${dto.message}` : ''}`,
+        linkUrl: `/crm/leads/${result.id}`,
+      });
+    }
+
+    return result;
   }
 
   async updateLead(id: string, dto: UpdateLeadDto, user: AuthUser) {

@@ -12,9 +12,6 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 
-/** Demo COREN expiry for engineer dashboard widget until licence module ships. */
-const DEMO_COREN_EXPIRY = new Date('2026-08-22');
-
 @Injectable()
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
@@ -34,7 +31,7 @@ export class DashboardService {
       invoiceAgg,
       leadsByStage,
       highImpactChanges,
-      engineers,
+      engineerLicences,
       fcdaProjects,
       terrierAgg,
       openHse,
@@ -88,9 +85,11 @@ export class DashboardService {
         orderBy: { createdAt: 'desc' },
         take: 10,
       }),
-      this.prisma.user.findMany({
-        where: { role: UserRole.ENGINEER, isActive: true },
-        select: { id: true, firstName: true, lastName: true, email: true },
+      this.prisma.professionalLicence.findMany({
+        where: { isActive: true, licenceType: 'COREN' },
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        },
       }),
       this.prisma.project.findMany({
         where: { status: ProjectStatus.ACTIVE },
@@ -179,16 +178,18 @@ export class DashboardService {
       }));
 
     const now = new Date();
-    const corenLicences = engineers.map((e) => {
+    const corenLicences = engineerLicences.map((lic) => {
       const daysRemaining = Math.ceil(
-        (DEMO_COREN_EXPIRY.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+        (new Date(lic.expiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
       );
       return {
-        engineer: e,
-        licenceNumber: 'COREN/R/DEMO-001',
-        expiresAt: DEMO_COREN_EXPIRY,
+        engineer: lic.user,
+        licenceNumber: lic.licenceNumber,
+        holderName: lic.holderName,
+        expiresAt: lic.expiresAt,
         daysRemaining,
-        status: daysRemaining <= 0 ? 'EXPIRED' : daysRemaining <= 30 ? 'EXPIRING' : 'OK',
+        status:
+          daysRemaining <= 0 ? 'EXPIRED' : daysRemaining <= 30 ? 'EXPIRING' : 'OK',
       };
     });
 
@@ -317,6 +318,98 @@ export class DashboardService {
       todaysIssues,
       unreadNotifications: unreadCount,
       activeProjects,
+    };
+  }
+
+  async getWeeklyPmReport(user: AuthUser) {
+    const allowedRoles: UserRole[] = [
+      UserRole.CEO,
+      UserRole.ADMIN,
+      UserRole.PROJECT_MANAGER,
+    ];
+    if (!allowedRoles.includes(user.role)) {
+      throw new ForbiddenException('PM weekly report access only');
+    }
+
+    const siteFilter =
+      user.role === UserRole.CEO || user.role === UserRole.ADMIN || !user.siteIds.length
+        ? {}
+        : { siteId: { in: user.siteIds } };
+
+    const weekEnd = new Date();
+    weekEnd.setHours(23, 59, 59, 999);
+    const weekStart = new Date(weekEnd);
+    weekStart.setDate(weekStart.getDate() - 6);
+    weekStart.setHours(0, 0, 0, 0);
+
+    const [approvedLogs, pendingLogs, pendingMaterials, siteSummaries] = await Promise.all([
+      this.prisma.dailySiteLog.findMany({
+        where: {
+          ...siteFilter,
+          status: DailyLogStatus.APPROVED,
+          date: { gte: weekStart, lte: weekEnd },
+        },
+        include: {
+          site: { select: { code: true, name: true } },
+          project: { select: { name: true } },
+        },
+        orderBy: [{ date: 'desc' }, { approvedAt: 'desc' }],
+      }),
+      this.prisma.dailySiteLog.count({
+        where: { ...siteFilter, status: DailyLogStatus.SUBMITTED },
+      }),
+      this.prisma.materialRequest.count({
+        where: { ...siteFilter, status: MaterialRequestStatus.PENDING_APPROVAL },
+      }),
+      this.prisma.site.findMany({
+        where:
+          user.role === UserRole.CEO || user.role === UserRole.ADMIN || !user.siteIds.length
+            ? { isActive: true }
+            : { id: { in: user.siteIds }, isActive: true },
+        select: { id: true, code: true, name: true },
+        orderBy: { code: 'asc' },
+      }),
+    ]);
+
+    const bySite = siteSummaries.map((site) => {
+      const logs = approvedLogs.filter((l) => l.siteId === site.id);
+      const issueCount = logs.filter(
+        (l) =>
+          l.issueMaterialShortage ||
+          l.issueEquipmentBreakdown ||
+          l.issueWeatherDelay ||
+          l.safetyIncidentsNearMisses,
+      ).length;
+      return {
+        siteCode: site.code,
+        siteName: site.name,
+        approvedLogs: logs.length,
+        openIssues: issueCount,
+        latestRefs: logs.slice(0, 3).map((l) => l.refCode),
+      };
+    });
+
+    const highlights = approvedLogs.slice(0, 8).map((l) => ({
+      refCode: l.refCode,
+      date: l.date,
+      siteCode: l.site.code,
+      projectName: l.project?.name ?? l.projectName,
+      progressNotes: l.nextDayActivities?.slice(0, 120) ?? null,
+    }));
+
+    return {
+      period: {
+        from: weekStart.toISOString().slice(0, 10),
+        to: weekEnd.toISOString().slice(0, 10),
+      },
+      summary: {
+        approvedLogs: approvedLogs.length,
+        pendingLogApprovals: pendingLogs,
+        pendingMaterialRequests: pendingMaterials,
+      },
+      bySite,
+      highlights,
+      narrative: `Week ${weekStart.toISOString().slice(0, 10)}–${weekEnd.toISOString().slice(0, 10)}: ${approvedLogs.length} approved daily log(s). ${pendingLogs} log(s) awaiting PM approval. ${pendingMaterials} material request(s) pending.`,
     };
   }
 }

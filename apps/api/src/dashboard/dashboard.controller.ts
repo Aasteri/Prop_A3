@@ -17,4 +17,9 @@ export class DashboardController {
   ceoSummary(@CurrentUser() user: AuthUser) {
     return this.dashboard.getCeoSummary(user);
   }
+
+  @Get('weekly-report')
+  weeklyReport(@CurrentUser() user: AuthUser) {
+    return this.dashboard.getWeeklyPmReport(user);
+  }
 }
