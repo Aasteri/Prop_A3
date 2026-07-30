@@ -2,9 +2,26 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { publicApi } from '@/lib/api';
+
+type Company = {
+  name: string;
+  phone: string;
+  email: string;
+  whatsapp: string;
+};
 
 export function PublicShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [company, setCompany] = useState<Company | null>(null);
+
+  useEffect(() => {
+    publicApi<Company>('/public/company').then(setCompany).catch(console.error);
+  }, []);
+
+  const phone = company?.phone ?? '+234 800 000 0000';
+  const wa = company?.whatsapp?.replace(/\D/g, '') ?? '2348000000000';
 
   return (
     <div className="min-h-full bg-white">
@@ -13,7 +30,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
           <Link href="/" className="text-xl font-semibold">
             Propa<span className="text-[#e87722]">3</span>
           </Link>
-          <nav className="flex items-center gap-4 text-sm">
+          <nav className="flex flex-wrap items-center justify-end gap-3 text-sm sm:gap-4">
             <NavLink href="/" active={pathname === '/'}>
               Home
             </NavLink>
@@ -22,6 +39,9 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
             </NavLink>
             <NavLink href="/projects" active={pathname.startsWith('/projects')}>
               Projects
+            </NavLink>
+            <NavLink href="/estates" active={pathname.startsWith('/estates')}>
+              Site map
             </NavLink>
             <Link
               href="/login"
@@ -36,18 +56,25 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
       <footer className="mt-12 border-t border-slate-200 bg-slate-50">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-8 text-sm text-slate-600">
           <div>
-            <p className="font-semibold text-[#1a2744]">Triple A Realty Projects Ltd.</p>
+            <p className="font-semibold text-[#1a2744]">
+              {company?.name ?? 'Triple A Realty Projects Ltd.'}
+            </p>
             <p>Abuja, Nigeria · CAC · SCUML · COREN</p>
+            {company?.email && (
+              <a href={`mailto:${company.email}`} className="mt-1 block hover:text-[#e87722]">
+                {company.email}
+              </a>
+            )}
           </div>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <Link href="/privacy" className="hover:text-[#e87722]">
               Privacy policy
             </Link>
-            <a href="tel:+2348000000000" className="hover:text-[#e87722]">
-              +234 800 000 0000
+            <a href={`tel:${phone.replace(/\s/g, '')}`} className="hover:text-[#e87722]">
+              {phone}
             </a>
             <a
-              href="https://wa.me/2348000000000"
+              href={`https://wa.me/${wa}`}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-[#e87722]"
@@ -73,7 +100,7 @@ function NavLink({
   return (
     <Link
       href={href}
-      className={active ? 'text-[#e87722] font-medium' : 'text-slate-200 hover:text-white'}
+      className={active ? 'font-medium text-[#e87722]' : 'text-slate-200 hover:text-white'}
     >
       {children}
     </Link>

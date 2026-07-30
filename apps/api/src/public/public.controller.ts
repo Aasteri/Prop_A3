@@ -24,4 +24,14 @@ export class PublicController {
   projects() {
     return this.pub.listProjects();
   }
+
+  @Get('stats')
+  stats() {
+    return this.pub.stats();
+  }
+
+  @Get('sites-map')
+  sitesMap() {
+    return this.pub.sitesMap();
+  }
 }

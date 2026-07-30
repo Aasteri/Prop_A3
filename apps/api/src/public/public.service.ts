@@ -89,4 +89,46 @@ export class PublicService {
       })),
     );
   }
+
+  async stats() {
+    const [listingCount, projectCount, siteCount] = await Promise.all([
+      this.prisma.listing.count({
+        where: { isPublic: true, status: { in: [ListingStatus.AVAILABLE, ListingStatus.RESERVED] } },
+      }),
+      this.prisma.project.count({ where: { status: ProjectStatus.ACTIVE } }),
+      this.prisma.site.count({ where: { isActive: true } }),
+    ]);
+    return { listingCount, projectCount, siteCount };
+  }
+
+  /** Active sites with approximate Abuja coordinates for public map */
+  async sitesMap() {
+    const coords: Record<string, { lat: number; lng: number }> = {
+      JKW: { lat: 8.8982, lng: 7.5613 },
+      MPP: { lat: 9.1292, lng: 7.2458 },
+      GZ2: { lat: 9.0395, lng: 7.5326 },
+      GZ3: { lat: 9.045, lng: 7.528 },
+    };
+
+    const sites = await this.prisma.site.findMany({
+      where: { isActive: true },
+      include: {
+        projects: {
+          where: { status: ProjectStatus.ACTIVE },
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: { code: 'asc' },
+    });
+
+    return sites.map((s) => ({
+      code: s.code,
+      name: s.name,
+      location: s.location,
+      lat: coords[s.code]?.lat ?? 9.0579,
+      lng: coords[s.code]?.lng ?? 7.4951,
+      activeProjects: s.projects.length,
+      projectNames: s.projects.map((p) => p.name),
+    }));
+  }
 }

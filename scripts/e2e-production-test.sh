@@ -102,4 +102,20 @@ echo "==> Audit log"
 curl -sf "$BASE/audit?limit=5" -H "Authorization: Bearer $CEO_TOKEN" \
   | jget "console.log('audit',d.length,d[0]?.action,d[0]?.entityType,d[0]?.summary?.slice(0,40))"
 
+echo "==> Weekly PM report"
+curl -sf "$BASE/dashboard/weekly-report" -H "Authorization: Bearer $PM_TOKEN" \
+  | jget "console.log('weekly',d.period.from,'approved',d.summary.approvedLogs)"
+
+echo "==> Public inquiry → CRM"
+curl -sf -X POST "$BASE/inquiries" -H 'Content-Type: application/json' \
+  -d '{"firstName":"E2E","lastName":"Visitor","phone":"+2348000000099","email":"e2e@example.com","message":"Production E2E inquiry"}' \
+  | jget "console.log('inquiry',d.leadRef,d.stage)"
+
+echo "==> Public stats"
+curl -sf "$BASE/public/stats" | jget "console.log('stats',d.listingCount,d.projectCount,d.siteCount)"
+
+echo "==> Forgot password (no leak)"
+curl -sf -X POST "$BASE/auth/forgot-password" -H 'Content-Type: application/json' \
+  -d '{"email":"ceo@propa3.com"}' | jget "console.log('forgot',d.message?.slice(0,30))"
+
 echo "E2E_OK"
