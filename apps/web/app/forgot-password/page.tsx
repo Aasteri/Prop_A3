@@ -26,7 +26,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center bg-[#1a2744] px-4">
-      <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-xl">
+      <div className="w-full max-w-md rounded-xl bg-white p-8 text-slate-900 shadow-xl">
         <h1 className="text-xl font-bold text-[#1a2744]">Reset password</h1>
         <p className="mt-1 text-sm text-slate-600">
           Enter your @propa3.com email. We&apos;ll send a link valid for 1 hour.

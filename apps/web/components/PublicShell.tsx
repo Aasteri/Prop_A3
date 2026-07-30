@@ -52,7 +52,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
           </nav>
         </div>
       </header>
-      <main>{children}</main>
+      <main className="text-slate-900">{children}</main>
       <footer className="mt-12 border-t border-slate-200 bg-slate-50">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-8 text-sm text-slate-600">
           <div>

@@ -28,7 +28,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center bg-[#1a2744] px-4">
-      <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-xl">
+      <div className="w-full max-w-md rounded-xl bg-white p-8 text-slate-900 shadow-xl">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold text-[#1a2744]">
             Propa<span className="text-[#e87722]">3</span>
@@ -44,7 +44,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-[#e87722] focus:outline-none focus:ring-1 focus:ring-[#e87722]"
+              className={`w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-500 focus:border-[#e87722] focus:outline-none focus:ring-1 focus:ring-[#e87722]`}
             />
           </div>
           <div>
@@ -59,7 +59,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-[#e87722] focus:outline-none focus:ring-1 focus:ring-[#e87722]"
+              className={`w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-500 focus:border-[#e87722] focus:outline-none focus:ring-1 focus:ring-[#e87722]`}
             />
           </div>
           {error && (

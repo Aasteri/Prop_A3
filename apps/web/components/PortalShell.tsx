@@ -53,7 +53,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
           </NavLink>
         </nav>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+      <main className="mx-auto max-w-6xl px-4 py-6 text-slate-900">{children}</main>
     </div>
   );
 }

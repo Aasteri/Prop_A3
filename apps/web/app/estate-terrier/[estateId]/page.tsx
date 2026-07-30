@@ -41,7 +41,7 @@ type Register = {
   };
 };
 
-const INPUT = 'rounded border border-slate-300 px-2 py-1 text-xs w-full min-w-[80px]';
+const INPUT = 'rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-900 w-full min-w-[80px]';
 
 export default function EstateTerrierRegisterPage() {
   const { estateId } = useParams<{ estateId: string }>();

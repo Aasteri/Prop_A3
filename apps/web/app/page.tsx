@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { PublicShell } from '@/components/PublicShell';
 import { ApiError, publicApi, submitInquiry } from '@/lib/api';
+import { INPUT_INLINE } from '@/lib/ui';
 
 type Company = {
   name: string;
@@ -190,14 +191,14 @@ export default function HomePage() {
                     placeholder="First name"
                     value={inquiryForm.firstName}
                     onChange={(e) => setInquiryForm({ ...inquiryForm, firstName: e.target.value })}
-                    className="rounded-lg border px-3 py-2 text-sm"
+                    className={INPUT_INLINE}
                   />
                   <input
                     required
                     placeholder="Last name"
                     value={inquiryForm.lastName}
                     onChange={(e) => setInquiryForm({ ...inquiryForm, lastName: e.target.value })}
-                    className="rounded-lg border px-3 py-2 text-sm"
+                    className={INPUT_INLINE}
                   />
                 </div>
                 <input
@@ -205,21 +206,21 @@ export default function HomePage() {
                   placeholder="Phone"
                   value={inquiryForm.phone}
                   onChange={(e) => setInquiryForm({ ...inquiryForm, phone: e.target.value })}
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
+                  className={`w-full ${INPUT_INLINE}`}
                 />
                 <input
                   type="email"
                   placeholder="Email (optional)"
                   value={inquiryForm.email}
                   onChange={(e) => setInquiryForm({ ...inquiryForm, email: e.target.value })}
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
+                  className={`w-full ${INPUT_INLINE}`}
                 />
                 <textarea
                   placeholder="What are you interested in?"
                   rows={3}
                   value={inquiryForm.message}
                   onChange={(e) => setInquiryForm({ ...inquiryForm, message: e.target.value })}
-                  className="w-full rounded-lg border px-3 py-2 text-sm"
+                  className={`w-full ${INPUT_INLINE}`}
                 />
                 {inquiryError && <p className="text-sm text-red-600">{inquiryError}</p>}
                 <button

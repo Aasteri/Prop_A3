@@ -2,9 +2,12 @@
 
 :root {
   --background: #f8fafc;
-  --foreground: #1a2744;
+  --foreground: #0f172a;
   --brand-navy: #1a2744;
   --brand-orange: #e87722;
+  --muted: #64748b;
+  --card: #ffffff;
+  --border: #e2e8f0;
 }
 
 @theme inline {
@@ -14,15 +17,42 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #f1f5f9;
-  }
+/* MVP is light-theme only. System dark mode was flipping body text to white
+   while cards stayed bg-white → invisible text. */
+html {
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Form controls on white cards must not inherit low-contrast colors */
+input:not([type='checkbox']):not([type='radio']):not([type='file']),
+textarea,
+select {
+  color: #0f172a;
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+
+label {
+  color: #334155;
+}
+
+/* Autofill (Chrome) — keep dark text on white */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill {
+  -webkit-text-fill-color: #0f172a;
+  box-shadow: 0 0 0 1000px #ffffff inset;
 }

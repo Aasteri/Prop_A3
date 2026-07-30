@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { PublicShell } from '@/components/PublicShell';
 import { ApiError, publicApi, submitInquiry } from '@/lib/api';
+import { INPUT_INLINE } from '@/lib/ui';
 
 type Listing = {
   id: string;
@@ -110,12 +111,12 @@ export default function PropertyDetailPage() {
             ) : (
               <form onSubmit={onInquiry} className="mt-4 space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <input required placeholder="First name" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} className="rounded-lg border px-3 py-2 text-sm" />
-                  <input required placeholder="Last name" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} className="rounded-lg border px-3 py-2 text-sm" />
+                  <input required placeholder="First name" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} className={INPUT_INLINE} />
+                  <input required placeholder="Last name" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} className={INPUT_INLINE} />
                 </div>
-                <input required placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="w-full rounded-lg border px-3 py-2 text-sm" />
-                <input type="email" placeholder="Email (optional)" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full rounded-lg border px-3 py-2 text-sm" />
-                <textarea placeholder="Message" rows={3} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="w-full rounded-lg border px-3 py-2 text-sm" />
+                <input required placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={`w-full ${INPUT_INLINE}`} />
+                <input type="email" placeholder="Email (optional)" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={`w-full ${INPUT_INLINE}`} />
+                <textarea placeholder="Message" rows={3} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className={`w-full ${INPUT_INLINE}`} />
                 {error && <p className="text-sm text-red-600">{error}</p>}
                 <button type="submit" className="w-full rounded-lg bg-[#e87722] py-2.5 text-sm font-medium text-white hover:bg-[#d06818]">
                   Submit inquiry
