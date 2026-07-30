@@ -116,6 +116,6 @@ curl -sf "$BASE/public/stats" | jget "console.log('stats',d.listingCount,d.proje
 
 echo "==> Forgot password (no leak)"
 curl -sf -X POST "$BASE/auth/forgot-password" -H 'Content-Type: application/json' \
-  -d '{"email":"ceo@propa3.com"}' | jget "console.log('forgot',d.message?.slice(0,30))"
+  -d '{"email":"ceo@propa3.com"}' | jget "console.log('forgot',d.message?.slice(0,40))"
 
 echo "E2E_OK"
