@@ -15,7 +15,7 @@ if [[ ! -f .env ]]; then
 fi
 
 echo "==> Installing dependencies..."
-npm ci
+npm ci --include=dev
 
 echo "==> Generating Prisma client..."
 npm run db:generate
@@ -24,7 +24,7 @@ echo "==> Syncing database schema..."
 npm run db:push
 
 echo "==> Seeding demo users (idempotent)..."
-npm run db:seed
+npx --yes tsx prisma/seed.ts
 
 echo "==> Building API + Web..."
 npm run build
