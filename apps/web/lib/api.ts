@@ -124,6 +124,20 @@ export function logout() {
   window.location.href = '/login';
 }
 
+export async function forgotPassword(email: string) {
+  return publicApi<{ message: string }>('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPassword(token: string, password: string) {
+  return publicApi<{ message: string }>('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, password }),
+  });
+}
+
 export async function downloadCsv(path: string, filename: string) {
   const token = getToken();
   const res = await fetch(`${API_URL}/api${path}`, {

@@ -94,6 +94,30 @@ type CeoSummary = {
   };
 };
 
+type WeeklyReport = {
+  period: { from: string; to: string };
+  summary: {
+    approvedLogs: number;
+    pendingLogApprovals: number;
+    pendingMaterialRequests: number;
+  };
+  bySite: {
+    siteCode: string;
+    siteName: string;
+    approvedLogs: number;
+    openIssues: number;
+    latestRefs: string[];
+  }[];
+  highlights: {
+    refCode: string;
+    date: string;
+    siteCode: string;
+    projectName: string;
+    progressNotes: string | null;
+  }[];
+  narrative: string;
+};
+
 function formatNaira(v: number) {
   return `₦${v.toLocaleString('en-NG', { maximumFractionDigits: 0 })}`;
 }
@@ -104,6 +128,7 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [summary, setSummary] = useState<PmSummary | null>(null);
   const [ceoSummary, setCeoSummary] = useState<CeoSummary | null>(null);
+  const [weeklyReport, setWeeklyReport] = useState<WeeklyReport | null>(null);
 
   useEffect(() => {
     if (!getToken()) {
@@ -115,6 +140,9 @@ export default function DashboardPage() {
         setUser(u);
         if (u.role === 'CEO' || u.role === 'ADMIN') {
           api<CeoSummary>('/dashboard/ceo').then(setCeoSummary).catch(console.error);
+        }
+        if (u.role === 'CEO' || u.role === 'ADMIN' || u.role === 'PROJECT_MANAGER') {
+          api<WeeklyReport>('/dashboard/weekly-report').then(setWeeklyReport).catch(console.error);
         }
       })
       .catch(() => router.replace('/login'));
@@ -142,6 +170,67 @@ export default function DashboardPage() {
                   : 'All sites access'}
             </p>
           </div>
+
+          {weeklyReport && (
+            <section className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="text-lg font-semibold text-[#1a2744]">Weekly site report</h2>
+                <span className="text-sm text-slate-500">
+                  {weeklyReport.period.from} → {weeklyReport.period.to}
+                </span>
+              </div>
+              <p className="text-sm text-slate-700">{weeklyReport.narrative}</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-lg bg-slate-50 p-3 text-center">
+                  <p className="text-2xl font-semibold text-[#1a2744]">
+                    {weeklyReport.summary.approvedLogs}
+                  </p>
+                  <p className="text-xs text-slate-600">Approved logs</p>
+                </div>
+                <div className="rounded-lg bg-amber-50 p-3 text-center">
+                  <p className="text-2xl font-semibold text-amber-800">
+                    {weeklyReport.summary.pendingLogApprovals}
+                  </p>
+                  <p className="text-xs text-slate-600">Pending approvals</p>
+                </div>
+                <div className="rounded-lg bg-slate-50 p-3 text-center">
+                  <p className="text-2xl font-semibold text-[#1a2744]">
+                    {weeklyReport.summary.pendingMaterialRequests}
+                  </p>
+                  <p className="text-xs text-slate-600">Material requests</p>
+                </div>
+              </div>
+              {weeklyReport.bySite.length > 0 && (
+                <div className="mt-4 overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead className="text-left text-slate-500">
+                      <tr>
+                        <th className="pb-2 pr-4">Site</th>
+                        <th className="pb-2 pr-4">Approved</th>
+                        <th className="pb-2 pr-4">Issues</th>
+                        <th className="pb-2">Recent refs</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {weeklyReport.bySite.map((s) => (
+                        <tr key={s.siteCode} className="border-t border-slate-100">
+                          <td className="py-2 pr-4 font-medium">{s.siteCode}</td>
+                          <td className="py-2 pr-4">{s.approvedLogs}</td>
+                          <td className="py-2 pr-4">{s.openIssues}</td>
+                          <td className="py-2 text-xs text-slate-600">
+                            {s.latestRefs.join(', ') || '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <p className="mt-3 text-xs text-slate-500">
+                Emailed to PMs every Monday 08:00 WAT when SMTP is configured.
+              </p>
+            </section>
+          )}
 
           {ceoSummary && isExecutive && (
             <>

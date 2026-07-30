@@ -239,7 +239,7 @@ Manual:
 ## Go-live checklist (Triple A internal)
 
 - [ ] Replace seed passwords; create real user accounts per site
-- [ ] Confirm bank details on settlement entities (Abraham)
+- [ ] **AWS Budgets** — $25/month alert + earn $20 credit → [docs/AWS_BUDGETS.md](./AWS_BUDGETS.md)
 - [ ] Remove or disable unused seed demo data
 - [ ] Share login URL: `https://propa3.com/login`
 - [ ] Foreman training: PWA site log on mobile data
