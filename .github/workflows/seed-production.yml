@@ -1,0 +1,23 @@
+name: Seed production DB
+
+on:
+  workflow_dispatch:
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run remote seed (deploy hook)
+        env:
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+        run: |
+          BODY='{"mode":"seed"}'
+          if [ -n "${SMTP_PASS:-}" ]; then
+            BODY=$(python3 -c 'import json,os; print(json.dumps({"mode":"seed","smtpPass": os.environ["SMTP_PASS"]}))')
+          fi
+          RESP=$(curl -sf -X POST "https://propa3.com/api/deploy/hook" \
+            -H "X-Deploy-Secret: ${{ secrets.DEPLOY_HOOK_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d "$BODY")
+          echo "$RESP"
+          echo "$RESP" | grep -q '"status":"seed_complete"' || exit 1

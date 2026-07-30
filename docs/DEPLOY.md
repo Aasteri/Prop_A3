@@ -251,11 +251,37 @@ Manual:
 
 | Issue | Fix |
 |---|---|
+| **SSH timed out** | Security group allows HTTPS but not your current IP on **port 22**. See [SSH access lost](#ssh-access-lost) below. |
 | 502 Bad Gateway | `pm2 status` · `pm2 logs propa3-api --lines 50` |
 | Out of memory / kills | Upgrade to t3.small+; check `free -h`; swap should exist |
 | CORS errors | `WEB_URL` must list exact browser origin |
 | Upload fails | Nginx `client_max_body_size 25M` · disk space `df -h` |
 | SSL expiry | `sudo certbot renew --dry-run` |
+
+### SSH access lost
+
+If `ssh -i propa3-mvp.pem ubuntu@52.209.36.187` times out but https://propa3.com works, **port 22 is blocked** (usually the EC2 security group still has an old “My IP”).
+
+1. Sign in to **AWS Console** → **EC2** → **Instances** → select `Prop A3 Server`.
+2. **Security** tab → click the **security group** → **Edit inbound rules**.
+3. Add or update **SSH (22)**:
+   - **Source:** `My IP` (Console detects your current public IP), or run `curl ifconfig.me` and use `x.x.x.x/32`.
+4. **Save rules**, wait ~30s, retry SSH.
+
+**Without SSH (after code is deployed):**
+
+1. GitHub → repo **Settings** → **Secrets** → add `SMTP_PASS` = `info@propa3.com` mailbox password (if not already set).
+2. **Actions** → **Deploy to EC2** → **Run workflow** (pulls latest code).
+3. **Actions** → **Seed production DB** → **Run workflow** (migrates users `@triplea.ng` → `@propa3.com` over HTTPS).
+
+Or from your PC if you know `DEPLOY_HOOK_SECRET`:
+
+```bash
+curl -X POST https://propa3.com/api/deploy/hook \
+  -H "X-Deploy-Secret: YOUR_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"mode":"seed","smtpPass":"YOUR_INFO_MAILBOX_PASSWORD"}'
+```
 
 ---
 
