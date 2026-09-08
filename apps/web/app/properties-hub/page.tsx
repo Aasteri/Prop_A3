@@ -66,11 +66,18 @@ export default function PropertiesHubPage() {
           status: 'live',
         },
         {
+          href: '/remittances',
+          title: 'Landlord remittances',
+          description: 'Gross rent − expenses → net paid to landlord.',
+          icon: 'transfer',
+          status: 'live',
+        },
+        {
           href: '/viewings',
           title: 'Viewings & inspections',
           description: 'Mandatory physical inspection + platform response.',
           icon: 'eye',
-          status: 'building',
+          status: 'live',
         },
       ]}
     />

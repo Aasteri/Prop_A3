@@ -13,13 +13,29 @@ type Requisition = {
   justification: string | null;
   status: string;
   neededBy: string | null;
-  createdAt: string;
-  lines: { id: string; description: string; qty: string | number; unit: string | null }[];
+  lines: { id: string; description: string; qty: string | number; unit: string | null; estUnitCost?: string | number | null }[];
+};
+
+type Supplier = { id: string; legalName: string };
+
+type PurchaseOrder = {
+  id: string;
+  number: string;
+  status: string;
+  totalAmount: string | number | null;
+  destination: string | null;
+  paymentBeforeDelivery: boolean;
+  supplier: { legalName: string };
+  pr: { number: string } | null;
+  lines: { id: string; description: string; qty: string | number; unitPrice: string | number }[];
+  receipts: { id: string; number: string }[];
 };
 
 export default function GoodsProcurementPage() {
   const router = useRouter();
   const [rows, setRows] = useState<Requisition[]>([]);
+  const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
@@ -33,6 +49,8 @@ export default function GoodsProcurementPage() {
 
   const load = () => {
     api<Requisition[]>('/procurement/requisitions').then(setRows).catch(console.error);
+    api<PurchaseOrder[]>('/procurement/orders').then(setOrders).catch(console.error);
+    api<Supplier[]>('/procurement/suppliers').then(setSuppliers).catch(console.error);
   };
 
   useEffect(() => {
@@ -74,6 +92,54 @@ export default function GoodsProcurementPage() {
     load();
   }
 
+  async function convertToPo(pr: Requisition) {
+    if (!suppliers.length) {
+      alert('Add a supplier under Vendors first');
+      return;
+    }
+    const supplierId =
+      suppliers.length === 1
+        ? suppliers[0].id
+        : window.prompt(
+            `Supplier id:\n${suppliers.map((s) => `${s.id} — ${s.legalName}`).join('\n')}`,
+            suppliers[0].id,
+          );
+    if (!supplierId) return;
+    const destination = window.prompt('Destination (site / warehouse / property)', '') || undefined;
+    await api('/procurement/orders', {
+      method: 'POST',
+      body: JSON.stringify({
+        supplierId,
+        prId: pr.id,
+        destination,
+        paymentBeforeDelivery: true,
+      }),
+    });
+    load();
+  }
+
+  async function receivePo(po: PurchaseOrder) {
+    const invoiceNo = window.prompt('Supplier invoice number') || undefined;
+    await api('/procurement/receipts', {
+      method: 'POST',
+      body: JSON.stringify({
+        poId: po.id,
+        supplierInvoiceNo: invoiceNo,
+        lines: po.lines.map((l) => {
+          const qty = Number(l.qty);
+          return {
+            description: l.description,
+            qtyOrdered: qty,
+            qtyReceived: qty,
+            qtyAccepted: qty,
+            qtyRejected: 0,
+          };
+        }),
+      }),
+    });
+    load();
+  }
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -84,16 +150,17 @@ export default function GoodsProcurementPage() {
           <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                Purchase requisitions
+                PR → PO → GRN
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-slate-200/90">
-                PR → approve → PO → GRN path (PO/GRN UI next). Site material requests remain live.
+                Payment-before-delivery default for many vendors. Site material requests remain a
+                separate live flow.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setShowForm((v) => !v)}
-              className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white hover:bg-[#d06818]"
+              className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white"
             >
               {showForm ? 'Cancel' : 'New PR'}
             </button>
@@ -142,18 +209,20 @@ export default function GoodsProcurementPage() {
               />
             </div>
             <div>
-              <label className={LABEL}>Unit</label>
+              <label className={LABEL}>Est. unit cost (₦)</label>
               <input
+                type="number"
+                min={0}
                 className={INPUT}
-                value={form.unit}
-                onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                value={form.estUnitCost}
+                onChange={(e) => setForm({ ...form, estUnitCost: e.target.value })}
               />
             </div>
             {error && <p className="sm:col-span-2 text-sm text-red-600">{error}</p>}
             <div className="sm:col-span-2">
               <button
                 type="submit"
-                className="rounded-lg bg-[#1a2744] px-4 py-2 text-sm font-medium text-white hover:bg-[#243a5e]"
+                className="rounded-lg bg-[#1a2744] px-4 py-2 text-sm font-medium text-white"
               >
                 Submit requisition
               </button>
@@ -165,12 +234,16 @@ export default function GoodsProcurementPage() {
           <Link href="/procurement" className="font-medium text-[#e87722] hover:underline">
             ← Procurement hub
           </Link>
+          <Link href="/vendors" className="font-medium text-slate-600 hover:underline">
+            Vendors
+          </Link>
           <Link href="/material-requests" className="font-medium text-slate-600 hover:underline">
-            Site material requests (live)
+            Site material requests
           </Link>
         </div>
 
-        <div className="space-y-3">
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold text-[#1a2744]">Purchase requisitions</h2>
           {rows.map((r) => (
             <div key={r.id} className={`${CARD} p-4`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -181,27 +254,73 @@ export default function GoodsProcurementPage() {
                   </p>
                   <p className="mt-2 text-xs text-slate-500">
                     {r.status} · {r.lines.length} line(s)
-                    {r.neededBy ? ` · needed ${r.neededBy.slice(0, 10)}` : ''}
                   </p>
                 </div>
-                {r.status === 'SUBMITTED' && (
+                <div className="flex gap-2">
+                  {r.status === 'SUBMITTED' && (
+                    <button
+                      type="button"
+                      onClick={() => approve(r.id)}
+                      className="rounded-md bg-[#1a2744] px-3 py-1.5 text-xs text-white"
+                    >
+                      Approve
+                    </button>
+                  )}
+                  {r.status === 'APPROVED' && (
+                    <button
+                      type="button"
+                      onClick={() => convertToPo(r)}
+                      className="rounded-md bg-[#e87722] px-3 py-1.5 text-xs text-white"
+                    >
+                      Convert to PO
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+          {rows.length === 0 && (
+            <div className={`${CARD} p-6 text-center text-sm text-slate-500`}>No PRs yet.</div>
+          )}
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold text-[#1a2744]">Purchase orders & receipts</h2>
+          {orders.map((o) => (
+            <div key={o.id} className={`${CARD} p-4`}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold text-[#e87722]">{o.number}</p>
+                  <p className="mt-1 text-sm text-slate-700">
+                    {o.supplier.legalName}
+                    {o.pr ? ` · from ${o.pr.number}` : ''}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {o.status} · ₦{Number(o.totalAmount ?? 0).toLocaleString()}
+                    {o.paymentBeforeDelivery ? ' · pay before delivery' : ''}
+                    {o.receipts[0] ? ` · ${o.receipts[0].number}` : ''}
+                  </p>
+                </div>
+                {(o.status === 'APPROVED' ||
+                  o.status === 'SENT' ||
+                  o.status === 'PARTIALLY_RECEIVED') && (
                   <button
                     type="button"
-                    onClick={() => approve(r.id)}
-                    className="rounded-md bg-[#1a2744] px-3 py-1.5 text-xs font-medium text-white"
+                    onClick={() => receivePo(o)}
+                    className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
                   >
-                    Approve
+                    Record GRN
                   </button>
                 )}
               </div>
             </div>
           ))}
-          {rows.length === 0 && (
-            <div className={`${CARD} p-8 text-center text-sm text-slate-500`}>
-              No purchase requisitions yet.
+          {orders.length === 0 && (
+            <div className={`${CARD} p-6 text-center text-sm text-slate-500`}>
+              No purchase orders yet. Approve a PR and convert it.
             </div>
           )}
-        </div>
+        </section>
       </div>
     </AppShell>
   );

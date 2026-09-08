@@ -1096,6 +1096,7 @@ model PropertyAsset {
   maintenanceRequests   MaintenanceRequest[]
   serviceChargeAccount  ServiceChargeAccount?
   pmEngagements         PmEngagementProperty[]
+  remittances           LandlordRemittance[]
 
   @@map("property_assets")
 }
@@ -1489,4 +1490,35 @@ model SalesInspection {
   @@index([leadId])
   @@index([listingId])
   @@map("sales_inspections")
+}
+
+enum RemittanceStatus {
+  DRAFT
+  APPROVED
+  PAID
+}
+
+model LandlordRemittance {
+  id             String           @id @default(cuid())
+  number         String           @unique
+  propertyId     String           @map("property_id")
+  landlordName   String           @map("landlord_name")
+  periodStart    DateTime         @map("period_start") @db.Date
+  periodEnd      DateTime         @map("period_end") @db.Date
+  grossRent      Decimal          @map("gross_rent") @db.Decimal(14, 2)
+  otherReceipts  Decimal          @default(0) @map("other_receipts") @db.Decimal(14, 2)
+  expensesTotal  Decimal          @default(0) @map("expenses_total") @db.Decimal(14, 2)
+  netAmount      Decimal          @map("net_amount") @db.Decimal(14, 2)
+  expenseNotes   String?          @map("expense_notes") @db.Text
+  bankAccount    String?          @map("bank_account")
+  transferRef    String?          @map("transfer_ref")
+  paidAt         DateTime?        @map("paid_at")
+  status         RemittanceStatus @default(DRAFT)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  property PropertyAsset @relation(fields: [propertyId], references: [id])
+
+  @@index([propertyId, periodEnd])
+  @@map("landlord_remittances")
 }

@@ -19,6 +19,7 @@ type LeadDetail = {
   notes: string | null;
   lostReason: string | null;
   nextStages: string[];
+  inspectionCompleted?: boolean;
   listing: { id: string; listingRef: string; location: string; propertyType: string } | null;
   client: { id: string; clientRef: string; firstName: string; lastName: string } | null;
   assignedTo: { firstName: string; lastName: string } | null;
@@ -123,6 +124,18 @@ export default function LeadDetailPage() {
           Converted to client <strong>{lead.client.clientRef}</strong>
         </div>
       )}
+
+      <div className="mt-4 rounded-lg border border-slate-200 bg-white p-4 text-sm">
+        <p className="font-medium text-[#1a2744]">Viewing / inspection gate</p>
+        <p className="mt-1 text-slate-600">
+          {lead.inspectionCompleted
+            ? 'Completed inspection response logged — negotiation/convert unlocked.'
+            : 'Physical inspection response required before Negotiation, Reserved, or convert.'}
+        </p>
+        <Link href="/viewings" className="mt-2 inline-block text-[#e87722] hover:underline">
+          Open viewings →
+        </Link>
+      </div>
 
       {canManage && !isClosed && (
         <div className="mt-4 flex flex-wrap gap-2">

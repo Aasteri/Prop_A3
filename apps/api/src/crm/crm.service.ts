@@ -21,6 +21,7 @@ import {
   PIPELINE_STAGES,
   stageLabel,
 } from './crm.utils';
+import { SalesInspectionsService } from '../sales-inspections/sales-inspections.service';
 
 const leadInclude = {
   listing: {
@@ -48,6 +49,7 @@ export class CrmService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly inspections: SalesInspectionsService,
   ) {}
 
   pipelineMeta(user: AuthUser) {
@@ -100,9 +102,11 @@ export class CrmService {
       include: leadInclude,
     });
     if (!lead) throw new NotFoundException('Lead not found');
+    const inspectionCompleted = await this.inspections.hasCompletedResponse(id);
     return {
       ...lead,
       nextStages: nextStages(lead.stage),
+      inspectionCompleted,
     };
   }
 
@@ -235,6 +239,16 @@ export class CrmService {
       throw new BadRequestException('Lost reason is required');
     }
 
+    // BRD: physical inspection + platform response required before negotiation/reservation
+    if (
+      (dto.stage === LeadStage.NEGOTIATION || dto.stage === LeadStage.RESERVED) &&
+      !(await this.inspections.hasCompletedResponse(id))
+    ) {
+      throw new BadRequestException(
+        'Log a completed viewing/inspection response before advancing past Viewing',
+      );
+    }
+
     if (dto.stage === LeadStage.RESERVED && lead.listingId) {
       await this.prisma.listing.update({
         where: { id: lead.listingId },
@@ -264,11 +278,17 @@ export class CrmService {
     if (
       lead.stage !== LeadStage.NEGOTIATION &&
       lead.stage !== LeadStage.RESERVED &&
-      lead.stage !== LeadStage.INQUIRY &&
-      lead.stage !== LeadStage.CONTACTED &&
       lead.stage !== LeadStage.VIEWING
     ) {
-      throw new BadRequestException('Lead cannot be converted from current stage');
+      throw new BadRequestException(
+        'Convert only from Viewing (after inspection), Negotiation, or Reserved',
+      );
+    }
+
+    if (!(await this.inspections.hasCompletedResponse(id))) {
+      throw new BadRequestException(
+        'Mandatory physical inspection response must be logged before convert',
+      );
     }
 
     return this.prisma.$transaction(async (tx) => {

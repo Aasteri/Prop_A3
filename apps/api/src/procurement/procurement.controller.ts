@@ -2,6 +2,8 @@ import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@ne
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorator';
 import {
+  CreateGoodsReceiptDto,
+  CreatePurchaseOrderDto,
   CreatePurchaseRequisitionDto,
   CreateSupplierDto,
   ListProcurementQueryDto,
@@ -39,5 +41,20 @@ export class ProcurementController {
   @Patch('requisitions/:id/approve')
   approveRequisition(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.procurement.approveRequisition(id, user);
+  }
+
+  @Get('orders')
+  listOrders(@CurrentUser() user: AuthUser, @Query() query: ListProcurementQueryDto) {
+    return this.procurement.listOrders(user, query);
+  }
+
+  @Post('orders')
+  createOrder(@Body() dto: CreatePurchaseOrderDto, @CurrentUser() user: AuthUser) {
+    return this.procurement.createOrder(dto, user);
+  }
+
+  @Post('receipts')
+  createReceipt(@Body() dto: CreateGoodsReceiptDto, @CurrentUser() user: AuthUser) {
+    return this.procurement.createReceipt(dto, user);
   }
 }
