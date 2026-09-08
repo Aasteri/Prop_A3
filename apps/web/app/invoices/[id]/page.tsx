@@ -12,6 +12,7 @@ import {
   uploadPaymentProof,
   type AuthUser,
 } from '@/lib/api';
+import { getApiBaseUrl } from '@/lib/api-base';
 
 type InvoiceDetail = {
   id: string;
@@ -268,7 +269,7 @@ export default function InvoiceDetailPage() {
                     )}
                     {p.proofUrl && (
                       <a
-                        href={`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}${p.proofUrl}`}
+                        href={`${getApiBaseUrl()}${p.proofUrl}`}
                         target="_blank"
                         rel="noreferrer"
                         className="text-xs text-[#e87722]"

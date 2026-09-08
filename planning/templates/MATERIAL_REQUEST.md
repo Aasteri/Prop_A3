@@ -1,6 +1,6 @@
-# Material Request Form (Draft Template)
+# Material Request Form (Production Default)
 
-> **Status:** Industry-standard draft — replace with Abraham's version when received  
+> **Status: PRODUCTION DEFAULT** — Ship as-is; replace only if Abraham supplies a different form.  
 > **Workflow:** Foreman → PM approval → Store issuance  
 > **Team Charter rule:** All issuances must be authorised by Foreman or PM
 

@@ -26,6 +26,13 @@ npm run db:push
 echo "==> Seeding demo users (idempotent)..."
 npx --yes tsx prisma/seed.ts
 
+echo "==> Syncing web env for Next build..."
+if grep -q '^NEXT_PUBLIC_API_URL=' .env; then
+  grep '^NEXT_PUBLIC_API_URL=' .env > apps/web/.env.production
+else
+  echo "WARN: NEXT_PUBLIC_API_URL missing in .env — web may default to same-origin /api"
+fi
+
 echo "==> Building API + Web..."
 npm run build
 

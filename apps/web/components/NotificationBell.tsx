@@ -46,7 +46,7 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative rounded-md bg-white/10 px-3 py-1.5 hover:bg-white/20"
+        className="relative rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
         aria-label="Notifications"
       >
         Alerts

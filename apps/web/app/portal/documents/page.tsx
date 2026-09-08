@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { PortalShell } from '@/components/PortalShell';
 import { api, getToken, type DocumentRecord } from '@/lib/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { getApiBaseUrl } from '@/lib/api-base';
+
+const API_URL = getApiBaseUrl();
 
 function labelCategory(c: string) {
   return c.replace(/_/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase());

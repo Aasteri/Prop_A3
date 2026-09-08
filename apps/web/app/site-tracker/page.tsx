@@ -92,9 +92,9 @@ export default function SiteTrackerListPage() {
           {logs.map((log) => (
             <div
               key={log.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 transition-colors hover:border-[#e87722]/40"
             >
-              <div>
+              <Link href={`/site-tracker/${log.id}`} className="min-w-0 flex-1">
                 <p className="font-medium text-[#1a2744]">{log.projectName}</p>
                 <p className="text-sm text-slate-500">
                   {log.refCode} · {log.site.code} ·{' '}
@@ -105,7 +105,7 @@ export default function SiteTrackerListPage() {
                     By {log.submittedBy.firstName} {log.submittedBy.lastName}
                   </p>
                 )}
-              </div>
+              </Link>
               <div className="flex items-center gap-2">
                 <span
                   className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[log.status] ?? ''}`}

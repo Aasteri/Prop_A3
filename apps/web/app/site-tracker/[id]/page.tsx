@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
-import { api, downloadPdf, getToken } from '@/lib/api';
+import { api, downloadPdf, getToken, ApiError } from '@/lib/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { getApiBaseUrl } from '@/lib/api-base';
+
+const API_URL = getApiBaseUrl();
 
 type LogDetail = {
   id: string;
@@ -25,6 +27,10 @@ type LogDetail = {
   materials: { material: string; receivedQty: number; consumedQty: number; balance: number }[];
   qualitySlumpTest: boolean;
   safetyPpeCompliance: boolean;
+  issueMaterialShortage?: boolean;
+  issueEquipmentBreakdown?: boolean;
+  issueWeatherDelay?: boolean;
+  safetyIncidentsNearMisses?: boolean;
   nextDayActivities: string | null;
   supervisorSignature: string | null;
   rejectReason: string | null;
@@ -33,17 +39,53 @@ type LogDetail = {
 };
 
 export default function SiteLogDetailPage() {
-  const { id } = useParams<{ id: string }>();
+  const params = useParams<{ id: string }>();
+  const id = typeof params.id === 'string' ? params.id : params.id?.[0];
   const router = useRouter();
   const [log, setLog] = useState<LogDetail | null>(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
+    if (!id) return;
     if (!getToken()) {
       router.replace('/login');
       return;
     }
-    api<LogDetail>(`/site-tracker/logs/${id}`).then(setLog).catch(() => router.push('/site-tracker'));
+    setError('');
+    setLog(null);
+    api<LogDetail>(`/site-tracker/logs/${id}`)
+      .then(setLog)
+      .catch((err: unknown) => {
+        if (err instanceof ApiError && err.status === 401) {
+          router.replace('/login');
+          return;
+        }
+        setError(
+          err instanceof ApiError ? err.message : 'Could not load this site log. Try again from the list.',
+        );
+      });
   }, [id, router]);
+
+  if (!id) {
+    return (
+      <AppShell>
+        <p className="text-slate-500">Loading…</p>
+      </AppShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppShell>
+        <div className="rounded-xl border border-red-200 bg-red-50 p-6">
+          <p className="font-medium text-red-800">{error}</p>
+          <Link href="/site-tracker" className="mt-3 inline-block text-sm text-[#e87722] hover:underline">
+            ← Back to site tracker
+          </Link>
+        </div>
+      </AppShell>
+    );
+  }
 
   if (!log) {
     return (
@@ -82,14 +124,17 @@ export default function SiteLogDetailPage() {
 
         <Card title="Activities">
           <ul className="space-y-2">
-            {log.activities.map((a, i) => (
+            {(log.activities ?? []).map((a, i) => (
               <li key={i} className="flex justify-between text-sm">
                 <span>{a.activity}</span>
                 <span className="text-slate-500">
-                  {a.status} · {a.progressPercent}%
+                  {a.status} · {Number(a.progressPercent)}%
                 </span>
               </li>
             ))}
+            {!log.activities?.length && (
+              <li className="text-sm text-slate-500">No activities recorded.</li>
+            )}
           </ul>
         </Card>
 
@@ -100,7 +145,7 @@ export default function SiteLogDetailPage() {
           </p>
         </Card>
 
-        {log.machinery.length > 0 && (
+        {log.machinery?.length > 0 && (
           <Card title="Machinery">
             <ul className="space-y-1 text-sm">
               {log.machinery.map((m, i) => (
@@ -124,7 +169,7 @@ export default function SiteLogDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {log.materials.map((m, i) => (
+              {(log.materials ?? []).map((m, i) => (
                 <tr key={i}>
                   <td>{m.material}</td>
                   <td>{m.receivedQty}</td>
@@ -143,6 +188,17 @@ export default function SiteLogDetailPage() {
             Slump test: {log.qualitySlumpTest ? 'Yes' : 'No'} · PPE:{' '}
             {log.safetyPpeCompliance ? 'Yes' : 'No'}
           </p>
+          {(log.issueMaterialShortage ||
+            log.issueEquipmentBreakdown ||
+            log.issueWeatherDelay ||
+            log.safetyIncidentsNearMisses) && (
+            <ul className="mt-2 space-y-1 text-sm text-amber-800">
+              {log.issueMaterialShortage && <li>Material shortage reported</li>}
+              {log.issueEquipmentBreakdown && <li>Equipment breakdown reported</li>}
+              {log.issueWeatherDelay && <li>Weather delay reported</li>}
+              {log.safetyIncidentsNearMisses && <li>HSE incident / near-miss reported</li>}
+            </ul>
+          )}
         </Card>
 
         {log.nextDayActivities && (

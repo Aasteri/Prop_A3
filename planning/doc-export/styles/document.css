@@ -1,0 +1,382 @@
+/* Propa3 / Triple A — Master document print styles (v3 — pagination fix) */
+
+@page {
+  size: A4 portrait;
+  margin: 20mm 14mm 26mm 14mm;
+}
+
+:root {
+  --navy: #1a2744;
+  --navy-light: #2d3f5f;
+  --orange: #e87722;
+  --orange-soft: #fef3e8;
+  --text: #1f2937;
+  --muted: #64748b;
+  --border: #cbd5e1;
+  --border-strong: #94a3b8;
+  --bg-soft: #f8fafc;
+  --bg-callout: #f1f5f9;
+  --table-header: #1a2744;
+  --table-stripe: #f1f5f9;
+}
+
+* { box-sizing: border-box; }
+
+html { font-size: 10pt; }
+
+body {
+  font-family: "Segoe UI", Calibri, "Helvetica Neue", Arial, sans-serif;
+  color: var(--text);
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ─── Cover ─── */
+.cover-page {
+  page-break-after: always;
+  break-after: page;
+  min-height: 252mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20mm 10mm;
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  border-bottom: 5px solid var(--orange);
+}
+
+.cover-brand {
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--orange);
+  font-weight: 700;
+  margin-bottom: 10mm;
+}
+
+.cover-title {
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.2;
+  margin: 0 0 6mm;
+}
+
+.cover-subtitle {
+  font-size: 1rem;
+  color: var(--muted);
+  margin: 0 0 14mm;
+  line-height: 1.45;
+}
+
+.cover-meta {
+  font-size: 0.88rem;
+  color: var(--muted);
+  border-top: 2px solid var(--border);
+  padding-top: 5mm;
+  margin-top: auto;
+}
+
+.cover-meta p { margin: 0.2rem 0; }
+
+.document-body { padding: 0; }
+
+/* ─── Typography ─── */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--navy);
+  line-height: 1.28;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+h1 {
+  font-size: 1.45rem;
+  margin: 1.4rem 0 0.6rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid var(--orange);
+  break-before: page;
+  page-break-before: always;
+}
+
+.document-body > h1:first-child { break-before: avoid; page-break-before: avoid; }
+
+h2 {
+  font-size: 1.18rem;
+  margin: 1.2rem 0 0.5rem;
+  padding: 0.35rem 0 0.35rem 0.55rem;
+  border-left: 4px solid var(--orange);
+  background: linear-gradient(90deg, var(--orange-soft) 0%, transparent 100%);
+  break-before: auto;
+  page-break-before: auto;
+}
+
+h3 {
+  font-size: 1.02rem;
+  margin: 0.9rem 0 0.35rem;
+  color: var(--navy-light);
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+h4 { font-size: 0.92rem; margin: 0.75rem 0 0.3rem; }
+
+p {
+  margin: 0.4rem 0 0.55rem;
+  orphans: 3;
+  widows: 3;
+}
+
+a { color: #1d4ed8; text-decoration: underline; }
+
+blockquote {
+  margin: 0.65rem 0;
+  padding: 0.55rem 0.85rem;
+  border-left: 4px solid var(--orange);
+  background: var(--bg-soft);
+  color: var(--muted);
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1rem 0;
+  clear: both;
+}
+
+ul, ol { margin: 0.35rem 0 0.65rem; padding-left: 1.25rem; }
+li { margin: 0.15rem 0; }
+strong { color: var(--navy); font-weight: 600; }
+
+/* ─── Diagram sections — keep heading + diagram together when possible ─── */
+.diagram-section {
+  margin: 0.75rem 0 1.25rem;
+  clear: both;
+  break-inside: auto;
+  page-break-inside: auto;
+}
+
+.diagram-section > h3 {
+  margin-top: 0;
+}
+
+.diagram-section > h1 {
+  break-after: avoid;
+  page-break-after: avoid;
+  margin-top: 0;
+}
+
+.diagram-block {
+  margin: 0.5rem 0 0;
+  padding: 0.65rem 0.75rem 0.75rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: #fff;
+  clear: both;
+  overflow: hidden;
+  position: relative;
+  /* Allow break inside tall diagrams rather than overlap */
+  break-inside: auto;
+  page-break-inside: auto;
+}
+
+.diagram-block .diagram-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 0.45rem;
+  text-align: left;
+}
+
+.diagram-canvas {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  margin: 0 auto;
+}
+
+.diagram-canvas svg,
+.diagram-block .mermaid svg {
+  display: block !important;
+  margin: 0 auto !important;
+  max-width: 100% !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+.diagram-block .mermaid,
+.diagram-block .mermaid-rendered {
+  overflow: hidden;
+  width: 100%;
+}
+
+pre.mermaid-source {
+  display: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.mermaid-fallback {
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px dashed #f59e0b;
+  padding: 0.5rem;
+  font-size: 0.8rem;
+  text-align: left;
+  white-space: pre-wrap;
+}
+
+/* ─── Tables ─── */
+.table-wrap {
+  margin: 0.75rem 0 1rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+  clear: both;
+  break-inside: auto;
+  page-break-inside: auto;
+}
+
+.table-wrap.table-wide { font-size: 0.72rem; }
+
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+  font-size: 0.86rem;
+  table-layout: auto;
+}
+
+table.data-table thead { display: table-header-group; }
+table.data-table tr { break-inside: avoid; page-break-inside: avoid; }
+
+table.data-table th {
+  background: var(--table-header);
+  color: #fff;
+  font-weight: 600;
+  text-align: left;
+  vertical-align: bottom;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--navy-light);
+  font-size: 0.82rem;
+}
+
+table.data-table td {
+  border: 1px solid var(--border);
+  padding: 0.38rem 0.55rem;
+  vertical-align: top;
+  word-break: break-word;
+}
+
+table.data-table tbody tr:nth-child(even) td { background: var(--table-stripe); }
+
+table.data-table td:first-child {
+  font-weight: 600;
+  color: var(--navy-light);
+  background: #fafbfc;
+  width: 28%;
+}
+
+table.data-table tbody tr:nth-child(even) td:first-child { background: #eef2f7; }
+
+/* ─── Code ─── */
+code {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.84em;
+  background: #eef2f7;
+  padding: 0.08em 0.32em;
+  border-radius: 3px;
+}
+
+pre {
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  line-height: 1.42;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin: 0.6rem 0 0.9rem;
+  clear: both;
+}
+
+pre code { background: none; padding: 0; color: inherit; }
+
+/* ─── Embedded documents ─── */
+.embedded-doc {
+  border: 2px solid var(--navy-light);
+  border-radius: 8px;
+  margin: 0.85rem 0 1.15rem;
+  background: #fff;
+  clear: both;
+  break-inside: auto;
+  page-break-inside: auto;
+  overflow: visible;
+}
+
+.embedded-doc h1 {
+  break-before: avoid !important;
+  page-break-before: avoid !important;
+  font-size: 1.15rem;
+}
+
+.embedded-doc-title {
+  margin: 0 !important;
+  padding: 0.55rem 0.75rem !important;
+  background: var(--navy);
+  color: #fff !important;
+  font-size: 0.88rem !important;
+  border-left: none !important;
+  border-radius: 6px 6px 0 0;
+}
+
+.embedded-doc-body { padding: 0.65rem 0.75rem 0.85rem; }
+
+/* Phase intro block before diagram */
+.phase-intro-block {
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+.phase-intro-block + .diagram-block {
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+@media print {
+  body { font-size: 9.5pt; }
+
+  .diagram-section {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .phase-intro-block + .diagram-block {
+    break-before: avoid;
+    page-break-before: avoid;
+  }
+
+  .diagram-block {
+    box-shadow: none;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .table-wrap { box-shadow: none; }
+
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.7em;
+    color: var(--muted);
+    word-break: break-all;
+  }
+
+  a[href^="#"]::after { content: ""; }
+}

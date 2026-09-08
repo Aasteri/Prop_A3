@@ -9,6 +9,10 @@
 
 | If you need… | Open |
 |---|---|
+| **Everything in one file (build the whole system from this)** | [`ABRAHAM_MASTER_BUILD_DOCUMENT.md`](./ABRAHAM_MASTER_BUILD_DOCUMENT.md) — Parts A–E + **G–N** + **F** |
+| **BRD parts G–N (standalone extract)** | [`extractions/PROPA3_MASTER_BRD_PARTS_G_N.md`](./extractions/PROPA3_MASTER_BRD_PARTS_G_N.md) |
+| **Production-default form templates (ship if Abraham never sends)** | [`templates/provisional/README.md`](./templates/provisional/README.md) |
+| **Export master doc to PDF** | [`doc-export/README.md`](./doc-export/README.md) — `npm run planning:export-pdf` |
 | **What to build first (MVP)** | [`MVP_INTERNAL.md`](./MVP_INTERNAL.md) |
 | **Full todo: now → deployable MVP** | [`MVP_ROADMAP.md`](./MVP_ROADMAP.md) |
 | **Every feature + workflow** | [`FEATURES_MASTER.md`](./FEATURES_MASTER.md) |
@@ -81,6 +85,13 @@ Duplicates (`invoice (1).docx`, `Pix (1).docx`) kept alongside originals.
 | `data/LISTINGS_SEED.json` | Structured sale listings seed |
 | `data/generate_listings.py` | Seed generator script |
 | `extractions/*.txt` | Full text extract from each PDF/DOCX |
+| `extractions/ALL_TYPES_CONSTRUCTION_CHECKLIST.txt` | 20-category construction QC checklist (Abraham infographic) |
+| `extractions/PROFESSIONAL_ETHICS_SITE_SUPERVISOR.txt` | Triple A site ethics code (Abraham infographic) |
+| `extractions/GOOGLE_DOCS_SHEETS_INDEX.md` | Index pointing to **full** extraction files |
+| `extractions/ABRAHAM_FULL_EXTRACTION.md` | **All docs + sheets + infographics in one file** |
+| `extractions/ABRAHAM_GOOGLE_DOCS_FULL_EXTRACTION.md` | All 8 Google Docs only |
+| `extractions/ABRAHAM_GOOGLE_SHEETS_FULL_EXTRACTION.md` | All 7 Google Sheets only |
+| `extractions/GUZAPE_LUXURY_DUPLEX_WORK_SCHEDULE_FULL.md` | Guzape WBS — all 101 task rows |
 | `extractions/PROJECT_CHANGE_LOG.json` | Parsed change log Excel |
 | `templates/` | BOQ, daily site log, change log, receipt, etc. |
 

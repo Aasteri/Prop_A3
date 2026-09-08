@@ -1010,3 +1010,449 @@ model AuditEvent {
   @@index([createdAt])
   @@map("audit_events")
 }
+
+// ─── Property asset (PM + Sales spine) ───────────────────────────────────────
+// Master BRD Parts G–H: company-developed or externally managed property.
+
+enum PropertyCategory {
+  RESIDENTIAL
+  COMMERCIAL
+}
+
+enum PropertyOccupancyKind {
+  VACANT_LAND
+  BUILDING
+  OCCUPIED
+}
+
+enum TitleDocumentType {
+  C_OF_O
+  R_OF_O
+  NONE
+  OTHER
+}
+
+enum DensityBand {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model PropertyAsset {
+  id              String               @id @default(cuid())
+  code            String?              @unique
+  name            String
+  address         String               @db.Text
+  category        PropertyCategory     @default(RESIDENTIAL)
+  occupancyKind   PropertyOccupancyKind @default(BUILDING) @map("occupancy_kind")
+  titleType       TitleDocumentType?   @map("title_type")
+  density         DensityBand?
+  estateName      String?              @map("estate_name")
+  neighbourhood   String?
+  latitude        Float?
+  longitude       Float?
+  sourceProjectId String?              @unique @map("source_project_id")
+  landlordName    String?              @map("landlord_name")
+  landlordPhone   String?              @map("landlord_phone")
+  notes           String?              @db.Text
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  units                 PropertyUnit[]
+  tenancies             Tenancy[]
+  maintenanceRequests   MaintenanceRequest[]
+  serviceChargeAccount  ServiceChargeAccount?
+  pmEngagements         PmEngagementProperty[]
+
+  @@map("property_assets")
+}
+
+model PropertyUnit {
+  id           String   @id @default(cuid())
+  propertyId   String   @map("property_id")
+  unitCode     String   @map("unit_code")
+  unitType     String?  @map("unit_type")
+  bedrooms     Int?
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  property  PropertyAsset @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenancies Tenancy[]
+
+  @@unique([propertyId, unitCode])
+  @@map("property_units")
+}
+
+enum TenancyStatus {
+  DRAFT
+  ACTIVE
+  RENEWAL_PENDING
+  EXPIRED
+  TERMINATED
+}
+
+model Tenancy {
+  id              String        @id @default(cuid())
+  agreementNo     String?       @unique @map("agreement_no")
+  propertyId      String        @map("property_id")
+  unitId          String?       @map("unit_id")
+  tenantName      String        @map("tenant_name")
+  tenantPhone     String?       @map("tenant_phone")
+  tenantEmail     String?       @map("tenant_email")
+  applicationId   String?       @map("application_id")
+  startDate       DateTime      @map("start_date") @db.Date
+  endDate         DateTime      @map("end_date") @db.Date
+  rentAnnual      Decimal       @map("rent_annual") @db.Decimal(14, 2)
+  cautionAmount   Decimal?      @map("caution_amount") @db.Decimal(14, 2)
+  serviceCharge   Decimal?      @map("service_charge") @db.Decimal(14, 2)
+  status          TenancyStatus @default(DRAFT)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  property PropertyAsset @relation(fields: [propertyId], references: [id])
+  unit     PropertyUnit? @relation(fields: [unitId], references: [id])
+
+  @@index([propertyId, status])
+  @@index([endDate])
+  @@map("tenancies")
+}
+
+model PmEngagement {
+  id                String   @id @default(cuid())
+  ownerName         String   @map("owner_name")
+  ownerPhone        String?  @map("owner_phone")
+  lettingFeePct     Decimal? @map("letting_fee_pct") @db.Decimal(5, 2)
+  managementFeePct  Decimal? @map("management_fee_pct") @db.Decimal(5, 2)
+  startDate         DateTime? @map("start_date") @db.Date
+  endDate           DateTime? @map("end_date") @db.Date
+  status            String   @default("active")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  properties PmEngagementProperty[]
+
+  @@map("pm_engagements")
+}
+
+model PmEngagementProperty {
+  id           String @id @default(cuid())
+  engagementId String @map("engagement_id")
+  propertyId   String @map("property_id")
+
+  engagement PmEngagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  property   PropertyAsset @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([engagementId, propertyId])
+  @@map("pm_engagement_properties")
+}
+
+// ─── Maintenance ─────────────────────────────────────────────────────────────
+
+enum MaintenanceUrgency {
+  LOW
+  MEDIUM
+  HIGH
+  EMERGENCY
+}
+
+enum MaintenanceStatus {
+  SUBMITTED
+  TRIAGING
+  REMOTE_RESOLVED
+  AWAITING_APPROVAL
+  ASSIGNED
+  IN_PROGRESS
+  PENDING_TENANT_CONFIRM
+  CLOSED
+  CANCELLED
+  ESCALATED_LANDLORD
+}
+
+enum MaintenanceResponsibility {
+  FACILITY_MANAGER
+  LANDLORD
+  TENANT
+  SHARED
+}
+
+model MaintenanceRequest {
+  id             String                    @id @default(cuid())
+  number         String                    @unique
+  propertyId     String                    @map("property_id")
+  unitLabel      String?                   @map("unit_label")
+  tenantName     String?                   @map("tenant_name")
+  tenantPhone    String?                   @map("tenant_phone")
+  category       String?
+  component      String?
+  description    String                    @db.Text
+  urgency        MaintenanceUrgency        @default(MEDIUM)
+  status         MaintenanceStatus         @default(SUBMITTED)
+  responsibility MaintenanceResponsibility?
+  photoUrls      Json?                     @map("photo_urls")
+  createdAt      DateTime                  @default(now()) @map("created_at")
+  updatedAt      DateTime                  @updatedAt @map("updated_at")
+
+  property   PropertyAsset @relation(fields: [propertyId], references: [id])
+  workOrders WorkOrder[]
+
+  @@index([propertyId, status])
+  @@map("maintenance_requests")
+}
+
+enum WorkOrderStatus {
+  DRAFT
+  PENDING_SC_OR_LANDLORD
+  APPROVED
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED_PENDING_CONFIRM
+  CONFIRMED
+  INVOICED
+  PAID
+  CLOSED
+}
+
+model WorkOrder {
+  id               String          @id @default(cuid())
+  number           String          @unique
+  requestId        String          @map("request_id")
+  artisanName      String?         @map("artisan_name")
+  artisanPhone     String?         @map("artisan_phone")
+  labourAmount     Decimal?        @map("labour_amount") @db.Decimal(14, 2)
+  materialsAmount  Decimal?        @map("materials_amount") @db.Decimal(14, 2)
+  platformFee      Decimal?        @map("platform_fee") @db.Decimal(14, 2)
+  withinServiceCharge Boolean?     @map("within_service_charge")
+  status           WorkOrderStatus @default(DRAFT)
+  tenantSatisfied  Boolean?        @map("tenant_satisfied")
+  tenantRating     Int?            @map("tenant_rating")
+  tenantFeedback   String?         @map("tenant_feedback") @db.Text
+  completedAt      DateTime?       @map("completed_at")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  request MaintenanceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+  @@map("work_orders")
+}
+
+model ServiceChargeAccount {
+  id               String   @id @default(cuid())
+  propertyId       String   @unique @map("property_id")
+  balanceAvailable Decimal  @default(0) @map("balance_available") @db.Decimal(14, 2)
+  balanceReserved  Decimal  @default(0) @map("balance_reserved") @db.Decimal(14, 2)
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  property PropertyAsset            @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  entries  ServiceChargeLedgerEntry[]
+
+  @@map("service_charge_accounts")
+}
+
+model ServiceChargeLedgerEntry {
+  id          String   @id @default(cuid())
+  accountId   String   @map("account_id")
+  entryDate   DateTime @map("entry_date") @db.Date
+  description String
+  debit       Decimal  @default(0) @db.Decimal(14, 2)
+  credit      Decimal  @default(0) @db.Decimal(14, 2)
+  workOrderId String?  @map("work_order_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  account ServiceChargeAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, entryDate])
+  @@map("service_charge_ledger_entries")
+}
+
+// ─── Procurement: Goods / Services / Works ───────────────────────────────────
+
+enum ProcurementCategory {
+  GOODS
+  SERVICES
+  WORKS
+}
+
+model Supplier {
+  id         String   @id @default(cuid())
+  legalName  String   @map("legal_name")
+  tradingName String? @map("trading_name")
+  cacNumber  String?  @map("cac_number")
+  phone      String?
+  email      String?
+  address    String?  @db.Text
+  categories Json?
+  status     String   @default("pending_kyc")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  purchaseOrders PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+model ArtisanProfile {
+  id              String   @id @default(cuid())
+  fullName        String   @map("full_name")
+  businessName    String?  @map("business_name")
+  phone           String
+  nin             String?
+  cacNumber       String?  @map("cac_number")
+  address         String?  @db.Text
+  businessAddress String?  @map("business_address") @db.Text
+  guarantorName   String?  @map("guarantor_name")
+  guarantorPhone  String?  @map("guarantor_phone")
+  trades          Json?
+  status          String   @default("pending_review")
+  avgRating       Decimal? @map("avg_rating") @db.Decimal(3, 2)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([phone])
+  @@map("artisan_profiles")
+}
+
+enum PurchaseRequisitionStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  CONVERTED_TO_PO
+}
+
+model PurchaseRequisition {
+  id          String                     @id @default(cuid())
+  number      String                     @unique
+  projectId   String?                    @map("project_id")
+  propertyId  String?                    @map("property_id")
+  neededBy    DateTime?                  @map("needed_by") @db.Date
+  justification String?                  @db.Text
+  status      PurchaseRequisitionStatus  @default(DRAFT)
+  createdAt   DateTime                   @default(now()) @map("created_at")
+  updatedAt   DateTime                   @updatedAt @map("updated_at")
+
+  lines PurchaseRequisitionLine[]
+  orders PurchaseOrder[]
+
+  @@map("purchase_requisitions")
+}
+
+model PurchaseRequisitionLine {
+  id          String  @id @default(cuid())
+  prId        String  @map("pr_id")
+  description String
+  spec        String?
+  unit        String?
+  qty         Decimal @db.Decimal(14, 3)
+  estUnitCost Decimal? @map("est_unit_cost") @db.Decimal(14, 2)
+
+  pr PurchaseRequisition @relation(fields: [prId], references: [id], onDelete: Cascade)
+
+  @@map("purchase_requisition_lines")
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SENT
+  ACCEPTED
+  PARTIALLY_RECEIVED
+  CLOSED
+  CANCELLED
+}
+
+model PurchaseOrder {
+  id                   String              @id @default(cuid())
+  number               String              @unique
+  supplierId           String              @map("supplier_id")
+  prId                 String?             @map("pr_id")
+  destination          String?
+  expectedDeliveryDate DateTime?           @map("expected_delivery_date") @db.Date
+  paymentBeforeDelivery Boolean            @default(true) @map("payment_before_delivery")
+  totalAmount          Decimal?            @map("total_amount") @db.Decimal(14, 2)
+  status               PurchaseOrderStatus @default(DRAFT)
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+
+  supplier Supplier             @relation(fields: [supplierId], references: [id])
+  pr       PurchaseRequisition? @relation(fields: [prId], references: [id])
+  lines    PurchaseOrderLine[]
+  receipts GoodsReceipt[]
+
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderLine {
+  id          String  @id @default(cuid())
+  poId        String  @map("po_id")
+  description String
+  spec        String?
+  unit        String?
+  qty         Decimal @db.Decimal(14, 3)
+  unitPrice   Decimal @map("unit_price") @db.Decimal(14, 2)
+
+  po PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+
+  @@map("purchase_order_lines")
+}
+
+model GoodsReceipt {
+  id             String   @id @default(cuid())
+  number         String   @unique
+  poId           String   @map("po_id")
+  supplierInvoiceNo String? @map("supplier_invoice_no")
+  receivedAt     DateTime @map("received_at")
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  po    PurchaseOrder      @relation(fields: [poId], references: [id])
+  lines GoodsReceiptLine[]
+
+  @@map("goods_receipts")
+}
+
+model GoodsReceiptLine {
+  id          String  @id @default(cuid())
+  grnId       String  @map("grn_id")
+  description String
+  qtyOrdered  Decimal @map("qty_ordered") @db.Decimal(14, 3)
+  qtyReceived Decimal @map("qty_received") @db.Decimal(14, 3)
+  qtyAccepted Decimal @map("qty_accepted") @db.Decimal(14, 3)
+  qtyRejected Decimal @default(0) @map("qty_rejected") @db.Decimal(14, 3)
+  notes       String?
+
+  grn GoodsReceipt @relation(fields: [grnId], references: [id], onDelete: Cascade)
+
+  @@map("goods_receipt_lines")
+}
+
+enum SalesInspectionStatus {
+  REQUESTED
+  SCHEDULED
+  COMPLETED_RESPONSE_LOGGED
+  FOLLOW_UP
+  CANCELLED
+}
+
+model SalesInspection {
+  id              String                @id @default(cuid())
+  number          String                @unique
+  leadId          String?               @map("lead_id")
+  listingId       String?               @map("listing_id")
+  scheduledAt     DateTime?             @map("scheduled_at")
+  occurred        Boolean?
+  observations    String?               @db.Text
+  buyerFeedback   String?               @map("buyer_feedback") @db.Text
+  interestLevel   String?               @map("interest_level")
+  nextAction      String?               @map("next_action")
+  responseAt      DateTime?             @map("response_at")
+  status          SalesInspectionStatus @default(REQUESTED)
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  @@index([leadId])
+  @@index([listingId])
+  @@map("sales_inspections")
+}

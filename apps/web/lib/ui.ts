@@ -7,4 +7,12 @@ export const INPUT_INLINE =
 
 export const LABEL = 'mb-1 block text-sm font-medium text-slate-700';
 
-export const CARD = 'rounded-xl border border-slate-200 bg-white p-4 text-slate-900';
+export const CARD = 'rounded-xl border border-slate-200 bg-white shadow-sm';
+
+export const PAGE_HEADER =
+  'rounded-2xl border border-slate-200 bg-gradient-to-br from-[#1a2744] to-[#243a5e] p-6 text-white shadow-sm sm:p-8';
+
+export const SECTION_TITLE = 'text-base font-semibold text-[#1a2744]';
+
+export const STAT_CARD =
+  'group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-[#e87722]/40 hover:shadow-md';

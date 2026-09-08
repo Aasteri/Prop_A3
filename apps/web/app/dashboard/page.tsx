@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AppShell } from '@/components/AppShell';
 import { api, getToken, type AuthUser } from '@/lib/api';
+import { PAGE_HEADER, SECTION_TITLE, STAT_CARD } from '@/lib/ui';
 
 type Project = {
   id: string;
@@ -118,8 +119,49 @@ type WeeklyReport = {
   narrative: string;
 };
 
+const MODULE_HUBS = [
+  {
+    href: '/projects-hub',
+    label: 'Projects',
+    desc: 'Site logs, milestones, change control, inspections',
+  },
+  {
+    href: '/properties-hub',
+    label: 'Properties',
+    desc: 'PM, tenancies, maintenance, sales & CRM',
+  },
+  {
+    href: '/procurement',
+    label: 'Procurement',
+    desc: 'Goods, services, works, vendors',
+  },
+  {
+    href: '/invoices',
+    label: 'Finance',
+    desc: 'Invoices, remittances, service charges',
+  },
+];
+
+const QUICK_ACTIONS = [
+  { href: '/site-tracker/new', label: 'New site log', desc: 'Daily tracker entry' },
+  { href: '/change-log/new', label: 'Raise change', desc: 'Scope or cost variation' },
+  { href: '/material-requests/new', label: 'Request materials', desc: 'Site requisition' },
+  { href: '/maintenance', label: 'Maintenance', desc: 'Log or triage a request' },
+  { href: '/tenant-applications/new', label: 'Tenant application', desc: 'Screening intake' },
+  { href: '/crm/leads/new', label: 'New lead', desc: 'Sales CRM inquiry' },
+];
+
 function formatNaira(v: number) {
   return `₦${v.toLocaleString('en-NG', { maximumFractionDigits: 0 })}`;
+}
+
+function formatDate() {
+  return new Date().toLocaleDateString('en-NG', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 }
 
 export default function DashboardPage() {
@@ -158,482 +200,475 @@ export default function DashboardPage() {
         <p className="text-slate-500">Loading…</p>
       ) : (
         <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-[#1a2744]">
-              Welcome, {user.firstName}
+          <header className={PAGE_HEADER}>
+            <p className="text-sm text-slate-300">{formatDate()}</p>
+            <h1 className="mt-1 text-2xl font-bold sm:text-3xl">
+              Welcome back, {user.firstName}
             </h1>
-            <p className="text-slate-600">
+            <p className="mt-2 max-w-2xl text-sm text-slate-300">
               {isExecutive
-                ? 'Executive overview — all sites'
+                ? 'Executive overview across projects, properties, procurement, finance, and compliance.'
                 : user.primarySite
-                  ? `Primary site: ${user.primarySite.name}`
-                  : 'All sites access'}
+                  ? `Primary site: ${user.primarySite.name} (${user.primarySite.code})`
+                  : 'Your workspace for site operations and project delivery.'}
             </p>
-          </div>
-
-          {weeklyReport && (
-            <section className="rounded-xl border border-slate-200 bg-white p-4">
-              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="text-lg font-semibold text-[#1a2744]">Weekly site report</h2>
-                <span className="text-sm text-slate-500">
-                  {weeklyReport.period.from} → {weeklyReport.period.to}
-                </span>
-              </div>
-              <p className="text-sm text-slate-700">{weeklyReport.narrative}</p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-lg bg-slate-50 p-3 text-center">
-                  <p className="text-2xl font-semibold text-[#1a2744]">
-                    {weeklyReport.summary.approvedLogs}
-                  </p>
-                  <p className="text-xs text-slate-600">Approved logs</p>
-                </div>
-                <div className="rounded-lg bg-amber-50 p-3 text-center">
-                  <p className="text-2xl font-semibold text-amber-800">
-                    {weeklyReport.summary.pendingLogApprovals}
-                  </p>
-                  <p className="text-xs text-slate-600">Pending approvals</p>
-                </div>
-                <div className="rounded-lg bg-slate-50 p-3 text-center">
-                  <p className="text-2xl font-semibold text-[#1a2744]">
-                    {weeklyReport.summary.pendingMaterialRequests}
-                  </p>
-                  <p className="text-xs text-slate-600">Material requests</p>
-                </div>
-              </div>
-              {weeklyReport.bySite.length > 0 && (
-                <div className="mt-4 overflow-x-auto">
-                  <table className="min-w-full text-sm">
-                    <thead className="text-left text-slate-500">
-                      <tr>
-                        <th className="pb-2 pr-4">Site</th>
-                        <th className="pb-2 pr-4">Approved</th>
-                        <th className="pb-2 pr-4">Issues</th>
-                        <th className="pb-2">Recent refs</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {weeklyReport.bySite.map((s) => (
-                        <tr key={s.siteCode} className="border-t border-slate-100">
-                          <td className="py-2 pr-4 font-medium">{s.siteCode}</td>
-                          <td className="py-2 pr-4">{s.approvedLogs}</td>
-                          <td className="py-2 pr-4">{s.openIssues}</td>
-                          <td className="py-2 text-xs text-slate-600">
-                            {s.latestRefs.join(', ') || '—'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              <p className="mt-3 text-xs text-slate-500">
-                Emailed to PMs every Monday 08:00 WAT when SMTP is configured.
-              </p>
-            </section>
-          )}
+          </header>
 
           {ceoSummary && isExecutive && (
-            <>
-              <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <StatCard
-                  label="Outstanding receivables"
-                  value={ceoSummary.revenue.totalOutstanding}
-                  href="/invoices"
-                  format="naira"
-                />
-                <StatCard
-                  label="Revenue collected"
-                  value={ceoSummary.revenue.totalCollected}
-                  href="/invoices"
-                  format="naira"
-                />
-                <StatCard label="Active leads" value={ceoSummary.leads.active} href="/crm" />
-                <StatCard
-                  label="Lead conversion"
-                  value={ceoSummary.leads.conversionRate}
-                  href="/crm"
-                  suffix="%"
-                />
-              </section>
-
-              <section className="rounded-xl border border-slate-200 bg-white p-4">
-                <h2 className="mb-4 text-lg font-semibold text-[#1a2744]">Site health (today)</h2>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-sm">
-                    <thead className="text-left text-slate-500">
-                      <tr>
-                        <th className="pb-2 pr-4">Site</th>
-                        <th className="pb-2 pr-4">Projects</th>
-                        <th className="pb-2 pr-4">Log rate</th>
-                        <th className="pb-2 pr-4">Missing logs</th>
-                        <th className="pb-2 pr-4">Pending approvals</th>
-                        <th className="pb-2">Open HSE</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ceoSummary.siteHealth.map((s) => (
-                        <tr key={s.siteCode} className="border-t border-slate-100">
-                          <td className="py-2 pr-4">
-                            <span className="font-medium text-[#1a2744]">{s.siteCode}</span>
-                            <span className="block text-xs text-slate-500">{s.siteName}</span>
-                          </td>
-                          <td className="py-2 pr-4">{s.activeProjects}</td>
-                          <td className="py-2 pr-4">
-                            <span
-                              className={
-                                s.logSubmissionRate >= 100
-                                  ? 'text-green-700'
-                                  : s.logSubmissionRate >= 50
-                                    ? 'text-amber-700'
-                                    : 'text-red-700'
-                              }
-                            >
-                              {s.logSubmissionRate}%
-                            </span>
-                          </td>
-                          <td className="py-2 pr-4">{s.missingLogsToday}</td>
-                          <td className="py-2 pr-4">{s.pendingLogApprovals}</td>
-                          <td className="py-2">{s.openHseCount}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-
-              <div className="grid gap-4 lg:grid-cols-2">
-                <section className="rounded-xl border border-slate-200 bg-white p-4">
-                  <h2 className="mb-3 text-lg font-semibold text-[#1a2744]">Compliance</h2>
-                  <ul className="space-y-2 text-sm">
-                    <li className="flex justify-between">
-                      <span>Open HSE incidents</span>
-                      <Link href="/site-tracker" className="font-medium text-[#e87722]">
-                        {ceoSummary.compliance.openHseCount}
-                      </Link>
-                    </li>
-                    <li className="flex justify-between">
-                      <span>Logs pending approval</span>
-                      <Link href="/site-tracker" className="font-medium text-[#e87722]">
-                        {ceoSummary.compliance.pendingLogApprovals}
-                      </Link>
-                    </li>
-                    <li className="flex justify-between">
-                      <span>FCDA permits missing</span>
-                      <Link href="/milestones" className="font-medium text-[#e87722]">
-                        {ceoSummary.compliance.fcdaMissingCount}
-                      </Link>
-                    </li>
-                    <li className="flex justify-between">
-                      <span>High-impact changes open</span>
-                      <Link href="/change-log" className="font-medium text-[#e87722]">
-                        {ceoSummary.compliance.highImpactChangeCount}
-                      </Link>
-                    </li>
-                    <li className="flex justify-between">
-                      <span>COREN licences expiring (30d)</span>
-                      <span className="font-medium text-amber-700">
-                        {ceoSummary.compliance.expiringCorenCount}
-                      </span>
-                    </li>
-                    <li className="flex justify-between">
-                      <span>Audit trail</span>
-                      <Link href="/audit-log" className="font-medium text-[#e87722]">
-                        View log →
-                      </Link>
-                    </li>
-                  </ul>
-                </section>
-
-                <section className="rounded-xl border border-slate-200 bg-white p-4">
-                  <h2 className="mb-3 text-lg font-semibold text-[#1a2744]">
-                    Estate Terrier — rental net income
-                  </h2>
-                  <p className="text-2xl font-semibold text-[#1a2744]">
-                    {formatNaira(ceoSummary.rental.netIncome)}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-600">
-                    {ceoSummary.rental.unitCount} units · rent {formatNaira(ceoSummary.rental.totalRent)} ·
-                    expenses {formatNaira(ceoSummary.rental.totalExpenses)}
-                  </p>
-                  <Link href="/estate-terrier" className="mt-3 inline-block text-sm text-[#e87722] hover:underline">
-                    View terrier register →
-                  </Link>
-                </section>
-              </div>
-
-              {ceoSummary.fcdaMissing.length > 0 && (
-                <section className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
-                  <h2 className="mb-3 text-lg font-semibold text-[#1a2744]">FCDA permits missing</h2>
-                  <ul className="space-y-2 text-sm">
-                    {ceoSummary.fcdaMissing.map((p) => (
-                      <li key={p.id}>
-                        <Link href={`/milestones/${p.id}`} className="hover:text-[#e87722]">
-                          {p.siteCode} · {p.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-
-              {ceoSummary.highImpactChanges.length > 0 && (
-                <section className="rounded-xl border border-[#e87722]/30 bg-white p-4">
-                  <h2 className="mb-3 text-lg font-semibold text-[#1a2744]">
-                    High-impact changes awaiting approval
-                  </h2>
-                  <ul className="space-y-2 text-sm">
-                    {ceoSummary.highImpactChanges.map((c) => (
-                      <li key={c.id}>
-                        <Link href={`/change-log/${c.id}`} className="hover:text-[#e87722]">
-                          {c.changeId} · {c.site.code} · {c.project.name}
-                        </Link>
-                        <span className="ml-2 text-slate-500">({c.status.replace(/_/g, ' ')})</span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-
-              {ceoSummary.corenLicences.length > 0 && (
-                <section className="rounded-xl border border-slate-200 bg-white p-4">
-                  <h2 className="mb-3 text-lg font-semibold text-[#1a2744]">COREN licence status</h2>
-                  <ul className="space-y-2 text-sm">
-                    {ceoSummary.corenLicences.map((l) => (
-                      <li key={l.engineer.email} className="flex flex-wrap items-center gap-2">
-                        <span>
-                          {l.engineer.firstName} {l.engineer.lastName} · {l.licenceNumber}
-                        </span>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs ${
-                            l.status === 'EXPIRING'
-                              ? 'bg-amber-100 text-amber-800'
-                              : l.status === 'EXPIRED'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-green-100 text-green-800'
-                          }`}
-                        >
-                          {l.status === 'EXPIRING'
-                            ? `${l.daysRemaining} days left`
-                            : l.status}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-            </>
+            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <StatCard
+                label="Outstanding receivables"
+                value={ceoSummary.revenue.totalOutstanding}
+                href="/invoices"
+                format="naira"
+                accent="orange"
+              />
+              <StatCard
+                label="Revenue collected"
+                value={ceoSummary.revenue.totalCollected}
+                href="/invoices"
+                format="naira"
+                accent="green"
+              />
+              <StatCard label="Active leads" value={ceoSummary.leads.active} href="/crm" accent="navy" />
+              <StatCard
+                label="Lead conversion"
+                value={ceoSummary.leads.conversionRate}
+                href="/crm"
+                suffix="%"
+                accent="navy"
+              />
+            </section>
           )}
 
           {summary && !isExecutive && (
-            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard label="Pending log approvals" value={summary.pendingLogCount} href="/site-tracker" />
-              <StatCard label="Material requests" value={summary.pendingMaterialCount} href="/material-requests" />
-              <StatCard label="Open HSE items" value={summary.openHseCount} href="/site-tracker" />
-              <StatCard label="Active projects" value={summary.activeProjects} href="/milestones" />
+            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <StatCard
+                label="Pending log approvals"
+                value={summary.pendingLogCount}
+                href="/site-tracker"
+                accent="orange"
+              />
+              <StatCard
+                label="Material requests"
+                value={summary.pendingMaterialCount}
+                href="/material-requests"
+                accent="navy"
+              />
+              <StatCard
+                label="Open HSE items"
+                value={summary.openHseCount}
+                href="/site-tracker"
+                accent="red"
+              />
+              <StatCard
+                label="Active projects"
+                value={summary.activeProjects}
+                href="/milestones"
+                accent="green"
+              />
             </section>
           )}
-
-          {summary && summary.pendingLogs.length > 0 && !isExecutive && (
-            <section className="rounded-xl border border-[#e87722]/30 bg-white p-4">
-              <h2 className="mb-3 text-lg font-semibold text-[#1a2744]">Logs awaiting approval</h2>
-              <ul className="space-y-2">
-                {summary.pendingLogs.map((log) => (
-                  <li key={log.id}>
-                    <Link href={`/site-tracker/${log.id}`} className="text-sm hover:text-[#e87722]">
-                      {log.refCode} · {log.site.code} · {log.projectName}
-                      {log.submittedBy && (
-                        <span className="text-slate-500">
-                          {' '}
-                          — {log.submittedBy.firstName} {log.submittedBy.lastName}
-                        </span>
-                      )}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {summary && summary.todaysIssues.length > 0 && !isExecutive && (
-            <section className="rounded-xl border border-red-200 bg-red-50/50 p-4">
-              <h2 className="mb-3 text-lg font-semibold text-[#1a2744]">Today&apos;s site issues</h2>
-              <ul className="space-y-2 text-sm">
-                {summary.todaysIssues.map((log) => (
-                  <li key={log.id}>
-                    <Link href={`/site-tracker/${log.id}`} className="hover:text-[#e87722]">
-                      {log.refCode} ({log.site.code}) —
-                      {[
-                        log.issueMaterialShortage && 'material shortage',
-                        log.issueEquipmentBreakdown && 'equipment',
-                        log.issueWeatherDelay && 'weather',
-                        log.safetyIncidentsNearMisses && 'HSE',
-                      ]
-                        .filter(Boolean)
-                        .join(', ')}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Link
-              href="/site-tracker/new"
-              className="rounded-xl border border-[#e87722]/30 bg-white p-5 shadow-sm hover:border-[#e87722]"
-            >
-              <h2 className="font-semibold text-[#1a2744]">New daily site log</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Submit today&apos;s activities, manpower, materials & safety checks
-              </p>
-            </Link>
-            <Link
-              href="/site-tracker"
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-[#1a2744]"
-            >
-              <h2 className="font-semibold text-[#1a2744]">View site logs</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Review, submit, or approve daily tracker entries
-              </p>
-            </Link>
-            <Link
-              href="/change-log/new"
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-[#1a2744]"
-            >
-              <h2 className="font-semibold text-[#1a2744]">Raise project change</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Log variations — scope, time, or cost impact
-              </p>
-            </Link>
-            <Link
-              href="/change-log"
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-[#1a2744]"
-            >
-              <h2 className="font-semibold text-[#1a2744]">Change log register</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Review and approve project variations
-              </p>
-            </Link>
-            <Link
-              href="/material-requests/new"
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-[#1a2744]"
-            >
-              <h2 className="font-semibold text-[#1a2744]">Request materials</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Foreman → PM approve → Store issue
-              </p>
-            </Link>
-            <Link
-              href="/material-requests"
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-[#1a2744]"
-            >
-              <h2 className="font-semibold text-[#1a2744]">Material requests</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Track pending, approved, and issued materials
-              </p>
-            </Link>
-            <Link
-              href="/invoices/new"
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-[#1a2744]"
-            >
-              <h2 className="font-semibold text-[#1a2744]">Create invoice</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Sales invoice with variations & settlement routing
-              </p>
-            </Link>
-            <Link
-              href="/invoices"
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-[#1a2744]"
-            >
-              <h2 className="font-semibold text-[#1a2744]">Invoices & payments</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Verify payment proofs & download receipts
-              </p>
-            </Link>
-            <Link
-              href="/milestones"
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-[#1a2744]"
-            >
-              <h2 className="font-semibold text-[#1a2744]">Project milestones</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                FCDA gate, progress rollup & engineer certification
-              </p>
-            </Link>
-            <Link
-              href="/tenant-applications/new"
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-[#1a2744]"
-            >
-              <h2 className="font-semibold text-[#1a2744]">Tenant application</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                23-field form · 20% agency fee · PM approval
-              </p>
-            </Link>
-            <Link
-              href="/estate-terrier"
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-[#1a2744]"
-            >
-              <h2 className="font-semibold text-[#1a2744]">Estate Terrier</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Dawaki rental register · occupancy & net income
-              </p>
-            </Link>
-            <Link
-              href="/listings"
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-[#1a2744]"
-            >
-              <h2 className="font-semibold text-[#1a2744]">Sales listings</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                FOR SALE catalog — 29+ properties from Abraham&apos;s PDF
-              </p>
-            </Link>
-            <Link
-              href="/crm"
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-[#1a2744]"
-            >
-              <h2 className="font-semibold text-[#1a2744]">CRM pipeline</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Inquiry → Won/Lost · convert to client
-              </p>
-            </Link>
-          </div>
 
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-[#1a2744]">Active projects</h2>
-            <div className="space-y-3">
-              {projects.map((p) => (
+            <h2 className={`${SECTION_TITLE} mb-3`}>Platform modules</h2>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {MODULE_HUBS.map((h) => (
                 <Link
-                  key={p.id}
-                  href={`/milestones/${p.id}`}
-                  className="block rounded-lg border border-slate-200 bg-white p-4 hover:border-[#e87722]"
+                  key={h.href}
+                  href={h.href}
+                  className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-[#e87722]/50 hover:shadow-md"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <p className="font-medium">{p.name}</p>
-                      <p className="text-sm text-slate-500">
-                        {p.site.code} · {p.location}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {p.milestones.map((m) => (
-                      <span
-                        key={m.stage}
-                        className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700"
-                      >
-                        {m.stage}: {Number(m.progressPct).toFixed(0)}%
-                      </span>
-                    ))}
-                  </div>
+                  <p className="text-sm font-semibold text-[#1a2744]">{h.label}</p>
+                  <p className="mt-1 text-xs text-slate-500">{h.desc}</p>
                 </Link>
               ))}
-              {!projects.length && (
-                <p className="text-sm text-slate-500">No projects assigned yet.</p>
-              )}
             </div>
           </section>
+
+          <section>
+            <h2 className={`${SECTION_TITLE} mb-3`}>Quick actions</h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+              {QUICK_ACTIONS.map((a) => (
+                <Link
+                  key={a.href}
+                  href={a.href}
+                  className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-[#e87722]/50 hover:shadow-md"
+                >
+                  <p className="text-sm font-semibold text-[#1a2744]">{a.label}</p>
+                  <p className="mt-1 text-xs text-slate-500">{a.desc}</p>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <div className="grid gap-6 xl:grid-cols-3">
+            <div className="space-y-6 xl:col-span-2">
+              {weeklyReport && (
+                <Panel title="Weekly site report" badge={`${weeklyReport.period.from} → ${weeklyReport.period.to}`}>
+                  <p className="text-sm leading-relaxed text-slate-600">{weeklyReport.narrative}</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <MiniStat label="Approved logs" value={weeklyReport.summary.approvedLogs} />
+                    <MiniStat
+                      label="Pending approvals"
+                      value={weeklyReport.summary.pendingLogApprovals}
+                      variant="warning"
+                    />
+                    <MiniStat
+                      label="Material requests"
+                      value={weeklyReport.summary.pendingMaterialRequests}
+                    />
+                  </div>
+                  {weeklyReport.bySite.length > 0 && (
+                    <div className="mt-4 overflow-x-auto rounded-lg border border-slate-100">
+                      <table className="min-w-full text-sm">
+                        <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                          <tr>
+                            <th className="px-4 py-3">Site</th>
+                            <th className="px-4 py-3">Approved</th>
+                            <th className="px-4 py-3">Issues</th>
+                            <th className="px-4 py-3">Recent refs</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {weeklyReport.bySite.map((s) => (
+                            <tr key={s.siteCode} className="hover:bg-slate-50/80">
+                              <td className="px-4 py-3 font-medium text-[#1a2744]">{s.siteCode}</td>
+                              <td className="px-4 py-3">{s.approvedLogs}</td>
+                              <td className="px-4 py-3">{s.openIssues}</td>
+                              <td className="px-4 py-3 text-xs text-slate-500">
+                                {s.latestRefs.join(', ') || '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </Panel>
+              )}
+
+              {ceoSummary && isExecutive && (
+                <Panel title="Site health (today)">
+                  <div className="overflow-x-auto rounded-lg border border-slate-100">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                        <tr>
+                          <th className="px-4 py-3">Site</th>
+                          <th className="px-4 py-3">Projects</th>
+                          <th className="px-4 py-3">Log rate</th>
+                          <th className="px-4 py-3">Missing</th>
+                          <th className="px-4 py-3">Approvals</th>
+                          <th className="px-4 py-3">HSE</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {ceoSummary.siteHealth.map((s) => (
+                          <tr key={s.siteCode} className="hover:bg-slate-50/80">
+                            <td className="px-4 py-3">
+                              <span className="font-medium text-[#1a2744]">{s.siteCode}</span>
+                              <span className="block text-xs text-slate-500">{s.siteName}</span>
+                            </td>
+                            <td className="px-4 py-3">{s.activeProjects}</td>
+                            <td className="px-4 py-3">
+                              <span
+                                className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                  s.logSubmissionRate >= 100
+                                    ? 'bg-green-100 text-green-800'
+                                    : s.logSubmissionRate >= 50
+                                      ? 'bg-amber-100 text-amber-800'
+                                      : 'bg-red-100 text-red-800'
+                                }`}
+                              >
+                                {s.logSubmissionRate}%
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">{s.missingLogsToday}</td>
+                            <td className="px-4 py-3">{s.pendingLogApprovals}</td>
+                            <td className="px-4 py-3">{s.openHseCount}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Panel>
+              )}
+
+              {summary && summary.pendingLogs.length > 0 && !isExecutive && (
+                <AlertPanel title="Logs awaiting approval" variant="warning">
+                  <ul className="space-y-2">
+                    {summary.pendingLogs.map((log) => (
+                      <li key={log.id}>
+                        <Link href={`/site-tracker/${log.id}`} className="text-sm hover:text-[#e87722]">
+                          <span className="font-medium">{log.refCode}</span>
+                          <span className="text-slate-500">
+                            {' '}
+                            · {log.site.code} · {log.projectName}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </AlertPanel>
+              )}
+
+              {summary && summary.todaysIssues.length > 0 && !isExecutive && (
+                <AlertPanel title="Today's site issues" variant="danger">
+                  <p className="mb-3 text-xs text-slate-600">
+                    Logs submitted today with material, equipment, weather, or HSE flags set on the daily site tracker form.
+                  </p>
+                  <ul className="space-y-2 text-sm">
+                    {summary.todaysIssues.map((log) => (
+                      <li key={log.id}>
+                        <Link href={`/site-tracker/${log.id}`} className="hover:text-[#e87722]">
+                          {log.refCode} ({log.site.code}) —
+                          {[
+                            log.issueMaterialShortage && 'material shortage',
+                            log.issueEquipmentBreakdown && 'equipment',
+                            log.issueWeatherDelay && 'weather',
+                            log.safetyIncidentsNearMisses && 'HSE',
+                          ]
+                            .filter(Boolean)
+                            .join(', ')}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </AlertPanel>
+              )}
+
+              <Panel title="Active projects">
+                <div className="space-y-3">
+                  {projects.map((p) => {
+                    const avg =
+                      p.milestones.length > 0
+                        ? p.milestones.reduce((s, m) => s + Number(m.progressPct), 0) /
+                          p.milestones.length
+                        : 0;
+                    return (
+                      <Link
+                        key={p.id}
+                        href={`/milestones/${p.id}`}
+                        className="block rounded-xl border border-slate-200 bg-slate-50/50 p-4 transition-colors hover:border-[#e87722]/40 hover:bg-white"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="font-semibold text-[#1a2744]">{p.name}</p>
+                            <p className="text-sm text-slate-500">
+                              {p.site.code} · {p.location ?? p.site.name}
+                            </p>
+                          </div>
+                          <span className="rounded-full bg-[#1a2744] px-2.5 py-1 text-xs font-medium text-white">
+                            {avg.toFixed(0)}% avg
+                          </span>
+                        </div>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+                          <div
+                            className="h-full rounded-full bg-[#e87722] transition-all"
+                            style={{ width: `${Math.min(100, avg)}%` }}
+                          />
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {p.milestones.map((m) => (
+                            <span
+                              key={m.stage}
+                              className="rounded-md bg-white px-2 py-1 text-xs text-slate-600 ring-1 ring-slate-200"
+                            >
+                              {m.stage}: {Number(m.progressPct).toFixed(0)}%
+                            </span>
+                          ))}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                  {!projects.length && (
+                    <p className="text-sm text-slate-500">No projects assigned yet.</p>
+                  )}
+                </div>
+              </Panel>
+            </div>
+
+            <div className="space-y-6">
+              {ceoSummary && isExecutive && (
+                <>
+                  <Panel title="Compliance snapshot">
+                    <ul className="space-y-3 text-sm">
+                      <ComplianceRow label="Open HSE incidents" value={ceoSummary.compliance.openHseCount} href="/site-tracker" />
+                      <ComplianceRow label="Logs pending approval" value={ceoSummary.compliance.pendingLogApprovals} href="/site-tracker" />
+                      <ComplianceRow label="FCDA permits missing" value={ceoSummary.compliance.fcdaMissingCount} href="/milestones" />
+                      <ComplianceRow label="High-impact changes" value={ceoSummary.compliance.highImpactChangeCount} href="/change-log" />
+                      <li className="flex items-center justify-between border-t border-slate-100 pt-3">
+                        <span className="text-slate-600">COREN expiring (30d)</span>
+                        <span className="font-semibold text-amber-700">
+                          {ceoSummary.compliance.expiringCorenCount}
+                        </span>
+                      </li>
+                      <li className="flex items-center justify-between">
+                        <span className="text-slate-600">Audit trail</span>
+                        <Link href="/audit-log" className="text-sm font-medium text-[#e87722] hover:underline">
+                          View →
+                        </Link>
+                      </li>
+                    </ul>
+                  </Panel>
+
+                  <Panel title="Estate terrier">
+                    <p className="text-3xl font-bold text-[#1a2744]">
+                      {formatNaira(ceoSummary.rental.netIncome)}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600">Net rental income</p>
+                    <p className="mt-3 text-xs text-slate-500">
+                      {ceoSummary.rental.unitCount} units · rent {formatNaira(ceoSummary.rental.totalRent)} ·
+                      expenses {formatNaira(ceoSummary.rental.totalExpenses)}
+                    </p>
+                    <Link href="/estate-terrier" className="mt-4 inline-block text-sm font-medium text-[#e87722] hover:underline">
+                      Open register →
+                    </Link>
+                  </Panel>
+
+                  {ceoSummary.fcdaMissing.length > 0 && (
+                    <AlertPanel title="FCDA permits missing" variant="warning">
+                      <ul className="space-y-2 text-sm">
+                        {ceoSummary.fcdaMissing.map((p) => (
+                          <li key={p.id}>
+                            <Link href={`/milestones/${p.id}`} className="hover:text-[#e87722]">
+                              {p.siteCode} · {p.name}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </AlertPanel>
+                  )}
+
+                  {ceoSummary.highImpactChanges.length > 0 && (
+                    <AlertPanel title="High-impact changes" variant="warning">
+                      <ul className="space-y-2 text-sm">
+                        {ceoSummary.highImpactChanges.map((c) => (
+                          <li key={c.id}>
+                            <Link href={`/change-log/${c.id}`} className="hover:text-[#e87722]">
+                              {c.changeId} · {c.site.code}
+                            </Link>
+                            <span className="ml-1 text-slate-500">({c.status.replace(/_/g, ' ')})</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </AlertPanel>
+                  )}
+
+                  {ceoSummary.corenLicences.length > 0 && (
+                    <Panel title="COREN licences">
+                      <ul className="space-y-3 text-sm">
+                        {ceoSummary.corenLicences.map((l) => (
+                          <li key={l.engineer.email} className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-slate-700">
+                              {l.engineer.firstName} {l.engineer.lastName}
+                            </span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                                l.status === 'EXPIRING'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : l.status === 'EXPIRED'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-green-100 text-green-800'
+                              }`}
+                            >
+                              {l.status === 'EXPIRING' ? `${l.daysRemaining}d left` : l.status}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </Panel>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </AppShell>
+  );
+}
+
+function Panel({
+  title,
+  badge,
+  children,
+}: {
+  title: string;
+  badge?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 className={SECTION_TITLE}>{title}</h2>
+        {badge && <span className="text-xs text-slate-500">{badge}</span>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function AlertPanel({
+  title,
+  variant,
+  children,
+}: {
+  title: string;
+  variant: 'warning' | 'danger';
+  children: React.ReactNode;
+}) {
+  const styles =
+    variant === 'danger'
+      ? 'border-red-200 bg-red-50/60'
+      : 'border-amber-200 bg-amber-50/60';
+  return (
+    <section className={`rounded-xl border p-5 ${styles}`}>
+      <h2 className={`${SECTION_TITLE} mb-3`}>{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function MiniStat({
+  label,
+  value,
+  variant,
+}: {
+  label: string;
+  value: number;
+  variant?: 'warning';
+}) {
+  return (
+    <div
+      className={`rounded-lg p-3 text-center ${
+        variant === 'warning' ? 'bg-amber-50' : 'bg-slate-50'
+      }`}
+    >
+      <p className={`text-2xl font-bold ${variant === 'warning' ? 'text-amber-800' : 'text-[#1a2744]'}`}>
+        {value}
+      </p>
+      <p className="text-xs text-slate-600">{label}</p>
+    </div>
+  );
+}
+
+function ComplianceRow({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: number;
+  href: string;
+}) {
+  return (
+    <li className="flex items-center justify-between">
+      <span className="text-slate-600">{label}</span>
+      <Link href={href} className="font-semibold text-[#e87722] hover:underline">
+        {value}
+      </Link>
+    </li>
   );
 }
 
@@ -643,24 +678,31 @@ function StatCard({
   href,
   format,
   suffix,
+  accent = 'navy',
 }: {
   label: string;
   value: number;
   href: string;
   format?: 'naira';
   suffix?: string;
+  accent?: 'navy' | 'orange' | 'green' | 'red';
 }) {
+  const accentBar = {
+    navy: 'bg-[#1a2744]',
+    orange: 'bg-[#e87722]',
+    green: 'bg-emerald-500',
+    red: 'bg-red-500',
+  }[accent];
+
   const display =
     format === 'naira'
       ? formatNaira(value)
       : `${value.toLocaleString()}${suffix ?? ''}`;
 
   return (
-    <Link
-      href={href}
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:border-[#e87722]"
-    >
-      <p className="text-2xl font-semibold text-[#1a2744]">{display}</p>
+    <Link href={href} className={STAT_CARD}>
+      <div className={`mb-3 h-1 w-10 rounded-full ${accentBar}`} />
+      <p className="text-2xl font-bold tracking-tight text-[#1a2744]">{display}</p>
       <p className="mt-1 text-sm text-slate-600">{label}</p>
     </Link>
   );

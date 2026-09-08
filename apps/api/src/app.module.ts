@@ -24,6 +24,11 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { MailModule } from './mail/mail.module';
 import { DocumentsModule } from './documents/documents.module';
 import { AuditModule } from './audit/audit.module';
+import { AdminModule } from './admin/admin.module';
+import { PropertiesModule } from './properties/properties.module';
+import { TenanciesModule } from './tenancies/tenancies.module';
+import { MaintenanceModule } from './maintenance/maintenance.module';
+import { ProcurementModule } from './procurement/procurement.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -55,6 +60,11 @@ import { ScheduleModule } from '@nestjs/schedule';
     DashboardModule,
     DocumentsModule,
     AuditModule,
+    AdminModule,
+    PropertiesModule,
+    TenanciesModule,
+    MaintenanceModule,
+    ProcurementModule,
     MailModule,
   ],
   controllers: [AppController],

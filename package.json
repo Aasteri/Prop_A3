@@ -16,6 +16,9 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "npx tsx prisma/seed.ts",
+    "db:purge-demo": "npx tsx scripts/purge-demo-data.ts",
+    "planning:export-pdf": "npm run export:master --prefix planning/doc-export",
+    "planning:export-html": "node planning/doc-export/export.mjs planning/ABRAHAM_MASTER_BUILD_DOCUMENT.md --html-only",
     "postinstall": "prisma generate"
   },
   "workspaces": [

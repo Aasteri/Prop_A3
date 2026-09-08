@@ -1,80 +1,78 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { logout, getUser, type AuthUser } from '@/lib/api';
 import { useEffect, useState } from 'react';
+import { NavIcon } from '@/components/NavIcon';
+import { Sidebar } from '@/components/Sidebar';
+import { getUser, logout, type AuthUser } from '@/lib/api';
+import { PORTAL_NAV } from '@/lib/navigation';
 
 export function PortalShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     setUser(getUser<AuthUser>());
+    setSidebarOpen(false);
   }, [pathname]);
 
   return (
-    <div className="min-h-full bg-slate-50">
-      <header className="border-b border-slate-200 bg-[#1a2744] text-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <div>
-            <Link href="/portal" className="text-lg font-semibold">
-              Propa<span className="text-[#e87722]">3</span> Client Portal
-            </Link>
-            <p className="text-xs text-slate-300">Triple A Realty Projects Ltd.</p>
-          </div>
+    <div className="flex min-h-full bg-slate-100">
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        items={PORTAL_NAV}
+        brand={{
+          title: 'Client portal',
+          subtitle: 'Triple A Realty',
+          href: '/portal',
+        }}
+        footer={
+          user ? (
+            <button
+              type="button"
+              onClick={logout}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <NavIcon name="logout" className="h-5 w-5" />
+              Sign out
+            </button>
+          ) : undefined
+        }
+      />
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 shadow-sm lg:px-6">
+          <button
+            type="button"
+            aria-label="Open menu"
+            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <NavIcon name="menu" className="h-5 w-5" />
+          </button>
+
           {user && (
-            <div className="flex items-center gap-4 text-sm">
-              <span className="hidden sm:inline">
-                {user.firstName} {user.lastName}
-              </span>
-              <button
-                type="button"
-                onClick={logout}
-                className="rounded-md bg-white/10 px-3 py-1.5 hover:bg-white/20"
-              >
-                Sign out
-              </button>
+            <div className="ml-auto flex items-center gap-3">
+              <div className="hidden text-right sm:block">
+                <p className="text-sm font-medium text-slate-900">
+                  {user.firstName} {user.lastName}
+                </p>
+                <p className="text-xs text-slate-500">Client</p>
+              </div>
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1a2744] text-sm font-semibold text-white">
+                {user.firstName[0]}
+                {user.lastName[0]}
+              </div>
             </div>
           )}
-        </div>
-        <nav className="mx-auto flex max-w-6xl gap-1 px-4 pb-2 text-sm">
-          <NavLink href="/portal" active={pathname === '/portal'}>
-            Dashboard
-          </NavLink>
-          <NavLink href="/portal/payments" active={pathname.startsWith('/portal/payments')}>
-            Payments
-          </NavLink>
-          <NavLink href="/portal/changes" active={pathname.startsWith('/portal/changes')}>
-            Changes
-          </NavLink>
-          <NavLink href="/portal/documents" active={pathname.startsWith('/portal/documents')}>
-            Documents
-          </NavLink>
-        </nav>
-      </header>
-      <main className="mx-auto max-w-6xl px-4 py-6 text-slate-900">{children}</main>
-    </div>
-  );
-}
+        </header>
 
-function NavLink({
-  href,
-  active,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`rounded-md px-3 py-1.5 ${
-        active ? 'bg-[#e87722] text-white' : 'text-slate-300 hover:bg-white/10'
-      }`}
-    >
-      {children}
-    </Link>
+        <main className="flex-1 p-4 text-slate-900 lg:p-6">
+          <div className="mx-auto max-w-7xl">{children}</div>
+        </main>
+      </div>
+    </div>
   );
 }

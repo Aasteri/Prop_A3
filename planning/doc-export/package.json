@@ -1,0 +1,14 @@
+{
+  "name": "propa3-doc-export",
+  "private": true,
+  "description": "Export planning markdown documents to formatted HTML and PDF",
+  "type": "module",
+  "scripts": {
+    "export": "node export.mjs",
+    "export:master": "node export.mjs ../ABRAHAM_MASTER_BUILD_DOCUMENT.md"
+  },
+  "devDependencies": {
+    "marked": "^15.0.7",
+    "puppeteer": "^24.2.0"
+  }
+}

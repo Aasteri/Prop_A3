@@ -1,6 +1,7 @@
-# Bill of Quantities — BOQ (Draft Template)
+# Bill of Quantities — BOQ (Production Default)
 
-> **Status:** Standard Nigerian residential/commercial BOQ structure — refine when Abraham sends project BOQ  
+> **Status: PRODUCTION DEFAULT** — Standard Nigerian residential/commercial BOQ structure for propA3.  
+> Superseded only if Abraham uploads a project-specific BOQ template.  
 > **Use:** Cost estimation, procurement, progress valuation, variation baseline
 
 ---

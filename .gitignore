@@ -38,3 +38,7 @@ uploads/
 
 # Test
 coverage/
+
+# Planning exports (regenerate with npm run planning:export-pdf)
+planning/output/
+planning/doc-export/node_modules/

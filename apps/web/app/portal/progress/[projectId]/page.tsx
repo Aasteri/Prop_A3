@@ -6,7 +6,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { PortalShell } from '@/components/PortalShell';
 import { api, getToken } from '@/lib/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { getApiBaseUrl } from '@/lib/api-base';
+
+const API_URL = getApiBaseUrl();
 
 type Progress = {
   project: { name: string; location: string | null };

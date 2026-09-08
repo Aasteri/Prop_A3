@@ -24,6 +24,6 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE).then((cache) => cache.put(request, clone));
         return response;
       })
-      .catch(() => caches.match(request).then((r) => r ?? caches.match('/site-tracker/new'))),
+      .catch(() => caches.match(request).then((r) => r ?? Response.error())),
   );
 });
