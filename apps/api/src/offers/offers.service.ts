@@ -23,6 +23,21 @@ export function calcOfferFeeLines(
   };
 }
 
+const settlementSelect = {
+  id: true,
+  name: true,
+  bankName: true,
+  accountName: true,
+  accountNumber: true,
+  isDefault: true,
+};
+
+const include = {
+  landlordSettlement: { select: settlementSelect },
+  managementSettlement: { select: settlementSelect },
+  agencySettlement: { select: settlementSelect },
+};
+
 @Injectable()
 export class OffersService {
   constructor(private readonly prisma: PrismaService) {}
@@ -31,6 +46,7 @@ export class OffersService {
     this.assertCanView(user);
     return this.prisma.tenancyOffer.findMany({
       where: { applicationId },
+      include,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -42,7 +58,9 @@ export class OffersService {
     });
     if (!app) throw new NotFoundException('Application not found');
     if (app.status !== 'APPROVED' && app.status !== 'PENDING_REVIEW') {
-      throw new BadRequestException('Offer typically follows screening; app must be pending or approved');
+      throw new BadRequestException(
+        'Offer typically follows screening; app must be pending or approved',
+      );
     }
 
     const rent = dto.rentAnnual ?? Number(app.rentAccepted);
@@ -52,6 +70,18 @@ export class OffersService {
     const fees = calcOfferFeeLines(rent, agencyPct, legalPct, mgmtPct);
     const year = new Date().getFullYear();
     const stamp = Date.now().toString(36).toUpperCase().slice(-5);
+
+    const landlordEntity = dto.landlordSettlementEntityId
+      ? await this.requireSettlement(dto.landlordSettlementEntityId)
+      : null;
+    const managementEntity = dto.managementSettlementEntityId
+      ? await this.requireSettlement(dto.managementSettlementEntityId)
+      : await this.prisma.settlementEntity.findFirst({ where: { isDefault: true } });
+    const agencyEntity = dto.agencySettlementEntityId
+      ? await this.requireSettlement(dto.agencySettlementEntityId)
+      : await this.prisma.settlementEntity.findFirst({
+          where: { name: { contains: 'Laucarie' } },
+        });
 
     return this.prisma.tenancyOffer.create({
       data: {
@@ -68,12 +98,18 @@ export class OffersService {
         serviceChargeNotes:
           dto.serviceChargeNotes ??
           'External lights, cleaning, AEPB, water, security (configurable)',
-        landlordPayee: dto.landlordPayee,
-        managementPayee: dto.managementPayee ?? 'Management entity',
-        agencyPayee: dto.agencyPayee ?? 'A. A Laucarie Consulting',
+        landlordSettlementEntityId: landlordEntity?.id,
+        managementSettlementEntityId: managementEntity?.id,
+        agencySettlementEntityId: agencyEntity?.id,
+        landlordPayee: dto.landlordPayee ?? landlordEntity?.name,
+        managementPayee:
+          dto.managementPayee ?? managementEntity?.name ?? 'Management entity',
+        agencyPayee:
+          dto.agencyPayee ?? agencyEntity?.name ?? 'A. A Laucarie Consulting',
         notes: dto.notes,
         status: TenancyOfferStatus.ISSUED,
       },
+      include,
     });
   }
 
@@ -84,7 +120,14 @@ export class OffersService {
     return this.prisma.tenancyOffer.update({
       where: { id },
       data: { status: TenancyOfferStatus.ACCEPTED },
+      include,
     });
+  }
+
+  private async requireSettlement(id: string) {
+    const row = await this.prisma.settlementEntity.findUnique({ where: { id } });
+    if (!row) throw new NotFoundException(`Settlement entity ${id} not found`);
+    return row;
   }
 
   private assertCanView(user: AuthUser) {

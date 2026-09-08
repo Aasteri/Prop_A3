@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsNumber,
@@ -99,6 +100,16 @@ export class UpdateTenancyDto {
   @IsOptional()
   @IsEnum(TenancyStatus)
   status?: TenancyStatus;
+}
+
+export class ActivateMoveInDto {
+  @IsOptional()
+  @IsBoolean()
+  waiver?: boolean;
+
+  @IsOptional()
+  @IsString()
+  waiverReason?: string;
 }
 
 export class ListTenanciesQueryDto {

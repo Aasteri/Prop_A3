@@ -57,5 +57,17 @@ export class CreateTenancyOfferDto {
 
   @IsOptional()
   @IsString()
+  landlordSettlementEntityId?: string;
+
+  @IsOptional()
+  @IsString()
+  managementSettlementEntityId?: string;
+
+  @IsOptional()
+  @IsString()
+  agencySettlementEntityId?: string;
+
+  @IsOptional()
+  @IsString()
   notes?: string;
 }

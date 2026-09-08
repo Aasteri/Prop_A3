@@ -1,9 +1,16 @@
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { NotificationType, RenewalNoticeKind, TenancyStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import {
+  ActivateMoveInDto,
   CreateTenancyDto,
   ListTenanciesQueryDto,
   UpdateTenancyDto,
@@ -14,6 +21,10 @@ const include = {
   unit: { select: { id: true, unitCode: true, unitType: true } },
   renewalNotices: true,
   _count: { select: { inventories: true } },
+  maintenanceRequests: {
+    where: { phase: 'PRE_MOVE_IN' },
+    select: { id: true, number: true, status: true, component: true },
+  },
 };
 
 @Injectable()
@@ -74,7 +85,7 @@ export class TenanciesService {
         rentAnnual: dto.rentAnnual,
         cautionAmount: dto.cautionAmount,
         serviceCharge: dto.serviceCharge,
-        status: dto.status ?? 'ACTIVE',
+        status: dto.status ?? 'PENDING_MOVE_IN',
       },
       include,
     });
@@ -83,6 +94,11 @@ export class TenanciesService {
   async update(id: string, dto: UpdateTenancyDto, user: AuthUser) {
     this.assertCanManage(user);
     await this.findOne(id, user);
+    if (dto.status === TenancyStatus.ACTIVE) {
+      throw new BadRequestException(
+        'Use POST /tenancies/:id/activate-move-in to activate (G.8 pre-move-in gate)',
+      );
+    }
     return this.prisma.tenancy.update({
       where: { id },
       data: {
@@ -96,6 +112,59 @@ export class TenanciesService {
         serviceCharge: dto.serviceCharge,
         status: dto.status,
       },
+      include,
+    });
+  }
+
+  /**
+   * G.8 gate: move-in inventory COMPLETED and all PRE_MOVE_IN maintenance closed,
+   * unless authorised waiver.
+   */
+  async activateMoveIn(id: string, dto: ActivateMoveInDto, user: AuthUser) {
+    this.assertCanManage(user);
+    const tenancy = await this.prisma.tenancy.findUnique({
+      where: { id },
+      include: {
+        inventories: { where: { kind: 'MOVE_IN' }, orderBy: { createdAt: 'desc' } },
+        maintenanceRequests: { where: { phase: 'PRE_MOVE_IN' } },
+      },
+    });
+    if (!tenancy) throw new NotFoundException('Tenancy not found');
+
+    if (dto.waiver) {
+      if (!dto.waiverReason?.trim()) {
+        throw new BadRequestException('Waiver reason is required for authorised exception');
+      }
+      return this.prisma.tenancy.update({
+        where: { id },
+        data: {
+          status: TenancyStatus.ACTIVE,
+          moveInWaiver: true,
+          moveInWaiverReason: dto.waiverReason,
+        },
+        include,
+      });
+    }
+
+    const moveIn = tenancy.inventories[0];
+    if (!moveIn || moveIn.status !== 'COMPLETED') {
+      throw new BadRequestException(
+        'Complete a signed move-in inventory before activating occupancy',
+      );
+    }
+
+    const openPreMove = tenancy.maintenanceRequests.filter(
+      (m) => m.status !== 'CLOSED' && m.status !== 'CANCELLED' && m.status !== 'REMOTE_RESOLVED',
+    );
+    if (openPreMove.length) {
+      throw new BadRequestException(
+        `Pre-move-in repairs still open: ${openPreMove.map((m) => m.number).join(', ')}. Close them or use waiver.`,
+      );
+    }
+
+    return this.prisma.tenancy.update({
+      where: { id },
+      data: { status: TenancyStatus.ACTIVE, moveInWaiver: false, moveInWaiverReason: null },
       include,
     });
   }

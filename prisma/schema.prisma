@@ -571,7 +571,10 @@ model SettlementEntity {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  invoices Invoice[]
+  invoices                  Invoice[]
+  landlordOffers            TenancyOffer[] @relation("OfferLandlordSettlement")
+  managementOffers          TenancyOffer[] @relation("OfferManagementSettlement")
+  agencyOffers              TenancyOffer[] @relation("OfferAgencySettlement")
 
   @@map("settlement_entities")
 }
@@ -1134,6 +1137,7 @@ model PropertyUnit {
 
 enum TenancyStatus {
   DRAFT
+  PENDING_MOVE_IN
   ACTIVE
   RENEWAL_PENDING
   EXPIRED
@@ -1155,6 +1159,8 @@ model Tenancy {
   cautionAmount   Decimal?      @map("caution_amount") @db.Decimal(14, 2)
   serviceCharge   Decimal?      @map("service_charge") @db.Decimal(14, 2)
   status          TenancyStatus @default(DRAFT)
+  moveInWaiver            Boolean  @default(false) @map("move_in_waiver")
+  moveInWaiverReason      String?  @map("move_in_waiver_reason") @db.Text
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
@@ -1162,6 +1168,7 @@ model Tenancy {
   unit     PropertyUnit? @relation(fields: [unitId], references: [id])
   inventories PropertyInventory[]
   renewalNotices TenancyRenewalNotice[]
+  maintenanceRequests MaintenanceRequest[]
 
   @@index([propertyId, status])
   @@index([endDate])
@@ -1205,6 +1212,7 @@ model PropertyInventory {
   updatedAt            DateTime        @updatedAt @map("updated_at")
 
   tenancy Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+  preMoveMaintenance MaintenanceRequest[]
 
   @@index([tenancyId, kind])
   @@map("property_inventories")
@@ -1304,13 +1312,20 @@ model MaintenanceRequest {
   status         MaintenanceStatus         @default(SUBMITTED)
   responsibility MaintenanceResponsibility?
   photoUrls      Json?                     @map("photo_urls")
+  phase          String                    @default("CORRECTIVE")
+  tenancyId      String?                   @map("tenancy_id")
+  inventoryId    String?                   @map("inventory_id")
+  estimatedCost  Decimal?                  @map("estimated_cost") @db.Decimal(14, 2)
   createdAt      DateTime                  @default(now()) @map("created_at")
   updatedAt      DateTime                  @updatedAt @map("updated_at")
 
   property   PropertyAsset @relation(fields: [propertyId], references: [id])
+  tenancy    Tenancy?      @relation(fields: [tenancyId], references: [id])
+  inventory  PropertyInventory? @relation(fields: [inventoryId], references: [id])
   workOrders WorkOrder[]
 
   @@index([propertyId, status])
+  @@index([tenancyId, phase])
   @@map("maintenance_requests")
 }
 
@@ -1736,12 +1751,18 @@ model TenancyOffer {
   landlordPayee         String?            @map("landlord_payee")
   managementPayee       String?            @map("management_payee")
   agencyPayee           String?            @map("agency_payee")
+  landlordSettlementEntityId   String? @map("landlord_settlement_entity_id")
+  managementSettlementEntityId String? @map("management_settlement_entity_id")
+  agencySettlementEntityId     String? @map("agency_settlement_entity_id")
   status                TenancyOfferStatus @default(DRAFT)
   notes                 String?            @db.Text
   createdAt             DateTime           @default(now()) @map("created_at")
   updatedAt             DateTime           @updatedAt @map("updated_at")
 
   application TenantApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  landlordSettlement   SettlementEntity? @relation("OfferLandlordSettlement", fields: [landlordSettlementEntityId], references: [id])
+  managementSettlement SettlementEntity? @relation("OfferManagementSettlement", fields: [managementSettlementEntityId], references: [id])
+  agencySettlement     SettlementEntity? @relation("OfferAgencySettlement", fields: [agencySettlementEntityId], references: [id])
 
   @@index([applicationId])
   @@map("tenancy_offers")

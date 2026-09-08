@@ -1,8 +1,21 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InventoryKind, InventoryStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
-import { CompleteInventoryDto, CreateInventoryDto } from './dto/inventory.dto';
+import {
+  CompleteInventoryDto,
+  CreateInventoryDto,
+  UpdateInventoryDto,
+} from './dto/inventory.dto';
+import {
+  buildEmptyInventoryRooms,
+  collectDefectLines,
+} from './inventory-rooms.constants';
 
 const include = {
   tenancy: {
@@ -10,8 +23,20 @@ const include = {
       id: true,
       tenantName: true,
       agreementNo: true,
+      status: true,
+      propertyId: true,
       property: { select: { id: true, name: true, address: true } },
       unit: { select: { unitCode: true } },
+    },
+  },
+  preMoveMaintenance: {
+    select: {
+      id: true,
+      number: true,
+      status: true,
+      component: true,
+      estimatedCost: true,
+      description: true,
     },
   },
 };
@@ -19,6 +44,13 @@ const include = {
 @Injectable()
 export class InventoriesService {
   constructor(private readonly prisma: PrismaService) {}
+
+  meta() {
+    return {
+      abbreviations: buildEmptyInventoryRooms().abbreviations,
+      emptyMatrix: buildEmptyInventoryRooms(),
+    };
+  }
 
   findAll(user: AuthUser, tenancyId?: string) {
     this.assertCanView(user);
@@ -68,7 +100,7 @@ export class InventoriesService {
         waterMeterNo: dto.waterMeterNo,
         waterReading: dto.waterReading,
         notes: dto.notes,
-        roomsJson: dto.roomsJson as never,
+        roomsJson: (dto.roomsJson ?? buildEmptyInventoryRooms()) as never,
         discrepancyDeadline: discrepancyDeadline ?? undefined,
         status: InventoryStatus.DRAFT,
       },
@@ -76,10 +108,36 @@ export class InventoriesService {
     });
   }
 
+  async update(id: string, dto: UpdateInventoryDto, user: AuthUser) {
+    this.assertCanManage(user);
+    const existing = await this.findOne(id, user);
+    if (existing.status === InventoryStatus.COMPLETED) {
+      throw new BadRequestException('Completed inventory cannot be edited');
+    }
+    return this.prisma.propertyInventory.update({
+      where: { id },
+      data: {
+        inspectedBy: dto.inspectedBy,
+        moveDate: dto.moveDate ? new Date(dto.moveDate) : undefined,
+        photoEvidence: dto.photoEvidence,
+        videoEvidence: dto.videoEvidence,
+        frontDoorKeys: dto.frontDoorKeys,
+        backDoorKeys: dto.backDoorKeys,
+        electricMeterNo: dto.electricMeterNo,
+        electricReading: dto.electricReading,
+        waterMeterNo: dto.waterMeterNo,
+        waterReading: dto.waterReading,
+        notes: dto.notes,
+        roomsJson: dto.roomsJson !== undefined ? (dto.roomsJson as never) : undefined,
+      },
+      include,
+    });
+  }
+
   async complete(id: string, dto: CompleteInventoryDto, user: AuthUser) {
     this.assertCanManage(user);
-    await this.findOne(id, user);
-    return this.prisma.propertyInventory.update({
+    const existing = await this.findOne(id, user);
+    const updated = await this.prisma.propertyInventory.update({
       where: { id },
       data: {
         landlordSigned: dto.landlordSigned ?? true,
@@ -88,6 +146,74 @@ export class InventoriesService {
       },
       include,
     });
+
+    const shouldSpawn =
+      existing.kind === InventoryKind.MOVE_IN && dto.spawnPreMoveRepairs !== false;
+    if (shouldSpawn) {
+      await this.spawnPreMoveRepairs(updated.id, user);
+    }
+
+    if (existing.kind === InventoryKind.MOVE_IN) {
+      await this.prisma.tenancy.updateMany({
+        where: {
+          id: existing.tenancyId,
+          status: { in: ['DRAFT', 'PENDING_MOVE_IN'] },
+        },
+        data: { status: 'PENDING_MOVE_IN' },
+      });
+    }
+
+    return this.findOne(id, user);
+  }
+
+  async spawnPreMoveRepairs(inventoryId: string, user: AuthUser) {
+    this.assertCanManage(user);
+    const inventory = await this.prisma.propertyInventory.findUnique({
+      where: { id: inventoryId },
+      include: {
+        tenancy: true,
+        preMoveMaintenance: true,
+      },
+    });
+    if (!inventory) throw new NotFoundException('Inventory not found');
+    if (inventory.kind !== InventoryKind.MOVE_IN) {
+      throw new BadRequestException('Pre-move repairs only apply to move-in inventories');
+    }
+
+    const defects = collectDefectLines(inventory.roomsJson);
+    const created = [];
+    for (const d of defects) {
+      const already = inventory.preMoveMaintenance.some(
+        (m) => m.component === `${d.section} · ${d.item}`,
+      );
+      if (already) continue;
+
+      const year = new Date().getFullYear();
+      const stamp = Date.now().toString(36).toUpperCase().slice(-5);
+      const row = await this.prisma.maintenanceRequest.create({
+        data: {
+          number: `MR-PMI-${year}-${stamp}`,
+          propertyId: inventory.tenancy.propertyId,
+          tenancyId: inventory.tenancyId,
+          inventoryId: inventory.id,
+          phase: 'PRE_MOVE_IN',
+          unitLabel: undefined,
+          tenantName: inventory.tenancy.tenantName,
+          tenantPhone: inventory.tenancy.tenantPhone,
+          category: 'Pre-move-in',
+          component: `${d.section} · ${d.item}`,
+          description: `Pre-move-in repair (G.8): ${d.defects}`,
+          urgency: d.cost > 0 ? 'HIGH' : 'MEDIUM',
+          estimatedCost: d.cost || undefined,
+          responsibility: 'LANDLORD',
+          status: 'ESCALATED_LANDLORD',
+        },
+      });
+      created.push(row);
+      // tiny delay stamp uniqueness
+      await new Promise((r) => setTimeout(r, 2));
+    }
+    return { created: created.length, requests: created };
   }
 
   private assertCanView(user: AuthUser) {

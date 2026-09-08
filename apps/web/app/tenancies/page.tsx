@@ -22,6 +22,7 @@ type Tenancy = {
   unit: { id: string; unitCode: string } | null;
   renewalNotices?: { kind: string; sentAt: string | null }[];
   _count?: { inventories: number };
+  maintenanceRequests?: { id: string; number: string; status: string }[];
 };
 
 export default function TenanciesPage() {
@@ -224,6 +225,7 @@ export default function TenanciesPage() {
             className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
           >
             <option value="">All statuses</option>
+            <option value="PENDING_MOVE_IN">Pending move-in</option>
             <option value="ACTIVE">Active</option>
             <option value="DRAFT">Draft</option>
             <option value="RENEWAL_PENDING">Renewal pending</option>
@@ -260,6 +262,7 @@ export default function TenanciesPage() {
                 <th className="px-4 py-3">Term</th>
                 <th className="px-4 py-3">Rent / yr</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -289,12 +292,53 @@ export default function TenanciesPage() {
                         · {r._count.inventories} inv
                       </span>
                     ) : null}
+                    {r.maintenanceRequests?.length ? (
+                      <span className="ml-1 text-xs text-red-700">
+                        · {r.maintenanceRequests.length} pre-move
+                      </span>
+                    ) : null}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap space-x-2">
+                    <Link href="/inventories" className="text-xs text-[#e87722] hover:underline">
+                      Inventory
+                    </Link>
+                    {(r.status === 'PENDING_MOVE_IN' || r.status === 'DRAFT') && (
+                      <button
+                        type="button"
+                        className="text-xs text-green-700 hover:underline"
+                        onClick={async () => {
+                          try {
+                            await api(`/tenancies/${r.id}/activate-move-in`, {
+                              method: 'POST',
+                              body: JSON.stringify({}),
+                            });
+                            load();
+                          } catch (err) {
+                            const msg = err instanceof Error ? err.message : 'Blocked';
+                            const waive = window.confirm(
+                              `${msg}\n\nAuthorise waiver (exception) and activate anyway?`,
+                            );
+                            if (!waive) return;
+                            const reason =
+                              window.prompt('Waiver reason (required)') || '';
+                            if (!reason.trim()) return;
+                            await api(`/tenancies/${r.id}/activate-move-in`, {
+                              method: 'POST',
+                              body: JSON.stringify({ waiver: true, waiverReason: reason }),
+                            });
+                            load();
+                          }
+                        }}
+                      >
+                        Activate move-in
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                     No tenancies yet. Create a property asset first, then add an agreement.
                   </td>
                 </tr>

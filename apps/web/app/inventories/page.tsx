@@ -70,7 +70,7 @@ export default function InventoriesPage() {
     e.preventDefault();
     setError('');
     try {
-      await api('/inventories', {
+      const created = await api<{ id: string }>('/inventories', {
         method: 'POST',
         body: JSON.stringify({
           tenancyId: form.tenancyId,
@@ -86,8 +86,8 @@ export default function InventoriesPage() {
           notes: form.notes || undefined,
         }),
       });
-      setShowForm(false);
-      load();
+      router.push(`/inventories/${created.id}`);
+      return;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed');
     }
@@ -243,7 +243,12 @@ export default function InventoriesPage() {
             <div key={r.id} className={`${CARD} p-4`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold text-[#e87722]">{r.number}</p>
+                  <Link
+                    href={`/inventories/${r.id}`}
+                    className="text-xs font-semibold text-[#e87722] hover:underline"
+                  >
+                    {r.number}
+                  </Link>
                   <p className="mt-1 font-medium text-[#1a2744]">
                     {r.kind.replace(/_/g, ' ')} · {r.tenancy.tenantName}
                   </p>
@@ -259,15 +264,23 @@ export default function InventoriesPage() {
                     {r.photoEvidence ? ' · photos' : ''}
                   </p>
                 </div>
-                {r.status === 'DRAFT' && (
-                  <button
-                    type="button"
-                    onClick={() => complete(r.id)}
-                    className="rounded-md bg-[#1a2744] px-3 py-1.5 text-xs text-white"
+                <div className="flex gap-2">
+                  <Link
+                    href={`/inventories/${r.id}`}
+                    className="rounded-md border border-slate-300 px-3 py-1.5 text-xs hover:bg-slate-50"
                   >
-                    Complete & sign
-                  </button>
-                )}
+                    Room matrix
+                  </Link>
+                  {r.status === 'DRAFT' && (
+                    <button
+                      type="button"
+                      onClick={() => complete(r.id)}
+                      className="rounded-md bg-[#1a2744] px-3 py-1.5 text-xs text-white"
+                    >
+                      Complete & sign
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}

@@ -5,6 +5,7 @@ import {
   CreateTenancyDto,
   ListTenanciesQueryDto,
   UpdateTenancyDto,
+  ActivateMoveInDto,
 } from './dto/tenancy.dto';
 import { TenanciesService } from './tenancies.service';
 
@@ -47,5 +48,14 @@ export class TenanciesController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.tenancies.update(id, dto, user);
+  }
+
+  @Post(':id/activate-move-in')
+  activateMoveIn(
+    @Param('id') id: string,
+    @Body() dto: ActivateMoveInDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.tenancies.activateMoveIn(id, dto, user);
   }
 }

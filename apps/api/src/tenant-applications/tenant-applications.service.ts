@@ -414,7 +414,7 @@ export class TenantApplicationsService {
           rentAnnual: rentAmount,
           cautionAmount: row.cautionDeposit != null ? Number(row.cautionDeposit) : undefined,
           serviceCharge: row.serviceCharge != null ? Number(row.serviceCharge) : undefined,
-          status: 'ACTIVE',
+          status: 'PENDING_MOVE_IN',
         },
       });
 

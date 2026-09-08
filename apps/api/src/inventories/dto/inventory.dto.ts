@@ -69,6 +69,57 @@ export class CreateInventoryDto {
   roomsJson?: unknown;
 }
 
+export class UpdateInventoryDto {
+  @IsOptional()
+  @IsString()
+  inspectedBy?: string;
+
+  @IsOptional()
+  @IsDateString()
+  moveDate?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  photoEvidence?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  videoEvidence?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  frontDoorKeys?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  backDoorKeys?: number;
+
+  @IsOptional()
+  @IsString()
+  electricMeterNo?: string;
+
+  @IsOptional()
+  @IsString()
+  electricReading?: string;
+
+  @IsOptional()
+  @IsString()
+  waterMeterNo?: string;
+
+  @IsOptional()
+  @IsString()
+  waterReading?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  roomsJson?: unknown;
+}
+
 export class CompleteInventoryDto {
   @IsOptional()
   @IsBoolean()
@@ -77,4 +128,9 @@ export class CompleteInventoryDto {
   @IsOptional()
   @IsBoolean()
   tenantSigned?: boolean;
+
+  /** Spawn PRE_MOVE_IN maintenance from move-in defects (default true for MOVE_IN). */
+  @IsOptional()
+  @IsBoolean()
+  spawnPreMoveRepairs?: boolean;
 }

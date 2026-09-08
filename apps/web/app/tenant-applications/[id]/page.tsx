@@ -76,6 +76,18 @@ type TenancyOffer = {
   landlordPayee: string | null;
   managementPayee: string | null;
   agencyPayee: string | null;
+  landlordSettlement?: SettlementEntity | null;
+  managementSettlement?: SettlementEntity | null;
+  agencySettlement?: SettlementEntity | null;
+};
+
+type SettlementEntity = {
+  id: string;
+  name: string;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  isDefault: boolean;
 };
 
 const CRITERIA = [
@@ -98,6 +110,12 @@ export default function TenantApplicationDetailPage() {
   const [overrideReason, setOverrideReason] = useState('');
   const [offers, setOffers] = useState<TenancyOffer[]>([]);
   const [offerBusy, setOfferBusy] = useState(false);
+  const [settlements, setSettlements] = useState<SettlementEntity[]>([]);
+  const [offerPayees, setOfferPayees] = useState({
+    landlordSettlementEntityId: '',
+    managementSettlementEntityId: '',
+    agencySettlementEntityId: '',
+  });
 
   async function load() {
     const data = await api<ApplicationDetail>(`/tenant-applications/${id}`);
@@ -128,6 +146,18 @@ export default function TenantApplicationDetailPage() {
     setUser(getUser<AuthUser>());
     load().catch(() => router.push('/tenant-applications'));
     loadOffers().catch(() => setOffers([]));
+    api<SettlementEntity[]>('/invoices/settlement-entities')
+      .then((rows) => {
+        setSettlements(rows);
+        const def = rows.find((r) => r.isDefault) ?? rows[0];
+        const agency = rows.find((r) => /laucarie/i.test(r.name)) ?? def;
+        setOfferPayees({
+          landlordSettlementEntityId: '',
+          managementSettlementEntityId: def?.id ?? '',
+          agencySettlementEntityId: agency?.id ?? '',
+        });
+      })
+      .catch(() => setSettlements([]));
   }, [id, router]);
 
   const canReview =
@@ -148,6 +178,9 @@ export default function TenantApplicationDetailPage() {
         body: JSON.stringify({
           applicationId: id,
           rentAnnual: Number(app?.rentAccepted) || undefined,
+          landlordSettlementEntityId: offerPayees.landlordSettlementEntityId || undefined,
+          managementSettlementEntityId: offerPayees.managementSettlementEntityId || undefined,
+          agencySettlementEntityId: offerPayees.agencySettlementEntityId || undefined,
         }),
       });
       await loadOffers();
@@ -273,7 +306,8 @@ export default function TenantApplicationDetailPage() {
               <h2 className="font-semibold text-[#1a2744]">Offer letter (Doc 10)</h2>
               <p className="text-xs text-slate-500">
                 Default fee lines: Agency 10% + Legal 5% + Management 5% of annual rent — separate
-                from the Doc 12 application 20% Agency+Legal invoice.
+                from the Doc 12 application 20% Agency+Legal invoice. Legal routes with management
+                settlement account per Doc 10 example.
               </p>
             </div>
             {canOffer && (
@@ -287,6 +321,33 @@ export default function TenantApplicationDetailPage() {
               </button>
             )}
           </div>
+          {canOffer && settlements.length > 0 && (
+            <div className="grid gap-3 sm:grid-cols-3">
+              {(
+                [
+                  ['landlordSettlementEntityId', 'Landlord (rent/caution)'],
+                  ['managementSettlementEntityId', 'Management (+ Legal 5%)'],
+                  ['agencySettlementEntityId', 'Agency (10%)'],
+                ] as const
+              ).map(([key, label]) => (
+                <div key={key}>
+                  <label className={LABEL}>{label}</label>
+                  <select
+                    className={INPUT}
+                    value={offerPayees[key]}
+                    onChange={(e) => setOfferPayees({ ...offerPayees, [key]: e.target.value })}
+                  >
+                    <option value="">—</option>
+                    {settlements.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} · {s.bankName} · {s.accountNumber}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
           {offers.map((o) => (
             <div
               key={o.id}
@@ -317,11 +378,32 @@ export default function TenantApplicationDetailPage() {
                 {' · '}Mgmt {Number(o.managementFeePct)}% ₦
                 {Number(o.managementFeeAmount).toLocaleString()}
               </p>
-              <p className="text-xs text-slate-500">
-                SC ₦{Number(o.serviceChargeAnnual).toLocaleString()} · Estate SC ₦
-                {Number(o.estateServiceCharge).toLocaleString()}
-                {o.agencyPayee ? ` · Agency payee: ${o.agencyPayee}` : ''}
-              </p>
+              <div className="text-xs text-slate-600 space-y-0.5">
+                {o.landlordSettlement && (
+                  <p>
+                    Landlord: {o.landlordSettlement.name} · {o.landlordSettlement.bankName} ·{' '}
+                    {o.landlordSettlement.accountNumber}
+                  </p>
+                )}
+                {o.managementSettlement && (
+                  <p>
+                    Management/Legal: {o.managementSettlement.name} ·{' '}
+                    {o.managementSettlement.bankName} · {o.managementSettlement.accountNumber}
+                  </p>
+                )}
+                {o.agencySettlement && (
+                  <p>
+                    Agency: {o.agencySettlement.name} · {o.agencySettlement.bankName} ·{' '}
+                    {o.agencySettlement.accountNumber}
+                  </p>
+                )}
+                {!o.landlordSettlement && !o.managementSettlement && !o.agencySettlement && (
+                  <p>
+                    SC ₦{Number(o.serviceChargeAnnual).toLocaleString()}
+                    {o.agencyPayee ? ` · Agency payee: ${o.agencyPayee}` : ''}
+                  </p>
+                )}
+              </div>
             </div>
           ))}
           {!offers.length && (

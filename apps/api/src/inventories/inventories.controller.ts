@@ -1,13 +1,22 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorator';
-import { CompleteInventoryDto, CreateInventoryDto } from './dto/inventory.dto';
+import {
+  CompleteInventoryDto,
+  CreateInventoryDto,
+  UpdateInventoryDto,
+} from './dto/inventory.dto';
 import { InventoriesService } from './inventories.service';
 
 @Controller('inventories')
 @UseGuards(JwtAuthGuard)
 export class InventoriesController {
   constructor(private readonly inventories: InventoriesService) {}
+
+  @Get('meta')
+  meta() {
+    return this.inventories.meta();
+  }
 
   @Get()
   findAll(@CurrentUser() user: AuthUser, @Query('tenancyId') tenancyId?: string) {
@@ -24,6 +33,15 @@ export class InventoriesController {
     return this.inventories.create(dto, user);
   }
 
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateInventoryDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.inventories.update(id, dto, user);
+  }
+
   @Patch(':id/complete')
   complete(
     @Param('id') id: string,
@@ -31,5 +49,13 @@ export class InventoriesController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.inventories.complete(id, dto, user);
+  }
+
+  @Post(':id/spawn-pre-move-repairs')
+  spawnPreMove(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.inventories.spawnPreMoveRepairs(id, user);
   }
 }
