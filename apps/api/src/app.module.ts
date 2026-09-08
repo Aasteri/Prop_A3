@@ -32,6 +32,9 @@ import { ProcurementModule } from './procurement/procurement.module';
 import { ServiceChargesModule } from './service-charges/service-charges.module';
 import { RemittancesModule } from './remittances/remittances.module';
 import { SalesInspectionsModule } from './sales-inspections/sales-inspections.module';
+import { ArtisansModule } from './artisans/artisans.module';
+import { ServiceRequestsModule } from './service-requests/service-requests.module';
+import { InventoriesModule } from './inventories/inventories.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -71,6 +74,9 @@ import { ScheduleModule } from '@nestjs/schedule';
     ServiceChargesModule,
     RemittancesModule,
     SalesInspectionsModule,
+    ArtisansModule,
+    ServiceRequestsModule,
+    InventoriesModule,
     MailModule,
   ],
   controllers: [AppController],

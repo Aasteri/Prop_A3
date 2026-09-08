@@ -28,7 +28,7 @@ export default function ProcurementHubPage() {
           title: 'Services & artisans',
           description: 'KYC artisans, photo service requests, estimate, confirm, 2.5%.',
           icon: 'users',
-          status: 'building',
+          status: 'live',
         },
         {
           href: '/procurement/works',

@@ -96,6 +96,12 @@ export const STAFF_NAV: NavGroup[] = [
         match: (p) => p.startsWith('/tenancies'),
       },
       {
+        href: '/inventories',
+        label: 'Inventories',
+        icon: 'clipboard',
+        match: (p) => p.startsWith('/inventories'),
+      },
+      {
         href: '/maintenance',
         label: 'Maintenance',
         icon: 'wrench',

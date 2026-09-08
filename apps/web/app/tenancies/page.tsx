@@ -20,6 +20,8 @@ type Tenancy = {
   status: string;
   property: { id: string; name: string; code: string | null };
   unit: { id: string; unitCode: string } | null;
+  renewalNotices?: { kind: string; sentAt: string | null }[];
+  _count?: { inventories: number };
 };
 
 export default function TenanciesPage() {
@@ -228,6 +230,22 @@ export default function TenanciesPage() {
             <option value="EXPIRED">Expired</option>
             <option value="TERMINATED">Terminated</option>
           </select>
+          <button
+            type="button"
+            onClick={async () => {
+              const r = await api<{ created: number }>('/tenancies/renewals/scan', {
+                method: 'POST',
+              });
+              alert(`Renewal scan: ${r.created} notice(s) created`);
+              load();
+            }}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
+          >
+            Run renewal scan
+          </button>
+          <Link href="/inventories" className="self-center text-sm font-medium text-slate-600 hover:underline">
+            Inventories
+          </Link>
           <Link href="/properties-hub" className="self-center text-sm font-medium text-[#e87722] hover:underline">
             ← Properties hub
           </Link>
@@ -261,6 +279,16 @@ export default function TenanciesPage() {
                   <td className="px-4 py-3">₦{Number(r.rentAnnual).toLocaleString()}</td>
                   <td className="px-4 py-3">
                     <span className="rounded bg-slate-100 px-2 py-0.5 text-xs">{r.status}</span>
+                    {r.renewalNotices?.length ? (
+                      <span className="ml-1 text-xs text-amber-700">
+                        · {r.renewalNotices.length} reminder(s)
+                      </span>
+                    ) : null}
+                    {r._count?.inventories ? (
+                      <span className="ml-1 text-xs text-slate-500">
+                        · {r._count.inventories} inv
+                      </span>
+                    ) : null}
                   </td>
                 </tr>
               ))}

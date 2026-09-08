@@ -18,6 +18,18 @@ export class TenanciesController {
     return this.tenancies.findAll(user, query);
   }
 
+  @Get('renewals/due')
+  renewalsDue(@CurrentUser() user: AuthUser) {
+    return this.tenancies.listRenewalDue(user);
+  }
+
+  @Post('renewals/scan')
+  scanRenewals(@CurrentUser() user: AuthUser) {
+    // Manual trigger for staff / ops
+    void user;
+    return this.tenancies.processRenewalReminders();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.tenancies.findOne(id, user);

@@ -184,6 +184,7 @@ enum NotificationType {
   ISSUE_WEATHER
   LEAD_INQUIRY
   COREN_LICENCE_EXPIRING
+  TENANCY_RENEWAL
 }
 
 model Notification {
@@ -1147,10 +1148,76 @@ model Tenancy {
 
   property PropertyAsset @relation(fields: [propertyId], references: [id])
   unit     PropertyUnit? @relation(fields: [unitId], references: [id])
+  inventories PropertyInventory[]
+  renewalNotices TenancyRenewalNotice[]
 
   @@index([propertyId, status])
   @@index([endDate])
   @@map("tenancies")
+}
+
+enum InventoryKind {
+  MOVE_IN
+  MOVE_OUT
+}
+
+enum InventoryStatus {
+  DRAFT
+  COMPLETED
+}
+
+model PropertyInventory {
+  id                   String          @id @default(cuid())
+  number               String          @unique
+  tenancyId            String          @map("tenancy_id")
+  kind                 InventoryKind
+  inspectedAt          DateTime        @map("inspected_at") @db.Date
+  inspectedBy          String?         @map("inspected_by")
+  moveDate             DateTime?       @map("move_date") @db.Date
+  photoEvidence        Boolean         @default(false) @map("photo_evidence")
+  videoEvidence        Boolean         @default(false) @map("video_evidence")
+  evidenceGivenToTenantAt DateTime?    @map("evidence_given_to_tenant_at") @db.Date
+  frontDoorKeys        Int?            @map("front_door_keys")
+  backDoorKeys         Int?            @map("back_door_keys")
+  electricMeterNo      String?         @map("electric_meter_no")
+  electricReading      String?         @map("electric_reading")
+  waterMeterNo         String?         @map("water_meter_no")
+  waterReading         String?         @map("water_reading")
+  roomsJson            Json?           @map("rooms_json")
+  landlordSigned       Boolean         @default(false) @map("landlord_signed")
+  tenantSigned         Boolean         @default(false) @map("tenant_signed")
+  discrepancyDeadline  DateTime?       @map("discrepancy_deadline") @db.Date
+  notes                String?         @db.Text
+  status               InventoryStatus @default(DRAFT)
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+
+  tenancy Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+
+  @@index([tenancyId, kind])
+  @@map("property_inventories")
+}
+
+enum RenewalNoticeKind {
+  THREE_MONTH
+  ONE_MONTH
+}
+
+model TenancyRenewalNotice {
+  id        String             @id @default(cuid())
+  tenancyId String             @map("tenancy_id")
+  kind      RenewalNoticeKind
+  dueDate   DateTime           @map("due_date") @db.Date
+  sentAt    DateTime?          @map("sent_at")
+  channel   String?            @default("in_app")
+  notes     String?            @db.Text
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  tenancy Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+
+  @@unique([tenancyId, kind])
+  @@index([dueDate])
+  @@map("tenancy_renewal_notices")
 }
 
 model PmEngagement {
@@ -1338,14 +1405,62 @@ model ArtisanProfile {
   businessAddress String?  @map("business_address") @db.Text
   guarantorName   String?  @map("guarantor_name")
   guarantorPhone  String?  @map("guarantor_phone")
+  guarantorAddress String? @map("guarantor_address") @db.Text
+  email           String?
+  altPhone        String?  @map("alt_phone")
+  bankName        String?  @map("bank_name")
+  bankAccountName String?  @map("bank_account_name")
+  bankAccountNumber String? @map("bank_account_number")
   trades          Json?
   status          String   @default("pending_review")
   avgRating       Decimal? @map("avg_rating") @db.Decimal(3, 2)
+  jobsCompleted   Int      @default(0) @map("jobs_completed")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
+  serviceRequests ServiceRequest[]
+
   @@index([phone])
   @@map("artisan_profiles")
+}
+
+enum ServiceRequestStatus {
+  SUBMITTED
+  ARTISAN_SELECTED
+  ESTIMATED
+  APPROVED
+  IN_PROGRESS
+  PENDING_CONFIRM
+  CLOSED
+  CANCELLED
+}
+
+model ServiceRequest {
+  id             String               @id @default(cuid())
+  number         String               @unique
+  tradeCode      String               @map("trade_code")
+  description    String               @db.Text
+  component      String
+  workRequired   String               @map("work_required") @db.Text
+  photoUrls      Json                 @map("photo_urls")
+  propertyId     String?              @map("property_id")
+  projectId      String?              @map("project_id")
+  maintenanceId  String?              @map("maintenance_id")
+  artisanId      String?              @map("artisan_id")
+  labourAmount   Decimal?             @map("labour_amount") @db.Decimal(14, 2)
+  materialsAmount Decimal?            @map("materials_amount") @db.Decimal(14, 2)
+  platformFee    Decimal?             @map("platform_fee") @db.Decimal(14, 2)
+  status         ServiceRequestStatus @default(SUBMITTED)
+  tenantSatisfied Boolean?            @map("tenant_satisfied")
+  tenantRating   Int?                 @map("tenant_rating")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+
+  artisan ArtisanProfile? @relation(fields: [artisanId], references: [id])
+
+  @@index([status])
+  @@index([artisanId])
+  @@map("service_requests")
 }
 
 enum PurchaseRequisitionStatus {

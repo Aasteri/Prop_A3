@@ -31,6 +31,13 @@ export default function PropertiesHubPage() {
           status: 'live',
         },
         {
+          href: '/inventories',
+          title: 'Inventories',
+          description: 'Move-in / move-out condition, keys, meters, 7-day discrepancy.',
+          icon: 'clipboard',
+          status: 'live',
+        },
+        {
           href: '/maintenance',
           title: 'Maintenance',
           description: 'Photo requests, SC spend gate, artisan WO, tenant confirm.',
