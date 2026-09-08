@@ -7,12 +7,15 @@ import { ChangeLogStatus, DailyLogStatus, PaymentStatus, UserRole } from '@prism
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { DocumentsService } from '../documents/documents.service';
+import { MaintenanceService } from '../maintenance/maintenance.service';
+import { CreateMaintenanceDto } from '../maintenance/dto/maintenance.dto';
 
 @Injectable()
 export class ClientPortalService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly documentsService: DocumentsService,
+    private readonly maintenance: MaintenanceService,
   ) {}
 
   async dashboard(user: AuthUser) {
@@ -198,6 +201,30 @@ export class ClientPortalService {
 
   documents(user: AuthUser) {
     return this.documentsService.clientDocuments(user);
+  }
+
+  portalMaintenanceProperties(user: AuthUser) {
+    return this.maintenance.portalProperties(user);
+  }
+
+  portalMaintenanceList(user: AuthUser) {
+    return this.maintenance.portalList(user);
+  }
+
+  portalMaintenanceCreate(dto: CreateMaintenanceDto, user: AuthUser) {
+    return this.maintenance.portalCreate(dto, user);
+  }
+
+  portalConfirmWorkOrder(
+    workOrderId: string,
+    dto: {
+      tenantSatisfied?: boolean;
+      tenantRating?: number;
+      tenantFeedback?: string;
+    },
+    user: AuthUser,
+  ) {
+    return this.maintenance.portalConfirmWorkOrder(workOrderId, dto, user);
   }
 
   private async requireClient(user: AuthUser) {

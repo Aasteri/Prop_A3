@@ -368,6 +368,7 @@ export class DocumentsService {
       if (
         user.role !== UserRole.PROJECT_MANAGER &&
         user.role !== UserRole.ENGINEER &&
+        user.role !== UserRole.ARCHITECT &&
         user.role !== UserRole.FINANCE &&
         user.role !== UserRole.CEO &&
         user.role !== UserRole.ADMIN

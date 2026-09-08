@@ -1,6 +1,7 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorator';
+import { CreateMaintenanceDto } from '../maintenance/dto/maintenance.dto';
 import { ClientPortalService } from './client-portal.service';
 
 @Controller('client-portal')
@@ -31,5 +32,34 @@ export class ClientPortalController {
   @Get('documents')
   documents(@CurrentUser() user: AuthUser) {
     return this.portal.documents(user);
+  }
+
+  @Get('maintenance/properties')
+  maintenanceProperties(@CurrentUser() user: AuthUser) {
+    return this.portal.portalMaintenanceProperties(user);
+  }
+
+  @Get('maintenance')
+  maintenanceList(@CurrentUser() user: AuthUser) {
+    return this.portal.portalMaintenanceList(user);
+  }
+
+  @Post('maintenance')
+  maintenanceCreate(@Body() dto: CreateMaintenanceDto, @CurrentUser() user: AuthUser) {
+    return this.portal.portalMaintenanceCreate(dto, user);
+  }
+
+  @Patch('maintenance/work-orders/:id/confirm')
+  confirmWorkOrder(
+    @Param('id') id: string,
+    @Body()
+    dto: {
+      tenantSatisfied?: boolean;
+      tenantRating?: number;
+      tenantFeedback?: string;
+    },
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.portal.portalConfirmWorkOrder(id, dto, user);
   }
 }

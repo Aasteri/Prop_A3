@@ -166,6 +166,8 @@ model Project {
   invoices       Invoice[]
   clientProjects ClientProject[]
   hseIncidents   HseIncident[]
+  worksContracts WorksContract[]
+  inspections    ProjectInspection[]
 
   @@map("projects")
 }
@@ -797,6 +799,7 @@ model TenantApplication {
   createdBy        User?             @relation("ApplicationCreatedBy", fields: [createdById], references: [id])
   reviewedBy       User?             @relation("ApplicationReviewedBy", fields: [reviewedById], references: [id])
   evaluation       TenantEvaluation?
+  offers           TenancyOffer[]
 
   @@index([estateId, status])
   @@map("tenant_applications")
@@ -975,6 +978,15 @@ enum DocumentCategory {
   CERTIFICATE
   BOQ
   ALLOCATION_LETTER
+  TDP
+  C_OF_O
+  SOIL_TEST
+  ARCH_DESIGN
+  STRUCTURAL_DESIGN
+  ME_DESIGN
+  LABOUR_SCHEDULE
+  MATERIAL_SCHEDULE
+  WORK_SCHEDULE
   OTHER
 }
 
@@ -1636,4 +1648,101 @@ model LandlordRemittance {
 
   @@index([propertyId, periodEnd])
   @@map("landlord_remittances")
+}
+
+enum WorksContractStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  TERMINATED
+}
+
+model WorksContract {
+  id                     String              @id @default(cuid())
+  number                 String              @unique
+  projectId              String              @map("project_id")
+  subcontractorName      String              @map("subcontractor_name")
+  subcontractorPhone     String?             @map("subcontractor_phone")
+  scopeSummary           String              @map("scope_summary") @db.Text
+  contractSum            Decimal             @map("contract_sum") @db.Decimal(14, 2)
+  mobilisationPct        Decimal?            @map("mobilisation_pct") @db.Decimal(5, 2)
+  retentionPct           Decimal             @default(5) @map("retention_pct") @db.Decimal(5, 2)
+  platformFeePct         Decimal             @default(10) @map("platform_fee_pct") @db.Decimal(5, 2)
+  platformFeeAmount      Decimal             @map("platform_fee_amount") @db.Decimal(14, 2)
+  startDate              DateTime?           @map("start_date") @db.Date
+  completionDate         DateTime?           @map("completion_date") @db.Date
+  defectsLiabilityMonths Int                 @default(6) @map("defects_liability_months")
+  status                 WorksContractStatus @default(DRAFT)
+  notes                  String?             @db.Text
+  createdAt              DateTime            @default(now()) @map("created_at")
+  updatedAt              DateTime            @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@index([projectId, status])
+  @@map("works_contracts")
+}
+
+enum InspectionResult {
+  PENDING
+  PASS
+  FAIL
+  NA
+}
+
+model ProjectInspection {
+  id           String           @id @default(cuid())
+  number       String           @unique
+  projectId    String           @map("project_id")
+  phase        String?
+  category     String
+  result       InspectionResult @default(PENDING)
+  notes        String?          @db.Text
+  checklist    Json?
+  photoUrls    Json?            @map("photo_urls")
+  inspectedAt  DateTime         @map("inspected_at") @db.Date
+  inspectedBy  String?          @map("inspected_by")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id])
+
+  @@index([projectId, category])
+  @@map("project_inspections")
+}
+
+enum TenancyOfferStatus {
+  DRAFT
+  ISSUED
+  ACCEPTED
+  DECLINED
+}
+
+model TenancyOffer {
+  id                    String             @id @default(cuid())
+  number                String             @unique
+  applicationId         String             @map("application_id")
+  rentAnnual            Decimal            @map("rent_annual") @db.Decimal(14, 2)
+  cautionAmount         Decimal            @default(0) @map("caution_amount") @db.Decimal(14, 2)
+  agencyFeePct          Decimal            @default(10) @map("agency_fee_pct") @db.Decimal(5, 2)
+  legalFeePct           Decimal            @default(5) @map("legal_fee_pct") @db.Decimal(5, 2)
+  managementFeePct      Decimal            @default(5) @map("management_fee_pct") @db.Decimal(5, 2)
+  agencyFeeAmount       Decimal            @map("agency_fee_amount") @db.Decimal(14, 2)
+  legalFeeAmount        Decimal            @map("legal_fee_amount") @db.Decimal(14, 2)
+  managementFeeAmount   Decimal            @map("management_fee_amount") @db.Decimal(14, 2)
+  serviceChargeAnnual   Decimal            @default(0) @map("service_charge_annual") @db.Decimal(14, 2)
+  estateServiceCharge   Decimal            @default(0) @map("estate_service_charge") @db.Decimal(14, 2)
+  serviceChargeNotes    String?            @map("service_charge_notes") @db.Text
+  landlordPayee         String?            @map("landlord_payee")
+  managementPayee       String?            @map("management_payee")
+  agencyPayee           String?            @map("agency_payee")
+  status                TenancyOfferStatus @default(DRAFT)
+  notes                 String?            @db.Text
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
+
+  application TenantApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@map("tenancy_offers")
 }

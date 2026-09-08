@@ -59,6 +59,25 @@ type ApplicationDetail = {
   reviewedBy: { firstName: string; lastName: string } | null;
 };
 
+type TenancyOffer = {
+  id: string;
+  number: string;
+  status: string;
+  rentAnnual: string | number;
+  cautionAmount: string | number;
+  agencyFeePct: string | number;
+  legalFeePct: string | number;
+  managementFeePct: string | number;
+  agencyFeeAmount: string | number;
+  legalFeeAmount: string | number;
+  managementFeeAmount: string | number;
+  serviceChargeAnnual: string | number;
+  estateServiceCharge: string | number;
+  landlordPayee: string | null;
+  managementPayee: string | null;
+  agencyPayee: string | null;
+};
+
 const CRITERIA = [
   { key: 'c1' as const, label: 'Compatibility of tenant/use with property' },
   { key: 'c2' as const, label: 'Ability to pay' },
@@ -77,6 +96,8 @@ export default function TenantApplicationDetailPage() {
   const [notesInternal, setNotesInternal] = useState('');
   const [overrideUsed, setOverrideUsed] = useState(false);
   const [overrideReason, setOverrideReason] = useState('');
+  const [offers, setOffers] = useState<TenancyOffer[]>([]);
+  const [offerBusy, setOfferBusy] = useState(false);
 
   async function load() {
     const data = await api<ApplicationDetail>(`/tenant-applications/${id}`);
@@ -94,6 +115,11 @@ export default function TenantApplicationDetailPage() {
     }
   }
 
+  async function loadOffers() {
+    const rows = await api<TenancyOffer[]>(`/offers?applicationId=${id}`);
+    setOffers(rows);
+  }
+
   useEffect(() => {
     if (!getToken()) {
       router.replace('/login');
@@ -101,13 +127,48 @@ export default function TenantApplicationDetailPage() {
     }
     setUser(getUser<AuthUser>());
     load().catch(() => router.push('/tenant-applications'));
+    loadOffers().catch(() => setOffers([]));
   }, [id, router]);
 
   const canReview =
     user?.role === 'PROJECT_MANAGER' || user?.role === 'CEO' || user?.role === 'ADMIN';
 
+  const canOffer =
+    canReview || user?.role === 'FINANCE' || user?.role === 'SALES';
+
   const avgPreview =
     Math.round(((scores.c1 + scores.c2 + scores.c3 + scores.c4) / 4) * 10) / 10;
+
+  async function issueOffer() {
+    setError('');
+    setOfferBusy(true);
+    try {
+      await api('/offers', {
+        method: 'POST',
+        body: JSON.stringify({
+          applicationId: id,
+          rentAnnual: Number(app?.rentAccepted) || undefined,
+        }),
+      });
+      await loadOffers();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Offer create failed');
+    } finally {
+      setOfferBusy(false);
+    }
+  }
+
+  async function acceptOffer(offerId: string) {
+    setOfferBusy(true);
+    try {
+      await api(`/offers/${offerId}/accept`, { method: 'PATCH' });
+      await loadOffers();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Accept failed');
+    } finally {
+      setOfferBusy(false);
+    }
+  }
 
   async function saveEvaluation(e: FormEvent) {
     e.preventDefault();
@@ -202,6 +263,70 @@ export default function TenantApplicationDetailPage() {
           <p className="mt-1 text-xs text-slate-600">
             Offer letters may still split Agency 10% + Legal 5% + Mgmt 5% separately (Doc 10).
           </p>
+        </div>
+      )}
+
+      {(app.status === 'PENDING_REVIEW' || app.status === 'APPROVED') && (
+        <div className="mt-4 rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="font-semibold text-[#1a2744]">Offer letter (Doc 10)</h2>
+              <p className="text-xs text-slate-500">
+                Default fee lines: Agency 10% + Legal 5% + Management 5% of annual rent — separate
+                from the Doc 12 application 20% Agency+Legal invoice.
+              </p>
+            </div>
+            {canOffer && (
+              <button
+                type="button"
+                disabled={offerBusy}
+                onClick={issueOffer}
+                className="rounded-md bg-[#e87722] px-3 py-1.5 text-sm text-white disabled:opacity-50"
+              >
+                Issue offer
+              </button>
+            )}
+          </div>
+          {offers.map((o) => (
+            <div
+              key={o.id}
+              className="rounded-md border border-slate-100 bg-slate-50 p-3 text-sm space-y-1"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-medium text-[#1a2744]">
+                  {o.number} · {o.status}
+                </span>
+                {canOffer && o.status === 'ISSUED' && (
+                  <button
+                    type="button"
+                    disabled={offerBusy}
+                    className="text-green-700 hover:underline"
+                    onClick={() => acceptOffer(o.id)}
+                  >
+                    Mark accepted
+                  </button>
+                )}
+              </div>
+              <p>
+                Rent ₦{Number(o.rentAnnual).toLocaleString()} · Caution ₦
+                {Number(o.cautionAmount).toLocaleString()}
+              </p>
+              <p>
+                Agency {Number(o.agencyFeePct)}% ₦{Number(o.agencyFeeAmount).toLocaleString()}
+                {' · '}Legal {Number(o.legalFeePct)}% ₦{Number(o.legalFeeAmount).toLocaleString()}
+                {' · '}Mgmt {Number(o.managementFeePct)}% ₦
+                {Number(o.managementFeeAmount).toLocaleString()}
+              </p>
+              <p className="text-xs text-slate-500">
+                SC ₦{Number(o.serviceChargeAnnual).toLocaleString()} · Estate SC ₦
+                {Number(o.estateServiceCharge).toLocaleString()}
+                {o.agencyPayee ? ` · Agency payee: ${o.agencyPayee}` : ''}
+              </p>
+            </div>
+          ))}
+          {!offers.length && (
+            <p className="text-sm text-slate-500">No Doc 10 offers issued yet.</p>
+          )}
         </div>
       )}
 

@@ -165,6 +165,92 @@ export class MaintenanceService {
 
   async updateWorkOrder(id: string, dto: UpdateWorkOrderDto, user: AuthUser) {
     this.assertCanManage(user);
+    return this.applyWorkOrderUpdate(id, dto);
+  }
+
+  /** Portal: list properties the signed-in user can raise maintenance against. */
+  async portalProperties(user: AuthUser) {
+    return this.resolvePortalPropertyAccess(user);
+  }
+
+  async portalList(user: AuthUser) {
+    const access = await this.resolvePortalPropertyAccess(user);
+    const propertyIds = access.map((p) => p.id);
+    if (!propertyIds.length) return [];
+    const rows = await this.prisma.maintenanceRequest.findMany({
+      where: { propertyId: { in: propertyIds } },
+      include,
+      orderBy: { createdAt: 'desc' },
+    });
+    return rows.map((r) => this.serialize(r));
+  }
+
+  async portalCreate(dto: CreateMaintenanceDto, user: AuthUser) {
+    const access = await this.resolvePortalPropertyAccess(user);
+    if (!access.some((p) => p.id === dto.propertyId)) {
+      throw new ForbiddenException('Property not linked to your account');
+    }
+    const property = await this.prisma.propertyAsset.findUnique({
+      where: { id: dto.propertyId },
+    });
+    if (!property) throw new NotFoundException('Property not found');
+
+    const dbUser = await this.prisma.user.findUnique({ where: { id: user.id } });
+    const number = await this.nextNumber('MR');
+    const row = await this.prisma.maintenanceRequest.create({
+      data: {
+        number,
+        propertyId: dto.propertyId,
+        unitLabel: dto.unitLabel,
+        tenantName:
+          dto.tenantName ?? `${user.firstName} ${user.lastName}`.trim(),
+        tenantPhone: dto.tenantPhone ?? dbUser?.phone ?? undefined,
+        category: dto.category,
+        component: dto.component,
+        description: dto.description,
+        urgency: dto.urgency ?? 'MEDIUM',
+        photoUrls: dto.photoUrls ?? undefined,
+      },
+      include,
+    });
+    return this.serialize(row);
+  }
+
+  async portalConfirmWorkOrder(
+    workOrderId: string,
+    dto: {
+      tenantSatisfied?: boolean;
+      tenantRating?: number;
+      tenantFeedback?: string;
+    },
+    user: AuthUser,
+  ) {
+    const access = await this.resolvePortalPropertyAccess(user);
+    const propertyIds = new Set(access.map((p) => p.id));
+    const existing = await this.prisma.workOrder.findUnique({
+      where: { id: workOrderId },
+      include: { request: true },
+    });
+    if (!existing) throw new NotFoundException('Work order not found');
+    if (!propertyIds.has(existing.request.propertyId)) {
+      throw new ForbiddenException('Work order not linked to your account');
+    }
+    if (
+      existing.status !== 'COMPLETED_PENDING_CONFIRM' &&
+      existing.status !== 'IN_PROGRESS' &&
+      existing.status !== 'ASSIGNED'
+    ) {
+      throw new ForbiddenException('Work order is not awaiting confirmation');
+    }
+    return this.applyWorkOrderUpdate(workOrderId, {
+      status: 'CONFIRMED',
+      tenantSatisfied: dto.tenantSatisfied ?? true,
+      tenantRating: dto.tenantRating,
+      tenantFeedback: dto.tenantFeedback,
+    });
+  }
+
+  private async applyWorkOrderUpdate(id: string, dto: UpdateWorkOrderDto) {
     const existing = await this.prisma.workOrder.findUnique({
       where: { id },
       include: { request: true },
@@ -190,7 +276,6 @@ export class MaintenanceService {
       include: { request: true },
     });
 
-    // On tenant confirm / close within SC: post ledger debit (idempotent)
     if (
       existing.withinServiceCharge &&
       (dto.status === 'CONFIRMED' || dto.status === 'CLOSED' || dto.status === 'PAID')
@@ -215,6 +300,63 @@ export class MaintenanceService {
     }
 
     return updated;
+  }
+
+  private async resolvePortalPropertyAccess(user: AuthUser) {
+    const byId = new Map<string, { id: string; name: string; address: string; unitLabel?: string | null }>();
+
+    if (user.role === UserRole.CEO || user.role === UserRole.ADMIN) {
+      const all = await this.prisma.propertyAsset.findMany({
+        select: { id: true, name: true, address: true },
+        orderBy: { name: 'asc' },
+        take: 100,
+      });
+      for (const p of all) byId.set(p.id, p);
+      return [...byId.values()];
+    }
+
+    const dbUser = await this.prisma.user.findUnique({ where: { id: user.id } });
+    const or: { tenantEmail?: string; tenantPhone?: string }[] = [{ tenantEmail: user.email }];
+    if (dbUser?.phone) or.push({ tenantPhone: dbUser.phone });
+
+    const tenancies = await this.prisma.tenancy.findMany({
+      where: {
+        status: { in: ['ACTIVE', 'DRAFT', 'RENEWAL_PENDING'] },
+        OR: or,
+      },
+      include: {
+        property: { select: { id: true, name: true, address: true } },
+        unit: { select: { unitCode: true } },
+      },
+    });
+    for (const t of tenancies) {
+      byId.set(t.property.id, {
+        id: t.property.id,
+        name: t.property.name,
+        address: t.property.address,
+        unitLabel: t.unit?.unitCode ?? null,
+      });
+    }
+
+    const client = await this.prisma.client.findUnique({
+      where: { portalUserId: user.id },
+    });
+    if (client) {
+      const links = await this.prisma.clientProject.findMany({
+        where: { clientId: client.id },
+        select: { projectId: true },
+      });
+      const projectIds = links.map((l) => l.projectId);
+      if (projectIds.length) {
+        const assets = await this.prisma.propertyAsset.findMany({
+          where: { sourceProjectId: { in: projectIds } },
+          select: { id: true, name: true, address: true },
+        });
+        for (const p of assets) byId.set(p.id, p);
+      }
+    }
+
+    return [...byId.values()];
   }
 
   private serialize<T extends { property?: { serviceChargeAccount?: { balanceAvailable: unknown; balanceReserved: unknown } | null } | null }>(

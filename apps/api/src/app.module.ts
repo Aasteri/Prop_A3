@@ -35,6 +35,9 @@ import { SalesInspectionsModule } from './sales-inspections/sales-inspections.mo
 import { ArtisansModule } from './artisans/artisans.module';
 import { ServiceRequestsModule } from './service-requests/service-requests.module';
 import { InventoriesModule } from './inventories/inventories.module';
+import { WorksModule } from './works/works.module';
+import { InspectionsModule } from './inspections/inspections.module';
+import { OffersModule } from './offers/offers.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -77,6 +80,9 @@ import { ScheduleModule } from '@nestjs/schedule';
     ArtisansModule,
     ServiceRequestsModule,
     InventoriesModule,
+    WorksModule,
+    InspectionsModule,
+    OffersModule,
     MailModule,
   ],
   controllers: [AppController],
