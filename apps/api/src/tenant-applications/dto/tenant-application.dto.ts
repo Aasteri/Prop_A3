@@ -1,9 +1,11 @@
 import {
   IsBoolean,
   IsDateString,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   Min,
 } from 'class-validator';
 
@@ -113,4 +115,38 @@ export class SubmitTenantApplicationDto {
   @IsOptional()
   @IsString()
   guarantorSignature?: string;
+}
+
+export class EvaluateTenantApplicationDto {
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  c1!: number;
+
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  c2!: number;
+
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  c3!: number;
+
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  c4!: number;
+
+  @IsOptional()
+  @IsString()
+  notesInternal?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  overrideUsed?: boolean;
+
+  @IsOptional()
+  @IsString()
+  overrideReason?: string;
 }

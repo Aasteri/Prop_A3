@@ -55,6 +55,7 @@ model User {
   certifiedMilestones Milestone[]         @relation("MilestoneCertifiedBy")
   createdApplications TenantApplication[] @relation("ApplicationCreatedBy")
   reviewedApplications TenantApplication[] @relation("ApplicationReviewedBy")
+  tenantEvaluations    TenantEvaluation[]  @relation("TenantEvaluationBy")
   assignedLeads       Lead[]              @relation("LeadAssignedTo")
   createdLeads        Lead[]              @relation("LeadCreatedBy")
   clientProfile       Client?             @relation("ClientPortalUser")
@@ -713,11 +714,13 @@ model EstateTerrierRow {
   expenseDescription String?        @map("expense_description") @db.Text
   expenseAmount      Decimal        @default(0) @map("expense_amount") @db.Decimal(14, 2)
   netRentalIncome    Decimal        @default(0) @map("net_rental_income") @db.Decimal(14, 2)
+  propertyUnitId     String?        @unique @map("property_unit_id")
   createdAt          DateTime       @default(now()) @map("created_at")
   updatedAt          DateTime       @updatedAt @map("updated_at")
 
   estate        RentalEstate        @relation(fields: [estateId], references: [id], onDelete: Cascade)
   tenantProfile TenantProfile?    @relation(fields: [tenantProfileId], references: [id])
+  propertyUnit  PropertyUnit?     @relation(fields: [propertyUnitId], references: [id])
   applications  TenantApplication[]
 
   @@unique([estateId, serialNo])
@@ -792,9 +795,39 @@ model TenantApplication {
   tenantProfile    TenantProfile?    @relation(fields: [tenantProfileId], references: [id])
   createdBy        User?             @relation("ApplicationCreatedBy", fields: [createdById], references: [id])
   reviewedBy       User?             @relation("ApplicationReviewedBy", fields: [reviewedById], references: [id])
+  evaluation       TenantEvaluation?
 
   @@index([estateId, status])
   @@map("tenant_applications")
+}
+
+enum TenantEvalDecision {
+  PREFERRED
+  ACCEPTABLE
+  BORDERLINE
+  UNSUITABLE
+}
+
+model TenantEvaluation {
+  id              String             @id @default(cuid())
+  applicationId   String             @unique @map("application_id")
+  evaluatorId     String             @map("evaluator_id")
+  c1              Int
+  c2              Int
+  c3              Int
+  c4              Int
+  average         Decimal            @db.Decimal(4, 1)
+  decision        TenantEvalDecision
+  overrideUsed    Boolean            @default(false) @map("override_used")
+  overrideReason  String?            @map("override_reason") @db.Text
+  notesInternal   String?            @map("notes_internal") @db.Text
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  application TenantApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  evaluator   User              @relation("TenantEvaluationBy", fields: [evaluatorId], references: [id])
+
+  @@map("tenant_evaluations")
 }
 
 // ─── CRM & Sales Listings ─────────────────────────────────────────────────────
@@ -1077,8 +1110,9 @@ model PropertyUnit {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  property  PropertyAsset @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  tenancies Tenancy[]
+  property   PropertyAsset     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  tenancies  Tenancy[]
+  terrierRow EstateTerrierRow?
 
   @@unique([propertyId, unitCode])
   @@map("property_units")

@@ -21,7 +21,21 @@ export async function generateApplicationRef(
 }
 
 export function calcAgencyFee(rentAccepted: number): number {
+  // Doc 12 application clause: combined Agency+Legal = 20% of rental value.
+  // Doc 10 offer letter uses separate Agency 10% + Legal 5% + Mgmt 5% — that split
+  // belongs on the offer entity (not this application acceptance fee).
   return Math.round(rentAccepted * 0.2 * 100) / 100;
+}
+
+export function calcEvaluationAverage(c1: number, c2: number, c3: number, c4: number): number {
+  return Math.round(((c1 + c2 + c3 + c4) / 4) * 10) / 10;
+}
+
+export function evaluationBand(average: number): 'PREFERRED' | 'ACCEPTABLE' | 'BORDERLINE' | 'UNSUITABLE' {
+  if (average >= 7.5) return 'PREFERRED';
+  if (average >= 6.0) return 'ACCEPTABLE';
+  if (average >= 4.0) return 'BORDERLINE';
+  return 'UNSUITABLE';
 }
 
 export function calcNetRentalIncome(rentAmount: number, expenseAmount: number): number {

@@ -29,6 +29,7 @@ import { PropertiesModule } from './properties/properties.module';
 import { TenanciesModule } from './tenancies/tenancies.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { ProcurementModule } from './procurement/procurement.module';
+import { ServiceChargesModule } from './service-charges/service-charges.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -65,6 +66,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     TenanciesModule,
     MaintenanceModule,
     ProcurementModule,
+    ServiceChargesModule,
     MailModule,
   ],
   controllers: [AppController],

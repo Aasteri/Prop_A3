@@ -173,7 +173,12 @@ export default function NewTenantApplicationPage() {
           </div>
           {form.rentAccepted && (
             <p className="mt-2 text-sm text-slate-600">
-              Agency & legal fee (20%): <strong>₦{agencyFee.toLocaleString()}</strong>
+              Agency+Legal fee (20% application clause):{' '}
+              <strong>₦{agencyFee.toLocaleString()}</strong>
+              <span className="mt-1 block text-xs font-normal text-slate-500">
+                Separate offer-letter lines (Agency 10% / Legal 5% / Mgmt 5%) come later at offer
+                stage.
+              </span>
             </p>
           )}
         </Section>

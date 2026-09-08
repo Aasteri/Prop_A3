@@ -19,8 +19,18 @@ type MaintenanceRow = {
   tenantName: string | null;
   unitLabel: string | null;
   createdAt: string;
-  property: { id: string; name: string };
-  workOrders: { id: string; number: string; status: string; artisanName: string | null }[];
+  property: {
+    id: string;
+    name: string;
+    serviceChargeAccount?: { balanceAvailable: number; balanceReserved: number } | null;
+  };
+  workOrders: {
+    id: string;
+    number: string;
+    status: string;
+    artisanName: string | null;
+    withinServiceCharge?: boolean | null;
+  }[];
 };
 
 export default function MaintenancePage() {
@@ -93,21 +103,38 @@ export default function MaintenancePage() {
     setWoBusy(id);
     try {
       const artisanName = window.prompt('Artisan name') || undefined;
-      await api(`/maintenance/${id}/work-orders`, {
-        method: 'POST',
-        body: JSON.stringify({
-          artisanName,
-          withinServiceCharge: true,
-          labourAmount: 0,
-          materialsAmount: 0,
-        }),
-      });
+      const labourRaw = window.prompt('Labour amount (₦)', '0') || '0';
+      const materialsRaw = window.prompt('Materials amount (₦)', '0') || '0';
+      const labourAmount = Number(labourRaw) || 0;
+      const materialsAmount = Number(materialsRaw) || 0;
+      const result = await api<{ gated?: boolean; gateReason?: string | null }>(
+        `/maintenance/${id}/work-orders`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            artisanName,
+            labourAmount,
+            materialsAmount,
+          }),
+        },
+      );
+      if (result.gated && result.gateReason) {
+        alert(result.gateReason);
+      }
       load();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to create work order');
     } finally {
       setWoBusy(null);
     }
+  }
+
+  async function confirmWorkOrder(woId: string) {
+    await api(`/maintenance/work-orders/${woId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'CONFIRMED', tenantSatisfied: true }),
+    });
+    load();
   }
 
   return (
@@ -123,7 +150,8 @@ export default function MaintenancePage() {
                 Maintenance requests
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-slate-200/90">
-                Intake → triage → work order → tenant confirmation (SC spend gate next).
+                Intake → triage → SC spend gate → work order → tenant confirm. Platform fee is 2.5%
+                of labour (materials excluded).
               </p>
             </div>
             <button
@@ -252,11 +280,17 @@ export default function MaintenancePage() {
                     {r.tenantName ? ` · ${r.tenantName}` : ''}
                     {r.unitLabel ? ` · ${r.unitLabel}` : ''}
                     {r.category ? ` · ${r.category}` : ''}
+                    {r.property.serviceChargeAccount
+                      ? ` · SC ₦${r.property.serviceChargeAccount.balanceAvailable.toLocaleString()}`
+                      : ''}
                   </p>
                   {r.workOrders[0] && (
                     <p className="mt-1 text-xs text-slate-500">
                       WO {r.workOrders[0].number}: {r.workOrders[0].status}
                       {r.workOrders[0].artisanName ? ` · ${r.workOrders[0].artisanName}` : ''}
+                      {r.workOrders[0].withinServiceCharge === false
+                        ? ' · landlord / SC gate'
+                        : ''}
                     </p>
                   )}
                 </div>
@@ -270,7 +304,9 @@ export default function MaintenancePage() {
                       Start triage
                     </button>
                   )}
-                  {(r.status === 'SUBMITTED' || r.status === 'TRIAGING') && (
+                  {(r.status === 'SUBMITTED' ||
+                    r.status === 'TRIAGING' ||
+                    r.status === 'ESCALATED_LANDLORD') && (
                     <button
                       type="button"
                       disabled={woBusy === r.id}
@@ -289,13 +325,25 @@ export default function MaintenancePage() {
                       Mark in progress
                     </button>
                   )}
+                  {r.workOrders[0] &&
+                    (r.workOrders[0].status === 'ASSIGNED' ||
+                      r.workOrders[0].status === 'IN_PROGRESS' ||
+                      r.workOrders[0].status === 'COMPLETED_PENDING_CONFIRM') && (
+                      <button
+                        type="button"
+                        onClick={() => confirmWorkOrder(r.workOrders[0].id)}
+                        className="rounded-md bg-[#e87722] px-3 py-1.5 text-xs font-medium text-white"
+                      >
+                        Confirm & debit SC
+                      </button>
+                    )}
                   {r.status === 'IN_PROGRESS' && (
                     <button
                       type="button"
                       onClick={() => triage(r.id, 'CLOSED')}
-                      className="rounded-md bg-[#e87722] px-3 py-1.5 text-xs font-medium text-white"
+                      className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
                     >
-                      Close
+                      Close request
                     </button>
                   )}
                 </div>

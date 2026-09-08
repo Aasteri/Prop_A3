@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorator';
 import {
   CreateTenantApplicationDto,
+  EvaluateTenantApplicationDto,
   RejectTenantApplicationDto,
   SubmitTenantApplicationDto,
   UpdateTenantApplicationDto,
@@ -51,6 +52,15 @@ export class TenantApplicationsController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.applications.submit(id, dto, user);
+  }
+
+  @Post(':id/evaluate')
+  evaluate(
+    @Param('id') id: string,
+    @Body() dto: EvaluateTenantApplicationDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.applications.evaluate(id, dto, user);
   }
 
   @Post(':id/approve')

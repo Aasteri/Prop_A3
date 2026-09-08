@@ -14,21 +14,25 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import {
   CreateTenantApplicationDto,
+  EvaluateTenantApplicationDto,
   RejectTenantApplicationDto,
   SubmitTenantApplicationDto,
   UpdateTenantApplicationDto,
 } from './dto/tenant-application.dto';
 import {
   calcAgencyFee,
+  calcEvaluationAverage,
+  evaluationBand,
   generateApplicationRef,
 } from './tenant-applications.utils';
 import { generateInvoiceNumber } from '../invoices/invoices.utils';
 
 const include = {
   estate: true,
-  terrierRow: { select: { id: true, serialNo: true, propertyType: true, location: true } },
+  terrierRow: { select: { id: true, serialNo: true, propertyType: true, location: true, serviceCharge: true, cautionDeposit: true, tenancyStart: true, tenancyEnd: true } },
   agencyFeeInvoice: { select: { id: true, invoiceNumber: true, status: true, outstanding: true } },
   tenantProfile: true,
+  evaluation: true,
   createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
   reviewedBy: { select: { id: true, firstName: true, lastName: true, email: true } },
 };
@@ -201,7 +205,8 @@ export class TenantApplicationsService {
           lines: {
             create: [
               {
-                description: 'Agency & Legal fee (20% of rental value)',
+                description:
+                  'Agency & Legal fee (20% of rental value) — application acceptance clause (Doc 12). Offer letter may split Agency/Legal/Mgmt separately.',
                 quantity: 1,
                 unit: 'Lot',
                 unitPrice: agencyFee,
@@ -227,6 +232,54 @@ export class TenantApplicationsService {
     });
   }
 
+  async evaluate(id: string, dto: EvaluateTenantApplicationDto, user: AuthUser) {
+    this.assertCanReview(user);
+    const app = await this.findOne(id, user);
+    if (
+      app.status !== TenantApplicationStatus.PENDING_REVIEW &&
+      app.status !== TenantApplicationStatus.DRAFT
+    ) {
+      throw new BadRequestException('Evaluation only allowed before final decision');
+    }
+
+    const average = calcEvaluationAverage(dto.c1, dto.c2, dto.c3, dto.c4);
+    const decision = evaluationBand(average);
+    if (dto.overrideUsed && !dto.overrideReason?.trim()) {
+      throw new BadRequestException('Override reason is required when override is used');
+    }
+
+    await this.prisma.tenantEvaluation.upsert({
+      where: { applicationId: id },
+      create: {
+        applicationId: id,
+        evaluatorId: user.id,
+        c1: dto.c1,
+        c2: dto.c2,
+        c3: dto.c3,
+        c4: dto.c4,
+        average,
+        decision,
+        overrideUsed: dto.overrideUsed ?? false,
+        overrideReason: dto.overrideReason,
+        notesInternal: dto.notesInternal,
+      },
+      update: {
+        evaluatorId: user.id,
+        c1: dto.c1,
+        c2: dto.c2,
+        c3: dto.c3,
+        c4: dto.c4,
+        average,
+        decision,
+        overrideUsed: dto.overrideUsed ?? false,
+        overrideReason: dto.overrideReason,
+        notesInternal: dto.notesInternal,
+      },
+    });
+
+    return this.findOne(id, user);
+  }
+
   async approve(id: string, user: AuthUser) {
     this.assertCanReview(user);
     const app = await this.findOne(id, user);
@@ -237,8 +290,30 @@ export class TenantApplicationsService {
       throw new BadRequestException('Assign a unit (Terrier row) before approval');
     }
 
+    const evaluation = await this.prisma.tenantEvaluation.findUnique({
+      where: { applicationId: id },
+    });
+    if (!evaluation) {
+      throw new BadRequestException('Complete FM 4×0–10 evaluation before approval');
+    }
+    const avg = Number(evaluation.average);
+    if (avg < 4.0 && !evaluation.overrideUsed) {
+      throw new BadRequestException(
+        'Average < 4.0 (Unsuitable) — reject or record an override with reason',
+      );
+    }
+    if (avg < 6.0 && avg >= 4.0 && !evaluation.overrideUsed) {
+      throw new BadRequestException(
+        'Borderline score (4.0–5.9) requires further review override with reason before approval',
+      );
+    }
+
     const tenantName = `${app.surname} ${app.otherNames}`.trim();
     const rentAmount = Number(app.rentAccepted);
+    const row = await this.prisma.estateTerrierRow.findUniqueOrThrow({
+      where: { id: app.terrierRowId },
+      include: { estate: true },
+    });
 
     return this.prisma.$transaction(async (tx) => {
       const profile = await tx.tenantProfile.create({
@@ -262,6 +337,109 @@ export class TenantApplicationsService {
           rentAmountNgn: rentAmount,
         },
       });
+
+      // Bridge Terrier → PropertyAsset / PropertyUnit / Tenancy (canonical PM graph)
+      let propertyUnitId = row.propertyUnitId;
+      if (!propertyUnitId) {
+        const code = `${row.estate.code}-U${row.serialNo}`;
+        let property = await tx.propertyAsset.findFirst({
+          where: {
+            OR: [
+              { code: row.estate.code },
+              { name: row.estate.name, estateName: row.estate.name },
+            ],
+          },
+        });
+        if (!property) {
+          property = await tx.propertyAsset.create({
+            data: {
+              code: row.estate.code,
+              name: row.estate.name,
+              address: row.location || row.estate.location || row.estate.name,
+              estateName: row.estate.name,
+              category: 'RESIDENTIAL',
+              serviceChargeAccount: { create: {} },
+            },
+          });
+        } else {
+          const sc = await tx.serviceChargeAccount.findUnique({
+            where: { propertyId: property.id },
+          });
+          if (!sc) {
+            await tx.serviceChargeAccount.create({ data: { propertyId: property.id } });
+          }
+        }
+
+        const unitCode = `U${row.serialNo}`;
+        let unit = await tx.propertyUnit.findUnique({
+          where: { propertyId_unitCode: { propertyId: property.id, unitCode } },
+        });
+        if (!unit) {
+          unit = await tx.propertyUnit.create({
+            data: {
+              propertyId: property.id,
+              unitCode,
+              unitType: row.propertyType,
+            },
+          });
+        }
+        propertyUnitId = unit.id;
+        await tx.estateTerrierRow.update({
+          where: { id: row.id },
+          data: { propertyUnitId },
+        });
+      }
+
+      const unit = await tx.propertyUnit.findUniqueOrThrow({
+        where: { id: propertyUnitId! },
+      });
+
+      const start =
+        row.tenancyStart ??
+        new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+      const end =
+        row.tenancyEnd ??
+        new Date(start.getFullYear() + 1, start.getMonth(), start.getDate());
+
+      await tx.tenancy.create({
+        data: {
+          propertyId: unit.propertyId,
+          unitId: unit.id,
+          applicationId: app.id,
+          agreementNo: app.applicationRef,
+          tenantName,
+          tenantPhone: app.phone,
+          startDate: start,
+          endDate: end,
+          rentAnnual: rentAmount,
+          cautionAmount: row.cautionDeposit != null ? Number(row.cautionDeposit) : undefined,
+          serviceCharge: row.serviceCharge != null ? Number(row.serviceCharge) : undefined,
+          status: 'ACTIVE',
+        },
+      });
+
+      // Seed SC levy from terrier serviceCharge field if present and account empty
+      if (row.serviceCharge != null && Number(row.serviceCharge) > 0) {
+        const account = await tx.serviceChargeAccount.findUnique({
+          where: { propertyId: unit.propertyId },
+        });
+        if (account && Number(account.balanceAvailable) === 0) {
+          const amt = Number(row.serviceCharge);
+          await tx.serviceChargeLedgerEntry.create({
+            data: {
+              accountId: account.id,
+              entryDate: new Date(),
+              description: `Initial SC levy from Terrier (${app.applicationRef})`,
+              debit: 0,
+              credit: amt,
+            },
+          });
+          await tx.serviceChargeAccount.update({
+            where: { id: account.id },
+            data: { balanceAvailable: { increment: amt } },
+          });
+        }
+      }
 
       return tx.tenantApplication.update({
         where: { id },

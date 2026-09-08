@@ -59,6 +59,13 @@ export default function PropertiesHubPage() {
           status: 'live',
         },
         {
+          href: '/service-charges',
+          title: 'Service charges',
+          description: 'Ledger + available balance as maintenance spend ceiling.',
+          icon: 'wallet',
+          status: 'live',
+        },
+        {
           href: '/viewings',
           title: 'Viewings & inspections',
           description: 'Mandatory physical inspection + platform response.',
