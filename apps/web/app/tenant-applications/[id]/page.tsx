@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
-import { api, ApiError, getToken, getUser, type AuthUser } from '@/lib/api';
+import { api, ApiError, downloadPdf, getToken, getUser, type AuthUser } from '@/lib/api';
 import { INPUT, LABEL } from '@/lib/ui';
 
 type Evaluation = {
@@ -260,7 +260,7 @@ export default function TenantApplicationDetailPage() {
   if (!app) {
     return (
       <AppShell>
-        <p className="text-slate-500">Loading‚Ä¶</p>
+        <p className="text-slate-500">LoadingÖ</p>
       </AppShell>
     );
   }
@@ -268,13 +268,13 @@ export default function TenantApplicationDetailPage() {
   return (
     <AppShell>
       <Link href="/tenant-applications" className="text-sm text-[#e87722] hover:underline">
-        ‚Üê Applications
+        ? Applications
       </Link>
       <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-[#1a2744]">{app.applicationRef}</h1>
           <p className="text-slate-600">
-            {app.surname} {app.otherNames} ¬∑ {app.estate.name}
+            {app.surname} {app.otherNames} ∑ {app.estate.name}
           </p>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-sm">{app.status.replace(/_/g, ' ')}</span>
@@ -292,7 +292,7 @@ export default function TenantApplicationDetailPage() {
           <Link href={`/invoices/${app.agencyFeeInvoice.id}`} className="font-medium text-[#e87722] hover:underline">
             {app.agencyFeeInvoice.invoiceNumber}
           </Link>{' '}
-          ¬∑ Outstanding ‚Ç¶{Number(app.agencyFeeInvoice.outstanding).toLocaleString()}
+          ∑ Outstanding ?{Number(app.agencyFeeInvoice.outstanding).toLocaleString()}
           <p className="mt-1 text-xs text-slate-600">
             Offer letters may still split Agency 10% + Legal 5% + Mgmt 5% separately (Doc 10).
           </p>
@@ -305,7 +305,7 @@ export default function TenantApplicationDetailPage() {
             <div>
               <h2 className="font-semibold text-[#1a2744]">Offer letter (Doc 10)</h2>
               <p className="text-xs text-slate-500">
-                Default fee lines: Agency 10% + Legal 5% + Management 5% of annual rent ‚Äî separate
+                Default fee lines: Agency 10% + Legal 5% + Management 5% of annual rent ó separate
                 from the Doc 12 application 20% Agency+Legal invoice. Legal routes with management
                 settlement account per Doc 10 example.
               </p>
@@ -337,10 +337,10 @@ export default function TenantApplicationDetailPage() {
                     value={offerPayees[key]}
                     onChange={(e) => setOfferPayees({ ...offerPayees, [key]: e.target.value })}
                   >
-                    <option value="">‚Äî</option>
+                    <option value="">ó</option>
                     {settlements.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.name} ¬∑ {s.bankName} ¬∑ {s.accountNumber}
+                        {s.name} ∑ {s.bankName} ∑ {s.accountNumber}
                       </option>
                     ))}
                   </select>
@@ -355,52 +355,61 @@ export default function TenantApplicationDetailPage() {
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-medium text-[#1a2744]">
-                  {o.number} ¬∑ {o.status}
+                  {o.number} ù {o.status}
                 </span>
-                {canOffer && o.status === 'ISSUED' && (
+                <span className="space-x-2">
                   <button
                     type="button"
-                    disabled={offerBusy}
-                    className="text-green-700 hover:underline"
-                    onClick={() => acceptOffer(o.id)}
+                    className="text-[#e87722] hover:underline"
+                    onClick={() => downloadPdf(`/offers/${o.id}/pdf`, `${o.number}.pdf`)}
                   >
-                    Mark accepted
+                    PDF
                   </button>
-                )}
+                  {canOffer && o.status === 'ISSUED' && (
+                    <button
+                      type="button"
+                      disabled={offerBusy}
+                      className="text-green-700 hover:underline"
+                      onClick={() => acceptOffer(o.id)}
+                    >
+                      Mark accepted
+                    </button>
+                  )}
+                </span>
               </div>
               <p>
-                Rent ‚Ç¶{Number(o.rentAnnual).toLocaleString()} ¬∑ Caution ‚Ç¶
+                Rent ?{Number(o.rentAnnual).toLocaleString()} ∑ Caution ?
                 {Number(o.cautionAmount).toLocaleString()}
               </p>
               <p>
-                Agency {Number(o.agencyFeePct)}% ‚Ç¶{Number(o.agencyFeeAmount).toLocaleString()}
-                {' ¬∑ '}Legal {Number(o.legalFeePct)}% ‚Ç¶{Number(o.legalFeeAmount).toLocaleString()}
-                {' ¬∑ '}Mgmt {Number(o.managementFeePct)}% ‚Ç¶
+                Agency {Number(o.agencyFeePct)}% ?{Number(o.agencyFeeAmount).toLocaleString()}
+                {' ∑ '}Legal {Number(o.legalFeePct)}% ?{Number(o.legalFeeAmount).toLocaleString()}
+                {' ∑ '}Mgmt {Number(o.managementFeePct)}% ?
                 {Number(o.managementFeeAmount).toLocaleString()}
               </p>
               <div className="text-xs text-slate-600 space-y-0.5">
                 {o.landlordSettlement && (
                   <p>
-                    Landlord: {o.landlordSettlement.name} ¬∑ {o.landlordSettlement.bankName} ¬∑{' '}
+                    Landlord: {o.landlordSettlement.name} ∑ {o.landlordSettlement.bankName} ∑{' '}
                     {o.landlordSettlement.accountNumber}
                   </p>
                 )}
                 {o.managementSettlement && (
                   <p>
-                    Management/Legal: {o.managementSettlement.name} ¬∑{' '}
-                    {o.managementSettlement.bankName} ¬∑ {o.managementSettlement.accountNumber}
+                    Management/Legal: {o.managementSettlement.name} ∑{' '}
+                    {o.managementSettlement.bankName} ∑ {o.managementSettlement.accountNumber}
                   </p>
                 )}
                 {o.agencySettlement && (
                   <p>
-                    Agency: {o.agencySettlement.name} ¬∑ {o.agencySettlement.bankName} ¬∑{' '}
+                    Agency: {o.agencySettlement.name} ∑ {o.agencySettlement.bankName} ∑{' '}
                     {o.agencySettlement.accountNumber}
                   </p>
                 )}
                 {!o.landlordSettlement && !o.managementSettlement && !o.agencySettlement && (
                   <p>
-                    SC ‚Ç¶{Number(o.serviceChargeAnnual).toLocaleString()}
-                    {o.agencyPayee ? ` ¬∑ Agency payee: ${o.agencyPayee}` : ''}
+                    SC ?{Number(o.serviceChargeAnnual).toLocaleString()}
+                    {o.agencyPayee ? ` ∑ Agency payee: ${o.agencyPayee}` : ''}
                   </p>
                 )}
               </div>
@@ -417,7 +426,7 @@ export default function TenantApplicationDetailPage() {
           onSubmit={saveEvaluation}
           className="mt-4 rounded-lg border border-slate-200 bg-white p-4 space-y-3"
         >
-          <h2 className="font-semibold text-[#1a2744]">FM evaluation (4 √ó 0‚Äì10)</h2>
+          <h2 className="font-semibold text-[#1a2744]">FM evaluation (4 ◊ 0ñ10)</h2>
           <p className="text-xs text-slate-500">Tenant does not self-score. Average preview: {avgPreview}</p>
           <div className="grid gap-3 sm:grid-cols-2">
             {CRITERIA.map((c) => (
@@ -478,7 +487,7 @@ export default function TenantApplicationDetailPage() {
               onClick={approve}
               className="rounded-md bg-green-700 px-4 py-2 text-sm text-white hover:bg-green-800 disabled:opacity-50"
             >
-              Approve ‚Üí Terrier + Tenancy + PropertyAsset
+              Approve ? Terrier + Tenancy + PropertyAsset
             </button>
             <button
               type="button"
@@ -500,7 +509,7 @@ export default function TenantApplicationDetailPage() {
 
       {app.evaluation && (
         <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
-          Evaluation average <strong>{Number(app.evaluation.average).toFixed(1)}</strong> ¬∑{' '}
+          Evaluation average <strong>{Number(app.evaluation.average).toFixed(1)}</strong> ∑{' '}
           {app.evaluation.decision}
           {app.evaluation.overrideUsed ? ' (override)' : ''}
         </div>
@@ -512,15 +521,15 @@ export default function TenantApplicationDetailPage() {
           {app.terrierRow && (
             <>
               {' '}
-              ¬∑{' '}
+              ∑{' '}
               <Link href={`/estate-terrier/${app.estate.id}`} className="underline">
                 Terrier
               </Link>
-              {' ¬∑ '}
+              {' ∑ '}
               <Link href="/tenancies" className="underline">
                 Tenancies
               </Link>
-              {' ¬∑ '}
+              {' ∑ '}
               <Link href="/service-charges" className="underline">
                 Service charges
               </Link>
@@ -536,10 +545,10 @@ export default function TenantApplicationDetailPage() {
           <InfoRow label="State of origin" value={app.stateOfOrigin} />
           <InfoRow label="Marital status" value={app.maritalStatus} />
           <InfoRow label="Occupation" value={app.occupation} />
-          <InfoRow label="Rent accepted" value={`‚Ç¶${Number(app.rentAccepted).toLocaleString()}`} />
+          <InfoRow label="Rent accepted" value={`?${Number(app.rentAccepted).toLocaleString()}`} />
           <InfoRow
             label="Agency+Legal (20% clause)"
-            value={`‚Ç¶${Number(app.agencyFeeAmount).toLocaleString()}`}
+            value={`?${Number(app.agencyFeeAmount).toLocaleString()}`}
           />
         </InfoCard>
         <InfoCard title="Unit & guarantor">
@@ -553,8 +562,8 @@ export default function TenantApplicationDetailPage() {
           />
           <InfoRow label="Guarantor" value={app.guarantorName} />
           <InfoRow label="Guarantor phone" value={app.guarantorPhone} />
-          <InfoRow label="Applicant signature" value={app.applicantSignature ?? '‚Äî'} />
-          <InfoRow label="Guarantor signature" value={app.guarantorSignature ?? '‚Äî'} />
+          <InfoRow label="Applicant signature" value={app.applicantSignature ?? 'ó'} />
+          <InfoRow label="Guarantor signature" value={app.guarantorSignature ?? 'ó'} />
           {app.rejectReason && <InfoRow label="Reject reason" value={app.rejectReason} />}
         </InfoCard>
         <InfoCard title="Addresses" className="md:col-span-2">

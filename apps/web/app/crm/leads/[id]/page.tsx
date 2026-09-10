@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { api, ApiError, getToken, getUser, type AuthUser } from '@/lib/api';
+import { INPUT, LABEL } from '@/lib/ui';
 
 type LeadDetail = {
   id: string;
@@ -20,9 +21,23 @@ type LeadDetail = {
   lostReason: string | null;
   nextStages: string[];
   inspectionCompleted?: boolean;
+  hasAcceptedSalesOffer?: boolean;
   listing: { id: string; listingRef: string; location: string; propertyType: string } | null;
   client: { id: string; clientRef: string; firstName: string; lastName: string } | null;
   assignedTo: { firstName: string; lastName: string } | null;
+};
+
+type SalesOffer = {
+  id: string;
+  number: string;
+  offerPrice: string | number;
+  depositRequired: string | number | null;
+  validityUntil: string | null;
+  conditions: string | null;
+  paymentTerms: string | null;
+  preparedBy: string | null;
+  buyerResponse: string;
+  counterPrice: string | number | null;
 };
 
 export default function LeadDetailPage() {
@@ -32,10 +47,24 @@ export default function LeadDetailPage() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
+  const [offers, setOffers] = useState<SalesOffer[]>([]);
+  const [showOfferForm, setShowOfferForm] = useState(false);
+  const [offerForm, setOfferForm] = useState({
+    offerPrice: '',
+    depositRequired: '',
+    validityUntil: '',
+    conditions: '',
+    paymentTerms: '',
+  });
 
   async function load() {
     const data = await api<LeadDetail>(`/crm/leads/${id}`);
     setLead(data);
+  }
+
+  async function loadOffers() {
+    const rows = await api<SalesOffer[]>(`/sales-offers?leadId=${id}`);
+    setOffers(rows);
   }
 
   useEffect(() => {
@@ -45,6 +74,7 @@ export default function LeadDetailPage() {
     }
     setUser(getUser<AuthUser>());
     load().catch(() => router.push('/crm'));
+    loadOffers().catch(() => setOffers([]));
   }, [id, router]);
 
   const canManage = user?.role === 'SALES' || user?.role === 'CEO' || user?.role === 'ADMIN';
@@ -62,11 +92,10 @@ export default function LeadDetailPage() {
         }
         body = { stage, lostReason: reason };
       }
-      const updated = await api<LeadDetail>(`/crm/leads/${id}/stage`, {
+      await api<LeadDetail>(`/crm/leads/${id}/stage`, {
         method: 'POST',
         body: JSON.stringify(body),
       });
-      setLead({ ...updated, nextStages: lead?.nextStages ?? [] });
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Stage update failed');
@@ -83,6 +112,68 @@ export default function LeadDetailPage() {
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Convert failed');
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function issueOffer(e: FormEvent) {
+    e.preventDefault();
+    setError('');
+    setBusy('offer');
+    try {
+      await api('/sales-offers', {
+        method: 'POST',
+        body: JSON.stringify({
+          leadId: id,
+          listingId: lead?.listing?.id,
+          offerPrice: Number(offerForm.offerPrice),
+          depositRequired: offerForm.depositRequired
+            ? Number(offerForm.depositRequired)
+            : undefined,
+          validityUntil: offerForm.validityUntil || undefined,
+          conditions: offerForm.conditions || undefined,
+          paymentTerms: offerForm.paymentTerms || undefined,
+        }),
+      });
+      setShowOfferForm(false);
+      setOfferForm({
+        offerPrice: '',
+        depositRequired: '',
+        validityUntil: '',
+        conditions: '',
+        paymentTerms: '',
+      });
+      await loadOffers();
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Offer failed');
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function respond(offerId: string, buyerResponse: string) {
+    setBusy(offerId);
+    setError('');
+    try {
+      let counterPrice: number | undefined;
+      if (buyerResponse === 'COUNTERED') {
+        const raw = prompt('Counter price (₦)');
+        if (!raw) {
+          setBusy('');
+          return;
+        }
+        counterPrice = Number(raw);
+      }
+      await api(`/sales-offers/${offerId}/respond`, {
+        method: 'PATCH',
+        body: JSON.stringify({ buyerResponse, counterPrice }),
+      });
+      await loadOffers();
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Response failed');
     } finally {
       setBusy('');
     }
@@ -129,12 +220,146 @@ export default function LeadDetailPage() {
         <p className="font-medium text-[#1a2744]">Viewing / inspection gate</p>
         <p className="mt-1 text-slate-600">
           {lead.inspectionCompleted
-            ? 'Completed inspection response logged — negotiation/convert unlocked.'
+            ? 'Completed inspection response logged — negotiation unlocked.'
             : 'Physical inspection response required before Negotiation, Reserved, or convert.'}
         </p>
         <Link href="/viewings" className="mt-2 inline-block text-[#e87722] hover:underline">
           Open viewings →
         </Link>
+      </div>
+
+      <div className="mt-4 rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="font-semibold text-[#1a2744]">Sales offer / quotation (SOF)</h2>
+            <p className="text-xs text-slate-500">
+              Accepted offer required before Reserved
+              {lead.hasAcceptedSalesOffer ? ' — accepted offer on file.' : '.'}
+            </p>
+          </div>
+          {canManage && !isClosed && (
+            <button
+              type="button"
+              onClick={() => setShowOfferForm((v) => !v)}
+              className="rounded-md bg-[#e87722] px-3 py-1.5 text-sm text-white"
+            >
+              {showOfferForm ? 'Cancel' : 'Issue SOF'}
+            </button>
+          )}
+        </div>
+
+        {showOfferForm && (
+          <form onSubmit={issueOffer} className="grid gap-3 sm:grid-cols-2 border-t border-slate-100 pt-3">
+            <div>
+              <label className={LABEL}>Offer price (₦)</label>
+              <input
+                type="number"
+                min={0}
+                required
+                className={INPUT}
+                value={offerForm.offerPrice}
+                onChange={(e) => setOfferForm({ ...offerForm, offerPrice: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className={LABEL}>Deposit required (₦)</label>
+              <input
+                type="number"
+                min={0}
+                className={INPUT}
+                value={offerForm.depositRequired}
+                onChange={(e) => setOfferForm({ ...offerForm, depositRequired: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className={LABEL}>Valid until</label>
+              <input
+                type="date"
+                className={INPUT}
+                value={offerForm.validityUntil}
+                onChange={(e) => setOfferForm({ ...offerForm, validityUntil: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className={LABEL}>Payment terms</label>
+              <input
+                className={INPUT}
+                value={offerForm.paymentTerms}
+                onChange={(e) => setOfferForm({ ...offerForm, paymentTerms: e.target.value })}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={LABEL}>Conditions</label>
+              <textarea
+                className={INPUT}
+                rows={2}
+                value={offerForm.conditions}
+                onChange={(e) => setOfferForm({ ...offerForm, conditions: e.target.value })}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <button
+                type="submit"
+                disabled={busy === 'offer'}
+                className="rounded-md bg-[#1a2744] px-4 py-2 text-sm text-white disabled:opacity-50"
+              >
+                Create SOF
+              </button>
+            </div>
+          </form>
+        )}
+
+        {offers.map((o) => (
+          <div key={o.id} className="rounded-md border border-slate-100 bg-slate-50 p-3 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-medium text-[#1a2744]">
+                {o.number} · {o.buyerResponse}
+              </span>
+              {canManage && o.buyerResponse === 'PENDING' && (
+                <span className="space-x-2">
+                  <button
+                    type="button"
+                    disabled={!!busy}
+                    className="text-green-700 hover:underline"
+                    onClick={() => respond(o.id, 'ACCEPTED')}
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!!busy}
+                    className="text-amber-700 hover:underline"
+                    onClick={() => respond(o.id, 'COUNTERED')}
+                  >
+                    Counter
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!!busy}
+                    className="text-red-700 hover:underline"
+                    onClick={() => respond(o.id, 'REJECTED')}
+                  >
+                    Reject
+                  </button>
+                </span>
+              )}
+            </div>
+            <p>
+              Price ₦{Number(o.offerPrice).toLocaleString()}
+              {o.depositRequired != null
+                ? ` · Deposit ₦${Number(o.depositRequired).toLocaleString()}`
+                : ''}
+              {o.counterPrice != null
+                ? ` · Counter ₦${Number(o.counterPrice).toLocaleString()}`
+                : ''}
+            </p>
+            {o.validityUntil && (
+              <p className="text-xs text-slate-500">Valid until {o.validityUntil.slice(0, 10)}</p>
+            )}
+            {o.conditions && <p className="mt-1 text-xs text-slate-600">{o.conditions}</p>}
+          </div>
+        ))}
+        {!offers.length && <p className="text-sm text-slate-500">No sales offers yet.</p>}
       </div>
 
       {canManage && !isClosed && (
@@ -169,14 +394,27 @@ export default function LeadDetailPage() {
         <InfoCard title="Contact">
           <Row label="Phone" value={lead.phone} />
           <Row label="Email" value={lead.email ?? '—'} />
-          <Row label="Assigned to" value={lead.assignedTo ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}` : '—'} />
+          <Row
+            label="Assigned to"
+            value={
+              lead.assignedTo
+                ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}`
+                : '—'
+            }
+          />
         </InfoCard>
         <InfoCard title="Interest">
           {lead.listing ? (
             <>
               <Row label="Listing" value={lead.listing.listingRef} />
-              <Row label="Property" value={`${lead.listing.location} — ${lead.listing.propertyType}`} />
-              <Link href={`/listings/${lead.listing.id}`} className="text-sm text-[#e87722] hover:underline">
+              <Row
+                label="Property"
+                value={`${lead.listing.location} — ${lead.listing.propertyType}`}
+              />
+              <Link
+                href={`/listings/${lead.listing.id}`}
+                className="text-sm text-[#e87722] hover:underline"
+              >
                 View listing
               </Link>
             </>

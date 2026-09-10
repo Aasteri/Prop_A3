@@ -898,6 +898,7 @@ model Listing {
   updatedAt        DateTime      @updatedAt @map("updated_at")
 
   leads Lead[]
+  salesOffers SalesOffer[]
 
   @@index([status, location])
   @@map("listings")
@@ -926,13 +927,46 @@ model Lead {
   createdAt         DateTime   @default(now()) @map("created_at")
   updatedAt         DateTime   @updatedAt @map("updated_at")
 
-  listing    Listing? @relation(fields: [listingId], references: [id])
-  assignedTo User?    @relation("LeadAssignedTo", fields: [assignedToId], references: [id])
-  createdBy  User?    @relation("LeadCreatedBy", fields: [createdById], references: [id])
-  client     Client?
+  listing     Listing?     @relation(fields: [listingId], references: [id])
+  assignedTo  User?        @relation("LeadAssignedTo", fields: [assignedToId], references: [id])
+  createdBy   User?        @relation("LeadCreatedBy", fields: [createdById], references: [id])
+  client      Client?
+  salesOffers SalesOffer[]
 
   @@index([stage, createdAt])
   @@map("leads")
+}
+
+enum SalesOfferResponse {
+  PENDING
+  ACCEPTED
+  COUNTERED
+  REJECTED
+}
+
+model SalesOffer {
+  id              String             @id @default(cuid())
+  number          String             @unique
+  leadId          String             @map("lead_id")
+  listingId       String?            @map("listing_id")
+  offerPrice      Decimal            @map("offer_price") @db.Decimal(14, 2)
+  validityUntil   DateTime?          @map("validity_until") @db.Date
+  conditions      String?            @db.Text
+  depositRequired Decimal?           @map("deposit_required") @db.Decimal(14, 2)
+  paymentTerms    String?            @map("payment_terms") @db.Text
+  preparedBy      String?            @map("prepared_by")
+  buyerResponse   SalesOfferResponse @default(PENDING) @map("buyer_response")
+  counterPrice    Decimal?           @map("counter_price") @db.Decimal(14, 2)
+  notes           String?            @db.Text
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  lead    Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  listing Listing? @relation(fields: [listingId], references: [id])
+
+  @@index([leadId, buyerResponse])
+  @@index([listingId])
+  @@map("sales_offers")
 }
 
 model Client {

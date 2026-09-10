@@ -22,6 +22,7 @@ import {
   stageLabel,
 } from './crm.utils';
 import { SalesInspectionsService } from '../sales-inspections/sales-inspections.service';
+import { SalesOffersService } from '../sales-offers/sales-offers.service';
 
 const leadInclude = {
   listing: {
@@ -50,6 +51,7 @@ export class CrmService {
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly inspections: SalesInspectionsService,
+    private readonly salesOffers: SalesOffersService,
   ) {}
 
   pipelineMeta(user: AuthUser) {
@@ -103,10 +105,12 @@ export class CrmService {
     });
     if (!lead) throw new NotFoundException('Lead not found');
     const inspectionCompleted = await this.inspections.hasCompletedResponse(id);
+    const hasAcceptedSalesOffer = await this.salesOffers.hasAcceptedOffer(id);
     return {
       ...lead,
       nextStages: nextStages(lead.stage),
       inspectionCompleted,
+      hasAcceptedSalesOffer,
     };
   }
 
@@ -249,6 +253,13 @@ export class CrmService {
       );
     }
 
+    // FORM_SALES_OFFER: reservation requires an accepted sales offer
+    if (dto.stage === LeadStage.RESERVED && !(await this.salesOffers.hasAcceptedOffer(id))) {
+      throw new BadRequestException(
+        'Issue and accept a sales offer (SOF) before moving to Reserved',
+      );
+    }
+
     if (dto.stage === LeadStage.RESERVED && lead.listingId) {
       await this.prisma.listing.update({
         where: { id: lead.listingId },
@@ -288,6 +299,15 @@ export class CrmService {
     if (!(await this.inspections.hasCompletedResponse(id))) {
       throw new BadRequestException(
         'Mandatory physical inspection response must be logged before convert',
+      );
+    }
+
+    if (
+      (lead.stage === LeadStage.NEGOTIATION || lead.stage === LeadStage.RESERVED) &&
+      !(await this.salesOffers.hasAcceptedOffer(id))
+    ) {
+      throw new BadRequestException(
+        'Accept a sales offer (SOF) before converting Negotiation/Reserved leads',
       );
     }
 

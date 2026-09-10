@@ -124,6 +124,88 @@ export class OffersService {
     });
   }
 
+  async findOne(id: string, user: AuthUser) {
+    this.assertCanView(user);
+    const offer = await this.prisma.tenancyOffer.findUnique({
+      where: { id },
+      include: {
+        ...include,
+        application: {
+          select: {
+            surname: true,
+            otherNames: true,
+            estate: { select: { name: true } },
+            terrierRow: { select: { propertyType: true, location: true, serialNo: true } },
+          },
+        },
+      },
+    });
+    if (!offer) throw new NotFoundException('Offer not found');
+    return offer;
+  }
+
+  async buildPdf(id: string, user: AuthUser) {
+    const offer = await this.findOne(id, user);
+    const settlements = [];
+    if (offer.landlordSettlement) {
+      settlements.push({
+        label: 'Landlord — rent / caution',
+        name: offer.landlordSettlement.name,
+        bankName: offer.landlordSettlement.bankName,
+        accountName: offer.landlordSettlement.accountName,
+        accountNumber: offer.landlordSettlement.accountNumber,
+        amount: Number(offer.rentAnnual) + Number(offer.cautionAmount),
+      });
+    }
+    if (offer.managementSettlement) {
+      settlements.push({
+        label: 'Management (+ Legal 5%)',
+        name: offer.managementSettlement.name,
+        bankName: offer.managementSettlement.bankName,
+        accountName: offer.managementSettlement.accountName,
+        accountNumber: offer.managementSettlement.accountNumber,
+        amount: Number(offer.managementFeeAmount) + Number(offer.legalFeeAmount),
+        pct: Number(offer.managementFeePct) + Number(offer.legalFeePct),
+      });
+    }
+    if (offer.agencySettlement) {
+      settlements.push({
+        label: 'Agency (10%)',
+        name: offer.agencySettlement.name,
+        bankName: offer.agencySettlement.bankName,
+        accountName: offer.agencySettlement.accountName,
+        accountNumber: offer.agencySettlement.accountNumber,
+        amount: Number(offer.agencyFeeAmount),
+        pct: Number(offer.agencyFeePct),
+      });
+    }
+
+    const app = offer.application;
+    const propertyLabel = app.terrierRow
+      ? `#${app.terrierRow.serialNo} ${app.terrierRow.propertyType} · ${app.terrierRow.location}`
+      : app.estate.name;
+
+    const { buildTenancyOfferPdf } = await import('./tenancy-offer.pdf');
+    return buildTenancyOfferPdf({
+      number: offer.number,
+      applicantName: `${app.surname} ${app.otherNames}`,
+      propertyLabel,
+      rentAnnual: Number(offer.rentAnnual),
+      cautionAmount: Number(offer.cautionAmount),
+      agencyFeePct: Number(offer.agencyFeePct),
+      agencyFeeAmount: Number(offer.agencyFeeAmount),
+      legalFeePct: Number(offer.legalFeePct),
+      legalFeeAmount: Number(offer.legalFeeAmount),
+      managementFeePct: Number(offer.managementFeePct),
+      managementFeeAmount: Number(offer.managementFeeAmount),
+      serviceChargeAnnual: Number(offer.serviceChargeAnnual),
+      estateServiceCharge: Number(offer.estateServiceCharge),
+      serviceChargeNotes: offer.serviceChargeNotes,
+      settlements,
+      issuedAt: offer.createdAt,
+    });
+  }
+
   private async requireSettlement(id: string) {
     const row = await this.prisma.settlementEntity.findUnique({ where: { id } });
     if (!row) throw new NotFoundException(`Settlement entity ${id} not found`);
