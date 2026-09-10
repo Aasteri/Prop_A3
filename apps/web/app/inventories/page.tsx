@@ -114,8 +114,8 @@ export default function InventoriesPage() {
                 Move-in / move-out inventory
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-slate-200/90">
-                Doc 9 condition report: keys, meters, evidence. Move-in discrepancies must be
-                reported within 7 days.
+                Doc 9 condition report: keys, meters, evidence, room matrix. Move-out completion
+                unlocks deposit settlement (G.14).
               </p>
             </div>
             <button

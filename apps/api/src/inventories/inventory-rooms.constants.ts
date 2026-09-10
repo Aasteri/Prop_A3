@@ -211,3 +211,72 @@ export function collectDefectLines(roomsJson: unknown): {
   }
   return out;
 }
+
+export type DepositCompareLine = {
+  sectionId: string;
+  section: string;
+  itemId: string;
+  item: string;
+  moveInDefects: string;
+  moveOutDefects: string;
+  comments: string;
+  cost: number;
+  /** FM judgment — natural wear not charged (G.14). Default false when new move-out defects/cost. */
+  wearAndTear: boolean;
+  chargeable: boolean;
+};
+
+/** Compare completed move-in baseline vs move-out matrix (G.14 / K.8). */
+export function compareInventoryRooms(
+  moveInRooms: unknown,
+  moveOutRooms: unknown,
+): DepositCompareLine[] {
+  const moveIn = (moveInRooms as InventoryRoomsMatrix | null)?.sections ?? [];
+  const moveOut = (moveOutRooms as InventoryRoomsMatrix | null)?.sections ?? [];
+  const inMap = new Map<string, InventoryLineItem>();
+  for (const s of moveIn) {
+    for (const item of s.items ?? []) {
+      inMap.set(`${s.id}::${item.id}`, item);
+    }
+  }
+
+  const lines: DepositCompareLine[] = [];
+  for (const s of moveOut) {
+    for (const item of s.items ?? []) {
+      const baseline = inMap.get(`${s.id}::${item.id}`);
+      const moveInDefects = (baseline?.moveInDefects || baseline?.moveOutDefects || '').trim();
+      const moveOutDefects = (item.moveOutDefects || '').trim();
+      const comments = (item.comments || '').trim();
+      const cost = Number(item.cost) || 0;
+      const worsened =
+        !!moveOutDefects &&
+        moveOutDefects.toLowerCase() !== moveInDefects.toLowerCase() &&
+        moveOutDefects !== '✓' &&
+        moveOutDefects.toLowerCase() !== 'satisfactory';
+      const hasChargeSignal = cost > 0 || worsened;
+      if (!hasChargeSignal && !moveOutDefects && !moveInDefects) continue;
+
+      lines.push({
+        sectionId: s.id,
+        section: s.name,
+        itemId: item.id,
+        item: item.label,
+        moveInDefects: moveInDefects || '—',
+        moveOutDefects: moveOutDefects || '—',
+        comments,
+        cost,
+        wearAndTear: false,
+        chargeable: hasChargeSignal,
+      });
+    }
+  }
+  return lines;
+}
+
+export function sumChargeableDeductions(lines: DepositCompareLine[]): number {
+  return Math.round(
+    lines
+      .filter((l) => l.chargeable && !l.wearAndTear)
+      .reduce((s, l) => s + (Number(l.cost) || 0), 0) * 100,
+  ) / 100;
+}

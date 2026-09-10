@@ -53,6 +53,41 @@ type InventoryDetail = {
   }[];
 };
 
+type CompareLine = {
+  sectionId: string;
+  section: string;
+  itemId: string;
+  item: string;
+  moveInDefects: string;
+  moveOutDefects: string;
+  comments: string;
+  cost: number;
+  wearAndTear: boolean;
+  chargeable: boolean;
+};
+
+type SettlementPreview = {
+  cautionHeld: number;
+  totalDeductions: number;
+  refundAmount: number;
+  shortfallAmount: number;
+  lines: CompareLine[];
+  moveInInventory: { id: string; number: string };
+  moveOutInventory: { id: string; number: string };
+};
+
+type DepositSettlement = {
+  id: string;
+  number: string;
+  status: string;
+  cautionHeld: string | number;
+  totalDeductions: string | number;
+  refundAmount: string | number;
+  shortfallAmount: string | number;
+  linesJson: CompareLine[];
+  shortfallInvoice: { id: string; invoiceNumber: string; outstanding: string | number } | null;
+};
+
 export default function InventoryDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -61,6 +96,9 @@ export default function InventoryDetailPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [sectionIdx, setSectionIdx] = useState(0);
+  const [preview, setPreview] = useState<SettlementPreview | null>(null);
+  const [settlement, setSettlement] = useState<DepositSettlement | null>(null);
+  const [settleLines, setSettleLines] = useState<CompareLine[]>([]);
 
   async function load() {
     const data = await api<InventoryDetail>(`/inventories/${id}`);
@@ -70,6 +108,23 @@ export default function InventoryDetailPage() {
         ? data.roomsJson
         : (await api<{ emptyMatrix: RoomsMatrix }>('/inventories/meta')).emptyMatrix,
     );
+    if (data.kind === 'MOVE_OUT' && data.status === 'COMPLETED') {
+      try {
+        const p = await api<SettlementPreview>(
+          `/deposit-settlements/preview?tenancyId=${data.tenancy.id}&moveOutInventoryId=${data.id}`,
+        );
+        setPreview(p);
+        setSettleLines(p.lines);
+        const existing = await api<DepositSettlement[]>(
+          `/deposit-settlements?tenancyId=${data.tenancy.id}`,
+        );
+        const open = existing.find((s) => s.status !== 'CLOSED') ?? existing[0] ?? null;
+        setSettlement(open);
+        if (open?.linesJson?.length) setSettleLines(open.linesJson);
+      } catch {
+        setPreview(null);
+      }
+    }
   }
 
   useEffect(() => {
@@ -181,7 +236,9 @@ export default function InventoryDetailPage() {
                     onClick={complete}
                     className="rounded-lg bg-[#e87722] px-4 py-2 text-sm text-white"
                   >
-                    Complete & spawn repairs
+                    {row.kind === 'MOVE_IN'
+                      ? 'Complete & spawn repairs'
+                      : 'Complete & sign'}
                   </button>
                 </>
               )}
@@ -298,7 +355,289 @@ export default function InventoryDetailPage() {
             </p>
           </div>
         )}
+
+        {row.kind === 'MOVE_OUT' && row.status === 'COMPLETED' && preview && (
+          <DepositSettlementPanel
+            preview={preview}
+            settlement={settlement}
+            lines={settleLines}
+            setLines={setSettleLines}
+            tenancyId={row.tenancy.id}
+            moveOutInventoryId={row.id}
+            onRefresh={load}
+            setError={setError}
+          />
+        )}
       </div>
     </AppShell>
+  );
+}
+
+function DepositSettlementPanel({
+  preview,
+  settlement,
+  lines,
+  setLines,
+  tenancyId,
+  moveOutInventoryId,
+  onRefresh,
+  setError,
+}: {
+  preview: SettlementPreview;
+  settlement: DepositSettlement | null;
+  lines: CompareLine[];
+  setLines: (lines: CompareLine[]) => void;
+  tenancyId: string;
+  moveOutInventoryId: string;
+  onRefresh: () => Promise<void>;
+  setError: (s: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const draft = !settlement || settlement.status === 'DRAFT';
+
+  const totals = (() => {
+    const deductions =
+      Math.round(
+        lines
+          .filter((l) => l.chargeable && !l.wearAndTear)
+          .reduce((s, l) => s + (Number(l.cost) || 0), 0) * 100,
+      ) / 100;
+    const caution = Number(settlement?.cautionHeld ?? preview.cautionHeld);
+    return {
+      caution,
+      deductions,
+      refund: Math.max(0, Math.round((caution - deductions) * 100) / 100),
+      shortfall: Math.max(0, Math.round((deductions - caution) * 100) / 100),
+    };
+  })();
+
+  function patchLine(i: number, patch: Partial<CompareLine>) {
+    const next = lines.map((l, idx) => (idx === i ? { ...l, ...patch } : l));
+    setLines(next);
+  }
+
+  async function createOrSave() {
+    setBusy(true);
+    setError('');
+    try {
+      if (!settlement) {
+        await api('/deposit-settlements', {
+          method: 'POST',
+          body: JSON.stringify({
+            tenancyId,
+            moveOutInventoryId,
+            lines,
+          }),
+        });
+      } else {
+        await api(`/deposit-settlements/${settlement.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ lines }),
+        });
+      }
+      await onRefresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Settlement save failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function approve() {
+    if (!settlement) return;
+    setBusy(true);
+    try {
+      await api(`/deposit-settlements/${settlement.id}/approve`, { method: 'PATCH' });
+      await onRefresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Approve failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function shortfallInvoice() {
+    if (!settlement) return;
+    setBusy(true);
+    try {
+      await api(`/deposit-settlements/${settlement.id}/shortfall-invoice`, { method: 'POST' });
+      await onRefresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invoice failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function close() {
+    if (!settlement) return;
+    setBusy(true);
+    try {
+      await api(`/deposit-settlements/${settlement.id}/close`, { method: 'PATCH' });
+      await onRefresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Close failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className={`${CARD} space-y-4 p-4`}>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 className="font-semibold text-[#1a2744]">Deposit settlement (G.14)</h2>
+          <p className="text-xs text-slate-500">
+            Baseline {preview.moveInInventory.number} vs {preview.moveOutInventory.number}. Mark
+            wear &amp; tear (not charged) vs tenant-caused damage.
+            {settlement ? ` · ${settlement.number} · ${settlement.status}` : ''}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {draft && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={createOrSave}
+              className="rounded-md bg-[#1a2744] px-3 py-1.5 text-xs text-white"
+            >
+              {settlement ? 'Save lines' : 'Create settlement'}
+            </button>
+          )}
+          {settlement?.status === 'DRAFT' && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={approve}
+              className="rounded-md bg-[#e87722] px-3 py-1.5 text-xs text-white"
+            >
+              Approve
+            </button>
+          )}
+          {settlement &&
+            (settlement.status === 'APPROVED' || settlement.status === 'REFUND_PENDING') &&
+            Number(settlement.shortfallAmount) > 0 &&
+            !settlement.shortfallInvoice && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={shortfallInvoice}
+                className="rounded-md border border-red-300 px-3 py-1.5 text-xs text-red-700"
+              >
+                Create shortfall invoice
+              </button>
+            )}
+          {settlement &&
+            (settlement.status === 'APPROVED' || settlement.status === 'REFUND_PENDING') && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={close}
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs"
+              >
+                Close & terminate tenancy
+              </button>
+            )}
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-4 text-sm">
+        <Stat label="Caution held" value={totals.caution} />
+        <Stat label="Deductions" value={totals.deductions} />
+        <Stat label="Refund" value={totals.refund} />
+        <Stat label="Shortfall" value={totals.shortfall} />
+      </div>
+
+      {settlement?.shortfallInvoice && (
+        <p className="text-sm text-slate-600">
+          Shortfall invoice{' '}
+          <Link
+            href={`/invoices/${settlement.shortfallInvoice.id}`}
+            className="text-[#e87722] hover:underline"
+          >
+            {settlement.shortfallInvoice.invoiceNumber}
+          </Link>{' '}
+          · outstanding ₦{Number(settlement.shortfallInvoice.outstanding).toLocaleString()}
+        </p>
+      )}
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead className="border-b border-slate-200 text-slate-500">
+            <tr>
+              <th className="px-2 py-2">Item</th>
+              <th className="px-2 py-2">Move-in</th>
+              <th className="px-2 py-2">Move-out</th>
+              <th className="px-2 py-2">Cost</th>
+              <th className="px-2 py-2">Wear</th>
+              <th className="px-2 py-2">Charge</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lines.map((l, i) => (
+              <tr key={`${l.sectionId}-${l.itemId}`} className="border-b border-slate-100">
+                <td className="px-2 py-2">
+                  <span className="font-medium text-[#1a2744]">{l.item}</span>
+                  <span className="block text-xs text-slate-500">{l.section}</span>
+                </td>
+                <td className="px-2 py-2 text-xs">{l.moveInDefects}</td>
+                <td className="px-2 py-2 text-xs">{l.moveOutDefects}</td>
+                <td className="px-2 py-2">
+                  {draft ? (
+                    <input
+                      type="number"
+                      min={0}
+                      className={INPUT}
+                      value={l.cost || ''}
+                      onChange={(e) => patchLine(i, { cost: Number(e.target.value) || 0 })}
+                    />
+                  ) : (
+                    `₦${Number(l.cost).toLocaleString()}`
+                  )}
+                </td>
+                <td className="px-2 py-2">
+                  <input
+                    type="checkbox"
+                    disabled={!draft}
+                    checked={l.wearAndTear}
+                    onChange={(e) =>
+                      patchLine(i, {
+                        wearAndTear: e.target.checked,
+                        chargeable: e.target.checked ? false : l.chargeable,
+                      })
+                    }
+                  />
+                </td>
+                <td className="px-2 py-2">
+                  <input
+                    type="checkbox"
+                    disabled={!draft || l.wearAndTear}
+                    checked={l.chargeable && !l.wearAndTear}
+                    onChange={(e) => patchLine(i, { chargeable: e.target.checked })}
+                  />
+                </td>
+              </tr>
+            ))}
+            {!lines.length && (
+              <tr>
+                <td colSpan={6} className="px-2 py-6 text-center text-slate-500">
+                  No deterioration lines detected — settlement can still be created for a full
+                  refund.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-md border border-slate-100 bg-slate-50 p-3">
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="mt-1 font-semibold text-[#1a2744]">₦{value.toLocaleString()}</p>
+    </div>
   );
 }

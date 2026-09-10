@@ -611,6 +611,7 @@ model Invoice {
   variations       InvoiceVariation[]
   payments         Payment[]
   tenantApplication TenantApplication? @relation("ApplicationAgencyInvoice")
+  depositSettlement DepositSettlement? @relation("DepositShortfallInvoice")
 
   @@index([status, issueDate])
   @@map("invoices")
@@ -1203,6 +1204,7 @@ model Tenancy {
   inventories PropertyInventory[]
   renewalNotices TenancyRenewalNotice[]
   maintenanceRequests MaintenanceRequest[]
+  depositSettlements DepositSettlement[]
 
   @@index([propertyId, status])
   @@index([endDate])
@@ -1247,9 +1249,46 @@ model PropertyInventory {
 
   tenancy Tenancy @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
   preMoveMaintenance MaintenanceRequest[]
+  moveInSettlements  DepositSettlement[] @relation("MoveInSettlement")
+  moveOutSettlements DepositSettlement[] @relation("MoveOutSettlement")
 
   @@index([tenancyId, kind])
   @@map("property_inventories")
+}
+
+enum DepositSettlementStatus {
+  DRAFT
+  APPROVED
+  REFUND_PENDING
+  CLOSED
+}
+
+model DepositSettlement {
+  id                 String                  @id @default(cuid())
+  number             String                  @unique
+  tenancyId          String                  @map("tenancy_id")
+  moveInInventoryId  String                  @map("move_in_inventory_id")
+  moveOutInventoryId String                  @map("move_out_inventory_id")
+  cautionHeld        Decimal                 @map("caution_held") @db.Decimal(14, 2)
+  totalDeductions    Decimal                 @default(0) @map("total_deductions") @db.Decimal(14, 2)
+  refundAmount       Decimal                 @default(0) @map("refund_amount") @db.Decimal(14, 2)
+  shortfallAmount    Decimal                 @default(0) @map("shortfall_amount") @db.Decimal(14, 2)
+  status             DepositSettlementStatus @default(DRAFT)
+  linesJson          Json                    @map("lines_json")
+  notes              String?                 @db.Text
+  approvedAt         DateTime?               @map("approved_at")
+  closedAt           DateTime?               @map("closed_at")
+  shortfallInvoiceId String?                 @unique @map("shortfall_invoice_id")
+  createdAt          DateTime                @default(now()) @map("created_at")
+  updatedAt          DateTime                @updatedAt @map("updated_at")
+
+  tenancy          Tenancy           @relation(fields: [tenancyId], references: [id], onDelete: Cascade)
+  moveInInventory  PropertyInventory @relation("MoveInSettlement", fields: [moveInInventoryId], references: [id])
+  moveOutInventory PropertyInventory @relation("MoveOutSettlement", fields: [moveOutInventoryId], references: [id])
+  shortfallInvoice Invoice?          @relation("DepositShortfallInvoice", fields: [shortfallInvoiceId], references: [id])
+
+  @@index([tenancyId, status])
+  @@map("deposit_settlements")
 }
 
 enum RenewalNoticeKind {
