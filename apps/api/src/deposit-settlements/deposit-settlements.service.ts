@@ -184,7 +184,8 @@ export class DepositSettlementsService {
     const settlement = await this.findOne(id, user);
     if (
       settlement.status !== DepositSettlementStatus.APPROVED &&
-      settlement.status !== DepositSettlementStatus.REFUND_PENDING
+      settlement.status !== DepositSettlementStatus.REFUND_PENDING &&
+      settlement.status !== DepositSettlementStatus.REFUND_PAID
     ) {
       throw new BadRequestException('Approve settlement before creating shortfall invoice');
     }
@@ -256,17 +257,82 @@ export class DepositSettlementsService {
     return this.findOne(id, user);
   }
 
+  async markRefundPaid(
+    id: string,
+    dto: { refundReference?: string },
+    user: AuthUser,
+  ) {
+    this.assertCanManage(user);
+    const existing = await this.findOne(id, user);
+    if (existing.status !== DepositSettlementStatus.REFUND_PENDING) {
+      throw new BadRequestException('Settlement is not awaiting refund');
+    }
+    if (Number(existing.refundAmount) <= 0) {
+      throw new BadRequestException('No refund amount to mark paid');
+    }
+    return this.prisma.depositSettlement.update({
+      where: { id },
+      data: {
+        status: DepositSettlementStatus.REFUND_PAID,
+        refundPaidAt: new Date(),
+        refundReference: dto.refundReference,
+      },
+      include,
+    });
+  }
+
+  async buildPdf(id: string, user: AuthUser) {
+    const settlement = await this.findOne(id, user);
+    const lines = (settlement.linesJson as DepositCompareLine[]) ?? [];
+    const { buildDepositSettlementPdf } = await import('./deposit-settlement.pdf');
+    return buildDepositSettlementPdf({
+      number: settlement.number,
+      tenantName: settlement.tenancy.tenantName,
+      propertyLabel: `${settlement.tenancy.property.name}${
+        settlement.tenancy.unit ? ` · ${settlement.tenancy.unit.unitCode}` : ''
+      }`,
+      cautionHeld: Number(settlement.cautionHeld),
+      totalDeductions: Number(settlement.totalDeductions),
+      refundAmount: Number(settlement.refundAmount),
+      shortfallAmount: Number(settlement.shortfallAmount),
+      status: settlement.status,
+      moveInNumber: settlement.moveInInventory.number,
+      moveOutNumber: settlement.moveOutInventory.number,
+      lines: lines.map((l) => ({
+        section: l.section,
+        item: l.item,
+        moveInDefects: l.moveInDefects,
+        moveOutDefects: l.moveOutDefects,
+        cost: Number(l.cost) || 0,
+        wearAndTear: !!l.wearAndTear,
+        chargeable: !!l.chargeable,
+      })),
+      refundPaidAt: settlement.refundPaidAt,
+      refundReference: settlement.refundReference,
+      shortfallInvoiceNumber: settlement.shortfallInvoice?.invoiceNumber ?? null,
+      issuedAt: settlement.approvedAt ?? settlement.createdAt,
+    });
+  }
+
   async close(id: string, user: AuthUser) {
     this.assertCanManage(user);
     const existing = await this.findOne(id, user);
     if (
       existing.status !== DepositSettlementStatus.APPROVED &&
-      existing.status !== DepositSettlementStatus.REFUND_PENDING
+      existing.status !== DepositSettlementStatus.REFUND_PENDING &&
+      existing.status !== DepositSettlementStatus.REFUND_PAID
     ) {
       throw new BadRequestException('Approve settlement before close');
     }
     if (Number(existing.shortfallAmount) > 0 && !existing.shortfallInvoiceId) {
-      throw new BadRequestException('Create shortfall invoice before closing, or set deductions to zero');
+      throw new BadRequestException(
+        'Create shortfall invoice before closing, or set deductions to zero',
+      );
+    }
+    if (Number(existing.refundAmount) > 0 && !existing.refundPaidAt) {
+      throw new BadRequestException(
+        'Mark caution refund as paid before closing (or set refund to zero)',
+      );
     }
 
     const [, updated] = await this.prisma.$transaction([

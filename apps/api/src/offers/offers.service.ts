@@ -4,9 +4,15 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { TenancyOfferStatus, UserRole } from '@prisma/client';
+import {
+  InvoiceStatus,
+  InvoiceType,
+  TenancyOfferStatus,
+  UserRole,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
+import { generateInvoiceNumber } from '../invoices/invoices.utils';
 import { CreateTenancyOfferDto } from './dto/offer.dto';
 
 /** Doc 10 defaults — separate from Doc 12 application 20% Agency+Legal clause. */
@@ -32,10 +38,22 @@ const settlementSelect = {
   isDefault: true,
 };
 
+const invoiceSelect = {
+  id: true,
+  invoiceNumber: true,
+  status: true,
+  outstanding: true,
+  revisedTotal: true,
+  invoiceType: true,
+};
+
 const include = {
   landlordSettlement: { select: settlementSelect },
   managementSettlement: { select: settlementSelect },
   agencySettlement: { select: settlementSelect },
+  landlordInvoice: { select: invoiceSelect },
+  managementInvoice: { select: invoiceSelect },
+  agencyInvoice: { select: invoiceSelect },
 };
 
 @Injectable()
@@ -113,15 +131,224 @@ export class OffersService {
     });
   }
 
+  /**
+   * Accept offer and spawn Doc 10 split invoices (landlord / management+legal / agency).
+   * Separate from Doc 12 application 20% Agency+Legal invoice.
+   */
   async accept(id: string, user: AuthUser) {
     this.assertCanManage(user);
-    const offer = await this.prisma.tenancyOffer.findUnique({ where: { id } });
-    if (!offer) throw new NotFoundException('Offer not found');
-    return this.prisma.tenancyOffer.update({
+    const offer = await this.prisma.tenancyOffer.findUnique({
       where: { id },
-      data: { status: TenancyOfferStatus.ACCEPTED },
-      include,
+      include: {
+        ...include,
+        application: {
+          select: {
+            surname: true,
+            otherNames: true,
+            permanentAddress: true,
+            applicationRef: true,
+            estate: { select: { name: true } },
+          },
+        },
+      },
     });
+    if (!offer) throw new NotFoundException('Offer not found');
+    if (offer.status === TenancyOfferStatus.ACCEPTED && offer.landlordInvoiceId) {
+      return this.findOne(id, user);
+    }
+    if (offer.status !== TenancyOfferStatus.ISSUED && offer.status !== TenancyOfferStatus.ACCEPTED) {
+      throw new BadRequestException('Only issued offers can be accepted');
+    }
+
+    const clientName = `${offer.application.surname} ${offer.application.otherNames}`.trim();
+    const clientAddress = offer.application.permanentAddress;
+    const details = `Offer ${offer.number} · ${offer.application.applicationRef} · ${offer.application.estate.name}`;
+    const issueDate = new Date();
+    const year = issueDate.getFullYear();
+
+    const landlordAmt =
+      Number(offer.rentAnnual) +
+      Number(offer.cautionAmount) +
+      Number(offer.serviceChargeAnnual) +
+      Number(offer.estateServiceCharge);
+    const managementAmt = Number(offer.managementFeeAmount) + Number(offer.legalFeeAmount);
+    const agencyAmt = Number(offer.agencyFeeAmount);
+
+    if (landlordAmt > 0 && !offer.landlordSettlementEntityId) {
+      throw new BadRequestException('Assign landlord settlement account before accept');
+    }
+    if (managementAmt > 0 && !offer.managementSettlementEntityId) {
+      throw new BadRequestException('Assign management settlement account before accept');
+    }
+    if (agencyAmt > 0 && !offer.agencySettlementEntityId) {
+      throw new BadRequestException('Assign agency settlement account before accept');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      let landlordInvoiceId = offer.landlordInvoiceId;
+      let managementInvoiceId = offer.managementInvoiceId;
+      let agencyInvoiceId = offer.agencyInvoiceId;
+
+      if (landlordAmt > 0 && !landlordInvoiceId && offer.landlordSettlementEntityId) {
+        const invoiceNumber = await generateInvoiceNumber(tx, InvoiceType.RENTAL, year);
+        const inv = await tx.invoice.create({
+          data: {
+            settlementEntityId: offer.landlordSettlementEntityId,
+            invoiceNumber,
+            invoiceType: InvoiceType.RENTAL,
+            status: InvoiceStatus.SENT,
+            issueDate,
+            contractRef: offer.number,
+            clientName,
+            clientAddress,
+            projectDetails: `${details} — Landlord (rent / caution / SC)`,
+            paymentTerms: 'Per offer letter Doc 10 settlement account',
+            baseTotal: landlordAmt,
+            revisedTotal: landlordAmt,
+            outstanding: landlordAmt,
+            createdById: user.id,
+            sentAt: new Date(),
+            lines: {
+              create: [
+                {
+                  description: 'Annual rent',
+                  quantity: 1,
+                  unit: 'yr',
+                  unitPrice: Number(offer.rentAnnual),
+                  totalAmount: Number(offer.rentAnnual),
+                  sortOrder: 0,
+                },
+                {
+                  description: 'Caution deposit',
+                  quantity: 1,
+                  unit: 'lot',
+                  unitPrice: Number(offer.cautionAmount),
+                  totalAmount: Number(offer.cautionAmount),
+                  sortOrder: 1,
+                },
+                ...(Number(offer.serviceChargeAnnual) > 0
+                  ? [
+                      {
+                        description: 'Service charge (annual)',
+                        quantity: 1,
+                        unit: 'yr',
+                        unitPrice: Number(offer.serviceChargeAnnual),
+                        totalAmount: Number(offer.serviceChargeAnnual),
+                        sortOrder: 2,
+                      },
+                    ]
+                  : []),
+                ...(Number(offer.estateServiceCharge) > 0
+                  ? [
+                      {
+                        description: 'Estate service charge',
+                        quantity: 1,
+                        unit: 'lot',
+                        unitPrice: Number(offer.estateServiceCharge),
+                        totalAmount: Number(offer.estateServiceCharge),
+                        sortOrder: 3,
+                      },
+                    ]
+                  : []),
+              ],
+            },
+          },
+        });
+        landlordInvoiceId = inv.id;
+      }
+
+      if (managementAmt > 0 && !managementInvoiceId && offer.managementSettlementEntityId) {
+        const invoiceNumber = await generateInvoiceNumber(tx, InvoiceType.SERVICE, year);
+        const inv = await tx.invoice.create({
+          data: {
+            settlementEntityId: offer.managementSettlementEntityId,
+            invoiceNumber,
+            invoiceType: InvoiceType.SERVICE,
+            status: InvoiceStatus.SENT,
+            issueDate,
+            contractRef: offer.number,
+            clientName,
+            clientAddress,
+            projectDetails: `${details} — Management + Legal (Doc 10)`,
+            paymentTerms: 'Per offer letter — Legal routed with management account',
+            baseTotal: managementAmt,
+            revisedTotal: managementAmt,
+            outstanding: managementAmt,
+            createdById: user.id,
+            sentAt: new Date(),
+            lines: {
+              create: [
+                {
+                  description: `Management fee (${Number(offer.managementFeePct)}%)`,
+                  quantity: 1,
+                  unit: 'lot',
+                  unitPrice: Number(offer.managementFeeAmount),
+                  totalAmount: Number(offer.managementFeeAmount),
+                  sortOrder: 0,
+                },
+                {
+                  description: `Legal fee (${Number(offer.legalFeePct)}%)`,
+                  quantity: 1,
+                  unit: 'lot',
+                  unitPrice: Number(offer.legalFeeAmount),
+                  totalAmount: Number(offer.legalFeeAmount),
+                  sortOrder: 1,
+                },
+              ],
+            },
+          },
+        });
+        managementInvoiceId = inv.id;
+      }
+
+      if (agencyAmt > 0 && !agencyInvoiceId && offer.agencySettlementEntityId) {
+        const invoiceNumber = await generateInvoiceNumber(tx, InvoiceType.AGENCY, year);
+        const inv = await tx.invoice.create({
+          data: {
+            settlementEntityId: offer.agencySettlementEntityId,
+            invoiceNumber,
+            invoiceType: InvoiceType.AGENCY,
+            status: InvoiceStatus.SENT,
+            issueDate,
+            contractRef: offer.number,
+            clientName,
+            clientAddress,
+            projectDetails: `${details} — Agency ${Number(offer.agencyFeePct)}% (Doc 10; separate from Doc 12 20% clause)`,
+            paymentTerms: 'Per offer letter Doc 10 agency account',
+            baseTotal: agencyAmt,
+            revisedTotal: agencyAmt,
+            outstanding: agencyAmt,
+            createdById: user.id,
+            sentAt: new Date(),
+            lines: {
+              create: [
+                {
+                  description: `Agency fee (${Number(offer.agencyFeePct)}% of annual rent) — Doc 10`,
+                  quantity: 1,
+                  unit: 'lot',
+                  unitPrice: agencyAmt,
+                  totalAmount: agencyAmt,
+                  sortOrder: 0,
+                },
+              ],
+            },
+          },
+        });
+        agencyInvoiceId = inv.id;
+      }
+
+      await tx.tenancyOffer.update({
+        where: { id },
+        data: {
+          status: TenancyOfferStatus.ACCEPTED,
+          landlordInvoiceId,
+          managementInvoiceId,
+          agencyInvoiceId,
+        },
+      });
+    });
+
+    return this.findOne(id, user);
   }
 
   async findOne(id: string, user: AuthUser) {

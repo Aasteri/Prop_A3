@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
-import { api, getToken } from '@/lib/api';
+import { api, downloadPdf, getToken } from '@/lib/api';
 import { CARD, INPUT, PAGE_HEADER } from '@/lib/ui';
 
 type LineItem = {
@@ -85,6 +85,7 @@ type DepositSettlement = {
   refundAmount: string | number;
   shortfallAmount: string | number;
   linesJson: CompareLine[];
+  refundPaidAt?: string | null;
   shortfallInvoice: { id: string; invoiceNumber: string; outstanding: string | number } | null;
 };
 
@@ -469,6 +470,23 @@ function DepositSettlementPanel({
     }
   }
 
+  async function markRefundPaid() {
+    if (!settlement) return;
+    setBusy(true);
+    try {
+      const ref = window.prompt('Refund reference (optional)') || undefined;
+      await api(`/deposit-settlements/${settlement.id}/refund-paid`, {
+        method: 'PATCH',
+        body: JSON.stringify({ refundReference: ref }),
+      });
+      await onRefresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Refund mark failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function close() {
     if (!settlement) return;
     setBusy(true);
@@ -515,7 +533,9 @@ function DepositSettlementPanel({
             </button>
           )}
           {settlement &&
-            (settlement.status === 'APPROVED' || settlement.status === 'REFUND_PENDING') &&
+            (settlement.status === 'APPROVED' ||
+              settlement.status === 'REFUND_PENDING' ||
+              settlement.status === 'REFUND_PAID') &&
             Number(settlement.shortfallAmount) > 0 &&
             !settlement.shortfallInvoice && (
               <button
@@ -527,8 +547,31 @@ function DepositSettlementPanel({
                 Create shortfall invoice
               </button>
             )}
+          {settlement?.status === 'REFUND_PENDING' && Number(settlement.refundAmount) > 0 && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={markRefundPaid}
+              className="rounded-md border border-green-300 px-3 py-1.5 text-xs text-green-700"
+            >
+              Mark refund paid
+            </button>
+          )}
+          {settlement && (
+            <button
+              type="button"
+              className="rounded-md border border-slate-300 px-3 py-1.5 text-xs"
+              onClick={() =>
+                downloadPdf(`/deposit-settlements/${settlement.id}/pdf`, `${settlement.number}.pdf`)
+              }
+            >
+              PDF
+            </button>
+          )}
           {settlement &&
-            (settlement.status === 'APPROVED' || settlement.status === 'REFUND_PENDING') && (
+            (settlement.status === 'APPROVED' ||
+              settlement.status === 'REFUND_PENDING' ||
+              settlement.status === 'REFUND_PAID') && (
               <button
                 type="button"
                 disabled={busy}

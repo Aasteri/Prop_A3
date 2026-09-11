@@ -612,6 +612,9 @@ model Invoice {
   payments         Payment[]
   tenantApplication TenantApplication? @relation("ApplicationAgencyInvoice")
   depositSettlement DepositSettlement? @relation("DepositShortfallInvoice")
+  offerLandlordInvoice  TenancyOffer? @relation("OfferLandlordInvoice")
+  offerManagementInvoice TenancyOffer? @relation("OfferManagementInvoice")
+  offerAgencyInvoice    TenancyOffer? @relation("OfferAgencyInvoice")
 
   @@index([status, issueDate])
   @@map("invoices")
@@ -1260,6 +1263,7 @@ enum DepositSettlementStatus {
   DRAFT
   APPROVED
   REFUND_PENDING
+  REFUND_PAID
   CLOSED
 }
 
@@ -1277,6 +1281,8 @@ model DepositSettlement {
   linesJson          Json                    @map("lines_json")
   notes              String?                 @db.Text
   approvedAt         DateTime?               @map("approved_at")
+  refundPaidAt       DateTime?               @map("refund_paid_at")
+  refundReference    String?                 @map("refund_reference")
   closedAt           DateTime?               @map("closed_at")
   shortfallInvoiceId String?                 @unique @map("shortfall_invoice_id")
   createdAt          DateTime                @default(now()) @map("created_at")
@@ -1827,6 +1833,9 @@ model TenancyOffer {
   landlordSettlementEntityId   String? @map("landlord_settlement_entity_id")
   managementSettlementEntityId String? @map("management_settlement_entity_id")
   agencySettlementEntityId     String? @map("agency_settlement_entity_id")
+  landlordInvoiceId            String? @unique @map("landlord_invoice_id")
+  managementInvoiceId          String? @unique @map("management_invoice_id")
+  agencyInvoiceId              String? @unique @map("agency_invoice_id")
   status                TenancyOfferStatus @default(DRAFT)
   notes                 String?            @db.Text
   createdAt             DateTime           @default(now()) @map("created_at")
@@ -1836,6 +1845,9 @@ model TenancyOffer {
   landlordSettlement   SettlementEntity? @relation("OfferLandlordSettlement", fields: [landlordSettlementEntityId], references: [id])
   managementSettlement SettlementEntity? @relation("OfferManagementSettlement", fields: [managementSettlementEntityId], references: [id])
   agencySettlement     SettlementEntity? @relation("OfferAgencySettlement", fields: [agencySettlementEntityId], references: [id])
+  landlordInvoice   Invoice? @relation("OfferLandlordInvoice", fields: [landlordInvoiceId], references: [id])
+  managementInvoice Invoice? @relation("OfferManagementInvoice", fields: [managementInvoiceId], references: [id])
+  agencyInvoice     Invoice? @relation("OfferAgencyInvoice", fields: [agencyInvoiceId], references: [id])
 
   @@index([applicationId])
   @@map("tenancy_offers")
