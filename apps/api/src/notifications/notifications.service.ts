@@ -170,4 +170,26 @@ export class NotificationsService {
     });
     return ceos.map((c) => c.id);
   }
+
+  async financeUserIds(): Promise<string[]> {
+    const finance = await this.prisma.user.findMany({
+      where: {
+        role: { in: [UserRole.FINANCE, UserRole.CEO, UserRole.ADMIN] },
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    return finance.map((f) => f.id);
+  }
+
+  async pmUserIds(): Promise<string[]> {
+    const pms = await this.prisma.user.findMany({
+      where: {
+        role: { in: [UserRole.PROJECT_MANAGER, UserRole.CEO, UserRole.ADMIN] },
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    return pms.map((p) => p.id);
+  }
 }

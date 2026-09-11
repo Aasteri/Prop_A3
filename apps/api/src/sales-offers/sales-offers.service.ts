@@ -4,9 +4,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { SalesOfferResponse, UserRole } from '@prisma/client';
+import { NotificationType, SalesOfferResponse, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateSalesOfferDto, RespondSalesOfferDto } from './dto/sales-offer.dto';
 
 const include = {
@@ -19,6 +20,7 @@ const include = {
       phone: true,
       email: true,
       stage: true,
+      assignedToId: true,
     },
   },
   listing: {
@@ -35,7 +37,10 @@ const include = {
 
 @Injectable()
 export class SalesOffersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   findByLead(leadId: string, user: AuthUser) {
     this.assertCanView(user);
@@ -70,7 +75,7 @@ export class SalesOffersService {
     const year = new Date().getFullYear();
     const stamp = Date.now().toString(36).toUpperCase().slice(-5);
 
-    return this.prisma.salesOffer.create({
+    const row = await this.prisma.salesOffer.create({
       data: {
         number: `SOF-${year}-${stamp}`,
         leadId: dto.leadId,
@@ -86,6 +91,22 @@ export class SalesOffersService {
       },
       include,
     });
+
+    const recipients = [
+      ...(await this.notifications.salesUserIds()),
+      ...(await this.notifications.ceoUserIds()),
+      lead.assignedToId,
+    ].filter((id) => id && id !== user.id);
+    if (recipients.length) {
+      await this.notifications.notifyUsers(recipients, {
+        type: NotificationType.SALES_OFFER_ISSUED,
+        title: `SOF issued — ${row.number}`,
+        body: `${lead.firstName} ${lead.lastName} · NGN ${Number(row.offerPrice).toLocaleString()}`,
+        linkUrl: `/crm/leads/${lead.id}`,
+      });
+    }
+
+    return row;
   }
 
   async respond(id: string, dto: RespondSalesOfferDto, user: AuthUser) {
@@ -118,7 +139,46 @@ export class SalesOffersService {
       });
     }
 
+    const recipients = [
+      ...(await this.notifications.salesUserIds()),
+      ...(await this.notifications.ceoUserIds()),
+      existing.lead.assignedToId,
+    ].filter((id) => id && id !== user.id);
+    if (recipients.length) {
+      await this.notifications.notifyUsers(recipients, {
+        type: NotificationType.SALES_OFFER_RESPONDED,
+        title: `SOF ${updated.number} — ${dto.buyerResponse}`,
+        body: `${existing.lead.firstName} ${existing.lead.lastName} · NGN ${Number(updated.offerPrice).toLocaleString()}`,
+        linkUrl: `/crm/leads/${existing.leadId}`,
+      });
+    }
+
     return updated;
+  }
+
+  async buildPdf(id: string, user: AuthUser) {
+    const offer = await this.findOne(id, user);
+    const listingLabel = offer.listing
+      ? `${offer.listing.listingRef} · ${offer.listing.propertyType} · ${offer.listing.location}`
+      : null;
+    const { buildSalesOfferPdf } = await import('./sales-offer.pdf');
+    return buildSalesOfferPdf({
+      number: offer.number,
+      leadRef: offer.lead.leadRef,
+      buyerName: `${offer.lead.firstName} ${offer.lead.lastName}`.trim(),
+      buyerPhone: offer.lead.phone,
+      buyerEmail: offer.lead.email,
+      listingLabel,
+      offerPrice: Number(offer.offerPrice),
+      depositRequired: offer.depositRequired != null ? Number(offer.depositRequired) : null,
+      validityUntil: offer.validityUntil,
+      paymentTerms: offer.paymentTerms,
+      conditions: offer.conditions,
+      preparedBy: offer.preparedBy,
+      buyerResponse: offer.buyerResponse,
+      counterPrice: offer.counterPrice != null ? Number(offer.counterPrice) : null,
+      issuedAt: offer.createdAt,
+    });
   }
 
   async hasAcceptedOffer(leadId: string) {

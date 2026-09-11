@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorator';
 import { CreateSalesOfferDto, RespondSalesOfferDto } from './dto/sales-offer.dto';
@@ -13,6 +24,20 @@ export class SalesOffersController {
   list(@CurrentUser() user: AuthUser, @Query('leadId') leadId?: string) {
     if (!leadId) return [];
     return this.offers.findByLead(leadId, user);
+  }
+
+  @Get(':id/pdf')
+  async pdf(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Res() res: Response,
+  ) {
+    const buf = await this.offers.buildPdf(id, user);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="sof-${id}.pdf"`,
+    });
+    res.send(buf);
   }
 
   @Get(':id')

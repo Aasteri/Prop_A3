@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
-import { api, ApiError, getToken, getUser, type AuthUser } from '@/lib/api';
+import { api, ApiError, downloadPdf, getToken, getUser, type AuthUser } from '@/lib/api';
 import { INPUT, LABEL } from '@/lib/ui';
 
 type LeadDetail = {
@@ -315,34 +315,43 @@ export default function LeadDetailPage() {
               <span className="font-medium text-[#1a2744]">
                 {o.number} · {o.buyerResponse}
               </span>
-              {canManage && o.buyerResponse === 'PENDING' && (
-                <span className="space-x-2">
-                  <button
-                    type="button"
-                    disabled={!!busy}
-                    className="text-green-700 hover:underline"
-                    onClick={() => respond(o.id, 'ACCEPTED')}
-                  >
-                    Accept
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!!busy}
-                    className="text-amber-700 hover:underline"
-                    onClick={() => respond(o.id, 'COUNTERED')}
-                  >
-                    Counter
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!!busy}
-                    className="text-red-700 hover:underline"
-                    onClick={() => respond(o.id, 'REJECTED')}
-                  >
-                    Reject
-                  </button>
-                </span>
-              )}
+              <span className="space-x-2">
+                <button
+                  type="button"
+                  className="text-[#e87722] hover:underline"
+                  onClick={() => downloadPdf(`/sales-offers/${o.id}/pdf`, `${o.number}.pdf`)}
+                >
+                  PDF
+                </button>
+                {canManage && o.buyerResponse === 'PENDING' && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={!!busy}
+                      className="text-green-700 hover:underline"
+                      onClick={() => respond(o.id, 'ACCEPTED')}
+                    >
+                      Accept
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!!busy}
+                      className="text-amber-700 hover:underline"
+                      onClick={() => respond(o.id, 'COUNTERED')}
+                    >
+                      Counter
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!!busy}
+                      className="text-red-700 hover:underline"
+                      onClick={() => respond(o.id, 'REJECTED')}
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+              </span>
             </div>
             <p>
               Price ₦{Number(o.offerPrice).toLocaleString()}

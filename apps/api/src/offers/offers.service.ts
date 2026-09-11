@@ -7,11 +7,13 @@ import {
 import {
   InvoiceStatus,
   InvoiceType,
+  NotificationType,
   TenancyOfferStatus,
   UserRole,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
+import { NotificationsService } from '../notifications/notifications.service';
 import { generateInvoiceNumber } from '../invoices/invoices.utils';
 import { CreateTenancyOfferDto } from './dto/offer.dto';
 
@@ -58,7 +60,10 @@ const include = {
 
 @Injectable()
 export class OffersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   findByApplication(applicationId: string, user: AuthUser) {
     this.assertCanView(user);
@@ -347,6 +352,16 @@ export class OffersService {
         },
       });
     });
+
+    const financeIds = (await this.notifications.financeUserIds()).filter((id) => id !== user.id);
+    if (financeIds.length) {
+      await this.notifications.notifyUsers(financeIds, {
+        type: NotificationType.TENANCY_OFFER_ACCEPTED,
+        title: `Offer accepted — ${offer.number}`,
+        body: `${clientName} · split invoices created (landlord / management+legal / agency)`,
+        linkUrl: `/tenant-applications/${offer.applicationId}`,
+      });
+    }
 
     return this.findOne(id, user);
   }

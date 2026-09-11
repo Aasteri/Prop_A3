@@ -9,10 +9,12 @@ import {
   InventoryKind,
   InventoryStatus,
   InvoiceType,
+  NotificationType,
   UserRole,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   compareInventoryRooms,
   DepositCompareLine,
@@ -46,7 +48,10 @@ const include = {
 
 @Injectable()
 export class DepositSettlementsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   findByTenancy(tenancyId: string, user: AuthUser) {
     this.assertCanView(user);
@@ -119,7 +124,7 @@ export class DepositSettlementsService {
     const year = new Date().getFullYear();
     const stamp = Date.now().toString(36).toUpperCase().slice(-5);
 
-    return this.prisma.depositSettlement.create({
+    const row = await this.prisma.depositSettlement.create({
       data: {
         number: `DEP-${year}-${stamp}`,
         tenancyId: tenancy.id,
@@ -135,6 +140,21 @@ export class DepositSettlementsService {
       },
       include,
     });
+
+    const recipients = [
+      ...(await this.notifications.financeUserIds()),
+      ...(await this.notifications.pmUserIds()),
+    ].filter((id) => id !== user.id);
+    if (recipients.length) {
+      await this.notifications.notifyUsers(recipients, {
+        type: NotificationType.DEPOSIT_SETTLEMENT,
+        title: `Deposit settlement draft — ${row.number}`,
+        body: `${tenancy.tenantName} · refund NGN ${totals.refundAmount.toLocaleString()} · shortfall NGN ${totals.shortfallAmount.toLocaleString()}`,
+        linkUrl: `/inventories/${moveOut.id}`,
+      });
+    }
+
+    return row;
   }
 
   async update(id: string, dto: UpdateDepositSettlementDto, user: AuthUser) {
@@ -169,7 +189,7 @@ export class DepositSettlementsService {
       Number(existing.refundAmount) > 0
         ? DepositSettlementStatus.REFUND_PENDING
         : DepositSettlementStatus.APPROVED;
-    return this.prisma.depositSettlement.update({
+    const updated = await this.prisma.depositSettlement.update({
       where: { id },
       data: {
         status: nextStatus,
@@ -177,6 +197,18 @@ export class DepositSettlementsService {
       },
       include,
     });
+
+    const recipients = (await this.notifications.financeUserIds()).filter((id) => id !== user.id);
+    if (recipients.length) {
+      await this.notifications.notifyUsers(recipients, {
+        type: NotificationType.DEPOSIT_SETTLEMENT,
+        title: `Deposit settlement approved — ${updated.number}`,
+        body: `${existing.tenancy.tenantName} · status ${nextStatus}`,
+        linkUrl: `/inventories/${existing.moveOutInventoryId}`,
+      });
+    }
+
+    return updated;
   }
 
   async createShortfallInvoice(id: string, user: AuthUser) {
