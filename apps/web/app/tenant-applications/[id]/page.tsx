@@ -48,11 +48,13 @@ type ApplicationDetail = {
   applicantSignature: string | null;
   inspectionDate: string | null;
   agencyFeeAmount: string | number;
+  agencyFeePct?: string | number;
   rejectReason: string | null;
   submittedAt: string | null;
   approvedAt: string | null;
   estate: { id: string; code: string; name: string };
   terrierRow: { id: string; serialNo: number; propertyType: string; location: string } | null;
+  property?: { id: string; name: string; code: string | null } | null;
   agencyFeeInvoice: { id: string; invoiceNumber: string; status: string; outstanding: string | number } | null;
   tenantProfile: { id: string; surname: string; otherNames: string } | null;
   evaluation: Evaluation | null;
@@ -361,9 +363,13 @@ export default function TenantApplicationDetailPage() {
             <tbody className="text-slate-700">
               <tr className="border-t border-slate-100">
                 <td className="py-2 pr-3">Doc 12 application</td>
-                <td className="py-2 pr-3">20% Agency+Legal (combined)</td>
+                <td className="py-2 pr-3">
+                  {Number(app.agencyFeePct ?? 20)}% Agency+Legal (combined)
+                </td>
                 <td className="py-2">
-                  NGN {Number(app.agencyFeeAmount).toLocaleString()}
+                  {Number(app.agencyFeePct ?? 20)}% · NGN{' '}
+                  {Number(app.agencyFeeAmount).toLocaleString()}
+                  {app.property ? ` · ${app.property.name}` : ''}
                   {app.agencyFeeInvoice ? (
                     <>
                       {' '}

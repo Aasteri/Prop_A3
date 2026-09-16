@@ -7,7 +7,14 @@ import { api, ApiError, getToken } from '@/lib/api';
 
 type Estate = { id: string; code: string; name: string };
 type VacantUnit = { id: string; serialNo: number; propertyType: string; location: string };
-type Clauses = { clause1: string; clause2: string };
+type Property = { id: string; name: string; code: string | null };
+type Clauses = {
+  clause1: string;
+  clause2: string;
+  applicationAgencyLegalPct?: number;
+  scheduleSource?: string;
+  note?: string;
+};
 
 const INPUT =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#e87722] focus:outline-none focus:ring-1 focus:ring-[#e87722]';
@@ -16,6 +23,8 @@ export default function NewTenantApplicationPage() {
   const router = useRouter();
   const [estates, setEstates] = useState<Estate[]>([]);
   const [vacantUnits, setVacantUnits] = useState<VacantUnit[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [propertyId, setPropertyId] = useState('');
   const [clauses, setClauses] = useState<Clauses | null>(null);
   const [estateId, setEstateId] = useState('');
   const [terrierRowId, setTerrierRowId] = useState('');
@@ -59,6 +68,7 @@ export default function NewTenantApplicationPage() {
       setEstates(list);
       if (list[0]) setEstateId(list[0].id);
     });
+    api<Property[]>('/properties').then(setProperties).catch(() => setProperties([]));
     api<Clauses>('/tenant-applications/clauses').then(setClauses);
   }, [router]);
 
@@ -72,6 +82,11 @@ export default function NewTenantApplicationPage() {
       .catch(() => setVacantUnits([]));
   }, [estateId]);
 
+  useEffect(() => {
+    const q = propertyId ? `?propertyId=${propertyId}` : '';
+    api<Clauses>(`/tenant-applications/clauses${q}`).then(setClauses).catch(() => {});
+  }, [propertyId]);
+
   function setField(key: keyof typeof form, value: string | boolean) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
@@ -80,6 +95,8 @@ export default function NewTenantApplicationPage() {
     return {
       estateId,
       terrierRowId: terrierRowId || undefined,
+      propertyId: propertyId || undefined,
+      applicationAgencyLegalPct: clauses?.applicationAgencyLegalPct,
       ...form,
       rentAccepted: parseFloat(form.rentAccepted) || 0,
       inspectionDate: form.inspectionDate || undefined,
@@ -116,7 +133,8 @@ export default function NewTenantApplicationPage() {
     save(submit);
   }
 
-  const agencyFee = (parseFloat(form.rentAccepted) || 0) * 0.2;
+  const feePct = clauses?.applicationAgencyLegalPct ?? 20;
+  const agencyFee = ((parseFloat(form.rentAccepted) || 0) * feePct) / 100;
 
   return (
     <AppShell>
@@ -152,6 +170,28 @@ export default function NewTenantApplicationPage() {
               ))}
             </select>
           </label>
+          <label className="block text-sm sm:col-span-2">
+            <span className="mb-1 block font-medium">Managed property (fee schedule)</span>
+            <select
+              value={propertyId}
+              onChange={(e) => setPropertyId(e.target.value)}
+              className={INPUT}
+            >
+              <option value="">Doc 12 default (20%)</option>
+              {properties.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                  {p.code ? ` (${p.code})` : ''}
+                </option>
+              ))}
+            </select>
+            {clauses?.scheduleSource && (
+              <span className="mt-1 block text-xs text-slate-500">
+                Schedule: {clauses.scheduleSource}
+                {clauses.note ? ` — ${clauses.note}` : ''}
+              </span>
+            )}
+          </label>
         </section>
 
         <Section title="Personal data">
@@ -173,11 +213,11 @@ export default function NewTenantApplicationPage() {
           </div>
           {form.rentAccepted && (
             <p className="mt-2 text-sm text-slate-600">
-              Agency+Legal fee (20% application clause):{' '}
-              <strong>₦{agencyFee.toLocaleString()}</strong>
+              Agency+Legal fee ({feePct}% application clause):{' '}
+              <strong>NGN {agencyFee.toLocaleString()}</strong>
               <span className="mt-1 block text-xs font-normal text-slate-500">
-                Separate offer-letter lines (Agency 10% / Legal 5% / Mgmt 5%) come later at offer
-                stage.
+                Separate offer-letter lines (Agency / Legal / Mgmt) come later at offer stage from
+                the same PM engagement schedule.
               </span>
             </p>
           )}

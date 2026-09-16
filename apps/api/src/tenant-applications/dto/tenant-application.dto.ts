@@ -17,6 +17,15 @@ export class CreateTenantApplicationDto {
   @IsString()
   terrierRowId?: string;
 
+  @IsOptional()
+  @IsString()
+  propertyId?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  applicationAgencyLegalPct?: number;
+
   @IsString()
   surname!: string;
 

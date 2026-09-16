@@ -9,7 +9,6 @@ import {
   UpdateTenantApplicationDto,
 } from './dto/tenant-application.dto';
 import { TenantApplicationsService } from './tenant-applications.service';
-import { CLAUSE_1, CLAUSE_2 } from './tenant-applications.utils';
 
 @Controller('tenant-applications')
 @UseGuards(JwtAuthGuard)
@@ -17,8 +16,11 @@ export class TenantApplicationsController {
   constructor(private readonly applications: TenantApplicationsService) {}
 
   @Get('clauses')
-  clauses() {
-    return { clause1: CLAUSE_1, clause2: CLAUSE_2 };
+  clauses(
+    @CurrentUser() user: AuthUser,
+    @Query('propertyId') propertyId?: string,
+  ) {
+    return this.applications.getClauses(user, propertyId);
   }
 
   @Get()

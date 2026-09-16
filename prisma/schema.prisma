@@ -793,6 +793,9 @@ model TenantApplication {
   clause1Accepted      Boolean                 @default(false) @map("clause1_accepted")
   clause2Accepted      Boolean                 @default(false) @map("clause2_accepted")
   agencyFeeAmount      Decimal                 @default(0) @map("agency_fee_amount") @db.Decimal(14, 2)
+  /// Doc 12 Agency+Legal combined % used for this application (from PM engagement or default 20)
+  agencyFeePct         Decimal                 @default(20) @map("agency_fee_pct") @db.Decimal(5, 2)
+  propertyId           String?                 @map("property_id")
   agencyFeeInvoiceId   String?                 @unique @map("agency_fee_invoice_id")
   status               TenantApplicationStatus @default(DRAFT)
   tenantProfileId      String?                 @unique @map("tenant_profile_id")
@@ -806,6 +809,7 @@ model TenantApplication {
 
   estate           RentalEstate      @relation(fields: [estateId], references: [id])
   terrierRow       EstateTerrierRow? @relation(fields: [terrierRowId], references: [id])
+  property         PropertyAsset?    @relation(fields: [propertyId], references: [id])
   agencyFeeInvoice Invoice?          @relation("ApplicationAgencyInvoice", fields: [agencyFeeInvoiceId], references: [id])
   tenantProfile    TenantProfile?    @relation(fields: [tenantProfileId], references: [id])
   createdBy        User?             @relation("ApplicationCreatedBy", fields: [createdById], references: [id])
@@ -814,6 +818,7 @@ model TenantApplication {
   offers           TenancyOffer[]
 
   @@index([estateId, status])
+  @@index([propertyId])
   @@map("tenant_applications")
 }
 
@@ -1156,6 +1161,7 @@ model PropertyAsset {
   serviceChargeAccount  ServiceChargeAccount?
   pmEngagements         PmEngagementProperty[]
   remittances           LandlordRemittance[]
+  tenantApplications    TenantApplication[]
 
   @@map("property_assets")
 }

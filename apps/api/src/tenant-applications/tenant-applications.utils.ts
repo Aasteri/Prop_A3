@@ -44,5 +44,9 @@ export function calcNetRentalIncome(rentAmount: number, expenseAmount: number): 
 export const CLAUSE_1 =
   'I understand that this application is not a rental agreement and does not create any obligation on Mgt or Landlord.';
 
-export const CLAUSE_2 =
-  'This form shall serve as an acceptance to pay a total of 20% of the rental value as Agency and Legal fee for the Professional services to be rendered.';
+export function clause2Text(pct = 20): string {
+  return `This form shall serve as an acceptance to pay a total of ${pct}% of the rental value as Agency and Legal fee for the Professional services to be rendered.`;
+}
+
+/** @deprecated Prefer clause2Text(pct) for engagement-aware wording */
+export const CLAUSE_2 = clause2Text(20);

@@ -22,14 +22,18 @@ import {
 import {
   calcAgencyFee,
   calcEvaluationAverage,
+  clause2Text,
+  CLAUSE_1,
   evaluationBand,
   generateApplicationRef,
 } from './tenant-applications.utils';
 import { generateInvoiceNumber } from '../invoices/invoices.utils';
+import { PmEngagementsService } from '../pm-engagements/pm-engagements.service';
 
 const include = {
   estate: true,
   terrierRow: { select: { id: true, serialNo: true, propertyType: true, location: true, serviceCharge: true, cautionDeposit: true, tenancyStart: true, tenancyEnd: true } },
+  property: { select: { id: true, name: true, code: true } },
   agencyFeeInvoice: { select: { id: true, invoiceNumber: true, status: true, outstanding: true } },
   tenantProfile: true,
   evaluation: true,
@@ -39,7 +43,23 @@ const include = {
 
 @Injectable()
 export class TenantApplicationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly engagements: PmEngagementsService,
+  ) {}
+
+  async getClauses(user: AuthUser, propertyId?: string) {
+    this.assertCanView(user);
+    const schedule = await this.engagements.resolveSchedule(user, propertyId);
+    const pct = schedule.applicationAgencyLegalPct;
+    return {
+      clause1: CLAUSE_1,
+      clause2: clause2Text(pct),
+      applicationAgencyLegalPct: pct,
+      scheduleSource: schedule.source,
+      note: 'note' in schedule ? schedule.note : undefined,
+    };
+  }
 
   findAll(user: AuthUser, estateId?: string) {
     this.assertCanView(user);
@@ -60,17 +80,26 @@ export class TenantApplicationsService {
   async create(dto: CreateTenantApplicationDto, user: AuthUser) {
     this.assertCanCreate(user);
     await this.validateEstateAndRow(dto.estateId, dto.terrierRowId);
+    if (dto.propertyId) {
+      const prop = await this.prisma.propertyAsset.findUnique({ where: { id: dto.propertyId } });
+      if (!prop) throw new NotFoundException('Property not found');
+    }
+
+    const schedule = await this.engagements.resolveSchedule(user, dto.propertyId);
+    const agencyFeePct =
+      dto.applicationAgencyLegalPct ?? schedule.applicationAgencyLegalPct ?? 20;
+    const agencyFeeAmount = calcAgencyFee(dto.rentAccepted, agencyFeePct);
 
     return this.prisma.$transaction(async (tx) => {
       const estate = await tx.rentalEstate.findUniqueOrThrow({ where: { id: dto.estateId } });
       const applicationRef = await generateApplicationRef(tx, estate.code);
-      const agencyFeeAmount = calcAgencyFee(dto.rentAccepted);
 
       return tx.tenantApplication.create({
         data: {
           applicationRef,
           estateId: dto.estateId,
           terrierRowId: dto.terrierRowId,
+          propertyId: dto.propertyId,
           surname: dto.surname,
           otherNames: dto.otherNames,
           nationality: dto.nationality,
@@ -97,6 +126,7 @@ export class TenantApplicationsService {
           applicantSignature: dto.applicantSignature,
           clause1Accepted: dto.clause1Accepted,
           clause2Accepted: dto.clause2Accepted,
+          agencyFeePct,
           agencyFeeAmount,
           createdById: user.id,
         },
@@ -112,12 +142,21 @@ export class TenantApplicationsService {
       throw new BadRequestException('Only draft applications can be edited');
     }
     await this.validateEstateAndRow(dto.estateId, dto.terrierRowId);
+    if (dto.propertyId) {
+      const prop = await this.prisma.propertyAsset.findUnique({ where: { id: dto.propertyId } });
+      if (!prop) throw new NotFoundException('Property not found');
+    }
+
+    const schedule = await this.engagements.resolveSchedule(user, dto.propertyId);
+    const agencyFeePct =
+      dto.applicationAgencyLegalPct ?? schedule.applicationAgencyLegalPct ?? 20;
 
     return this.prisma.tenantApplication.update({
       where: { id },
       data: {
         estateId: dto.estateId,
         terrierRowId: dto.terrierRowId,
+        propertyId: dto.propertyId,
         surname: dto.surname,
         otherNames: dto.otherNames,
         nationality: dto.nationality,
@@ -144,7 +183,8 @@ export class TenantApplicationsService {
         applicantSignature: dto.applicantSignature,
         clause1Accepted: dto.clause1Accepted,
         clause2Accepted: dto.clause2Accepted,
-        agencyFeeAmount: calcAgencyFee(dto.rentAccepted),
+        agencyFeePct,
+        agencyFeeAmount: calcAgencyFee(dto.rentAccepted, agencyFeePct),
       },
       include,
     });
@@ -177,6 +217,7 @@ export class TenantApplicationsService {
     }
 
     const agencyFee = Number(app.agencyFeeAmount);
+    const agencyFeePct = Number(app.agencyFeePct ?? 20);
     const clientName = `${app.surname} ${app.otherNames}`.trim();
     const issueDate = new Date();
     const year = issueDate.getFullYear();
@@ -205,8 +246,7 @@ export class TenantApplicationsService {
           lines: {
             create: [
               {
-                description:
-                  'Agency & Legal fee (20% of rental value) — application acceptance clause (Doc 12). Offer letter may split Agency/Legal/Mgmt separately.',
+                description: `Agency & Legal fee (${agencyFeePct}% of rental value) — application acceptance clause (Doc 12). Offer letter may split Agency/Legal/Mgmt separately.`,
                 quantity: 1,
                 unit: 'Lot',
                 unitPrice: agencyFee,
