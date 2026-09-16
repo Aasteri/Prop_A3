@@ -23,6 +23,9 @@ export type DepositSettlementPdfData = {
   }[];
   refundPaidAt: Date | null;
   refundReference: string | null;
+  refundBankName: string | null;
+  refundAccountName: string | null;
+  refundAccountNumber: string | null;
   shortfallInvoiceNumber: string | null;
   issuedAt: Date;
 };
@@ -63,6 +66,13 @@ export function buildDepositSettlementPdf(data: DepositSettlementPdfData): Promi
     doc.text(`Total deductions: ${money(data.totalDeductions)}`);
     doc.text(`Refund to tenant: ${money(data.refundAmount)}`);
     doc.text(`Shortfall (tenant owes): ${money(data.shortfallAmount)}`);
+    if (data.refundAmount > 0) {
+      doc.moveDown(0.3);
+      doc.text('Refund payout account:');
+      doc.text(`  Bank: ${data.refundBankName || '—'}`);
+      doc.text(`  Account name: ${data.refundAccountName || '—'}`);
+      doc.text(`  Account number: ${data.refundAccountNumber || '—'}`);
+    }
     if (data.refundPaidAt) {
       doc.text(
         `Refund paid: ${data.refundPaidAt.toLocaleDateString('en-NG')}${

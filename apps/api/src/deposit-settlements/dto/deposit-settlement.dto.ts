@@ -74,4 +74,34 @@ export class UpdateDepositSettlementDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  refundBankName?: string;
+
+  @IsOptional()
+  @IsString()
+  refundAccountName?: string;
+
+  @IsOptional()
+  @IsString()
+  refundAccountNumber?: string;
+}
+
+export class MarkRefundPaidDto {
+  @IsOptional()
+  @IsString()
+  refundReference?: string;
+
+  @IsOptional()
+  @IsString()
+  refundBankName?: string;
+
+  @IsOptional()
+  @IsString()
+  refundAccountName?: string;
+
+  @IsOptional()
+  @IsString()
+  refundAccountNumber?: string;
 }

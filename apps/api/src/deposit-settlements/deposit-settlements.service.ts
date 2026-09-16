@@ -24,6 +24,7 @@ import { generateInvoiceNumber } from '../invoices/invoices.utils';
 import {
   CreateDepositSettlementDto,
   DepositSettlementLineDto,
+  MarkRefundPaidDto,
   UpdateDepositSettlementDto,
 } from './dto/deposit-settlement.dto';
 
@@ -160,20 +161,54 @@ export class DepositSettlementsService {
   async update(id: string, dto: UpdateDepositSettlementDto, user: AuthUser) {
     this.assertCanManage(user);
     const existing = await this.findOne(id, user);
-    if (existing.status !== DepositSettlementStatus.DRAFT) {
-      throw new BadRequestException('Only draft settlements can be edited');
+    const canEditLines = existing.status === DepositSettlementStatus.DRAFT;
+    const canEditPayout =
+      existing.status === DepositSettlementStatus.DRAFT ||
+      existing.status === DepositSettlementStatus.REFUND_PENDING;
+    if (!canEditLines && !canEditPayout) {
+      throw new BadRequestException('Settlement cannot be edited in this status');
     }
-    const lines = dto.lines?.map((l) => this.normalizeLine(l)) ??
-      (existing.linesJson as DepositCompareLine[]);
-    const totals = this.calcTotals(Number(existing.cautionHeld), lines);
+    if (!canEditLines && dto.lines) {
+      throw new BadRequestException('Only draft settlements can edit comparison lines');
+    }
+
+    const lines = canEditLines
+      ? dto.lines?.map((l) => this.normalizeLine(l)) ??
+        (existing.linesJson as DepositCompareLine[])
+      : (existing.linesJson as DepositCompareLine[]);
+    const totals = canEditLines
+      ? this.calcTotals(Number(existing.cautionHeld), lines)
+      : {
+          totalDeductions: Number(existing.totalDeductions),
+          refundAmount: Number(existing.refundAmount),
+          shortfallAmount: Number(existing.shortfallAmount),
+        };
+
     return this.prisma.depositSettlement.update({
       where: { id },
       data: {
-        linesJson: lines as never,
-        totalDeductions: totals.totalDeductions,
-        refundAmount: totals.refundAmount,
-        shortfallAmount: totals.shortfallAmount,
-        notes: dto.notes,
+        ...(canEditLines
+          ? {
+              linesJson: lines as never,
+              totalDeductions: totals.totalDeductions,
+              refundAmount: totals.refundAmount,
+              shortfallAmount: totals.shortfallAmount,
+              ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
+            }
+          : {}),
+        ...(canEditPayout
+          ? {
+              ...(dto.refundBankName !== undefined
+                ? { refundBankName: dto.refundBankName }
+                : {}),
+              ...(dto.refundAccountName !== undefined
+                ? { refundAccountName: dto.refundAccountName }
+                : {}),
+              ...(dto.refundAccountNumber !== undefined
+                ? { refundAccountNumber: dto.refundAccountNumber }
+                : {}),
+            }
+          : {}),
       },
       include,
     });
@@ -289,11 +324,7 @@ export class DepositSettlementsService {
     return this.findOne(id, user);
   }
 
-  async markRefundPaid(
-    id: string,
-    dto: { refundReference?: string },
-    user: AuthUser,
-  ) {
+  async markRefundPaid(id: string, dto: MarkRefundPaidDto, user: AuthUser) {
     this.assertCanManage(user);
     const existing = await this.findOne(id, user);
     if (existing.status !== DepositSettlementStatus.REFUND_PENDING) {
@@ -302,15 +333,43 @@ export class DepositSettlementsService {
     if (Number(existing.refundAmount) <= 0) {
       throw new BadRequestException('No refund amount to mark paid');
     }
-    return this.prisma.depositSettlement.update({
+
+    const bankName = dto.refundBankName ?? existing.refundBankName;
+    const accountName = dto.refundAccountName ?? existing.refundAccountName;
+    const accountNumber = dto.refundAccountNumber ?? existing.refundAccountNumber;
+    if (!bankName || !accountName || !accountNumber) {
+      throw new BadRequestException(
+        'Tenant refund bank name, account name, and account number are required before marking paid',
+      );
+    }
+    if (!dto.refundReference && !existing.refundReference) {
+      throw new BadRequestException('Transfer / refund reference is required');
+    }
+
+    const updated = await this.prisma.depositSettlement.update({
       where: { id },
       data: {
         status: DepositSettlementStatus.REFUND_PAID,
         refundPaidAt: new Date(),
-        refundReference: dto.refundReference,
+        refundReference: dto.refundReference ?? existing.refundReference,
+        refundBankName: bankName,
+        refundAccountName: accountName,
+        refundAccountNumber: accountNumber,
       },
       include,
     });
+
+    const recipients = (await this.notifications.financeUserIds()).filter((uid) => uid !== user.id);
+    if (recipients.length) {
+      await this.notifications.notifyUsers(recipients, {
+        type: NotificationType.DEPOSIT_SETTLEMENT,
+        title: `Caution refund paid — ${updated.number}`,
+        body: `${existing.tenancy.tenantName} · NGN ${Number(existing.refundAmount).toLocaleString()} · ref ${updated.refundReference}`,
+        linkUrl: `/inventories/${existing.moveOutInventoryId}`,
+      });
+    }
+
+    return updated;
   }
 
   async buildPdf(id: string, user: AuthUser) {
@@ -341,6 +400,9 @@ export class DepositSettlementsService {
       })),
       refundPaidAt: settlement.refundPaidAt,
       refundReference: settlement.refundReference,
+      refundBankName: settlement.refundBankName,
+      refundAccountName: settlement.refundAccountName,
+      refundAccountNumber: settlement.refundAccountNumber,
       shortfallInvoiceNumber: settlement.shortfallInvoice?.invoiceNumber ?? null,
       issuedAt: settlement.approvedAt ?? settlement.createdAt,
     });

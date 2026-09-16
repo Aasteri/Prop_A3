@@ -14,16 +14,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorator';
 import {
   CreateDepositSettlementDto,
+  MarkRefundPaidDto,
   UpdateDepositSettlementDto,
 } from './dto/deposit-settlement.dto';
 import { DepositSettlementsService } from './deposit-settlements.service';
-import { IsOptional, IsString } from 'class-validator';
-
-class MarkRefundPaidDto {
-  @IsOptional()
-  @IsString()
-  refundReference?: string;
-}
 
 @Controller('deposit-settlements')
 @UseGuards(JwtAuthGuard)

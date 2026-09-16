@@ -277,7 +277,7 @@ export default function TenantApplicationDetailPage() {
         <div>
           <h1 className="text-2xl font-semibold text-[#1a2744]">{app.applicationRef}</h1>
           <p className="text-slate-600">
-            {app.surname} {app.otherNames} ? {app.estate.name}
+            {app.surname} {app.otherNames} · {app.estate.name}
           </p>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-sm">{app.status.replace(/_/g, ' ')}</span>
@@ -295,12 +295,66 @@ export default function TenantApplicationDetailPage() {
           <Link href={`/invoices/${app.agencyFeeInvoice.id}`} className="font-medium text-[#e87722] hover:underline">
             {app.agencyFeeInvoice.invoiceNumber}
           </Link>{' '}
-          ? Outstanding ?{Number(app.agencyFeeInvoice.outstanding).toLocaleString()}
+          · Outstanding NGN {Number(app.agencyFeeInvoice.outstanding).toLocaleString()}
           <p className="mt-1 text-xs text-slate-600">
             Offer letters may still split Agency 10% + Legal 5% + Mgmt 5% separately (Doc 10).
           </p>
         </div>
       )}
+
+      <div className="mt-4 rounded-lg border border-slate-200 bg-white p-4">
+        <h2 className="font-semibold text-[#1a2744]">Fee reconciliation (do not merge)</h2>
+        <p className="mt-1 text-xs text-slate-500">
+          Doc 12 application clause and Doc 10 offer split are separate invoices — never collapse into one.
+        </p>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="text-xs uppercase text-slate-500">
+              <tr>
+                <th className="py-1 pr-3">Source</th>
+                <th className="py-1 pr-3">Agency / Legal / Mgmt</th>
+                <th className="py-1">This application</th>
+              </tr>
+            </thead>
+            <tbody className="text-slate-700">
+              <tr className="border-t border-slate-100">
+                <td className="py-2 pr-3">Doc 12 application</td>
+                <td className="py-2 pr-3">20% Agency+Legal (combined)</td>
+                <td className="py-2">
+                  NGN {Number(app.agencyFeeAmount).toLocaleString()}
+                  {app.agencyFeeInvoice ? (
+                    <>
+                      {' '}
+                      ·{' '}
+                      <Link
+                        href={`/invoices/${app.agencyFeeInvoice.id}`}
+                        className="text-[#e87722] hover:underline"
+                      >
+                        {app.agencyFeeInvoice.invoiceNumber}
+                      </Link>
+                    </>
+                  ) : (
+                    ' · invoice pending'
+                  )}
+                </td>
+              </tr>
+              <tr className="border-t border-slate-100">
+                <td className="py-2 pr-3">Doc 10 offer letter</td>
+                <td className="py-2 pr-3">Agency 10% + Legal 5% + Mgmt 5%</td>
+                <td className="py-2">
+                  {offers[0]
+                    ? `NGN ${(
+                        Number(offers[0].agencyFeeAmount) +
+                        Number(offers[0].legalFeeAmount) +
+                        Number(offers[0].managementFeeAmount)
+                      ).toLocaleString()} on latest offer ${offers[0].number}`
+                    : 'Issue Doc 10 offer to spawn split payee invoices'}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {(app.status === 'PENDING_REVIEW' || app.status === 'APPROVED') && (
         <div className="mt-4 rounded-lg border border-slate-200 bg-white p-4 space-y-3">
@@ -308,7 +362,7 @@ export default function TenantApplicationDetailPage() {
             <div>
               <h2 className="font-semibold text-[#1a2744]">Offer letter (Doc 10)</h2>
               <p className="text-xs text-slate-500">
-                Default fee lines: Agency 10% + Legal 5% + Management 5% of annual rent ? separate
+                Default fee lines: Agency 10% + Legal 5% + Management 5% of annual rent — separate
                 from the Doc 12 application 20% Agency+Legal invoice. Legal routes with management
                 settlement account per Doc 10 example.
               </p>
@@ -340,10 +394,10 @@ export default function TenantApplicationDetailPage() {
                     value={offerPayees[key]}
                     onChange={(e) => setOfferPayees({ ...offerPayees, [key]: e.target.value })}
                   >
-                    <option value="">?</option>
+                    <option value="">Select…</option>
                     {settlements.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.name} ? {s.bankName} ? {s.accountNumber}
+                        {s.name} · {s.bankName} · {s.accountNumber}
                       </option>
                     ))}
                   </select>
@@ -358,7 +412,7 @@ export default function TenantApplicationDetailPage() {
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-medium text-[#1a2744]">
-                  {o.number} ? {o.status}
+                  {o.number} · {o.status}
                 </span>
                 <span className="space-x-2">
                   <button
@@ -381,31 +435,31 @@ export default function TenantApplicationDetailPage() {
                 </span>
               </div>
               <p>
-                Rent ?{Number(o.rentAnnual).toLocaleString()} ? Caution ?
+                Rent NGN {Number(o.rentAnnual).toLocaleString()} · Caution NGN 
                 {Number(o.cautionAmount).toLocaleString()}
               </p>
               <p>
-                Agency {Number(o.agencyFeePct)}% ?{Number(o.agencyFeeAmount).toLocaleString()}
-                {' ? '}Legal {Number(o.legalFeePct)}% ?{Number(o.legalFeeAmount).toLocaleString()}
-                {' ? '}Mgmt {Number(o.managementFeePct)}% ?
+                Agency {Number(o.agencyFeePct)}% NGN {Number(o.agencyFeeAmount).toLocaleString()}
+                {' · '}Legal {Number(o.legalFeePct)}% NGN {Number(o.legalFeeAmount).toLocaleString()}
+                {' · '}Mgmt {Number(o.managementFeePct)}% NGN 
                 {Number(o.managementFeeAmount).toLocaleString()}
               </p>
               <div className="text-xs text-slate-600 space-y-0.5">
                 {o.landlordSettlement && (
                   <p>
-                    Landlord: {o.landlordSettlement.name} ? {o.landlordSettlement.bankName} ?{' '}
+                    Landlord: {o.landlordSettlement.name} · {o.landlordSettlement.bankName} ·{' '}
                     {o.landlordSettlement.accountNumber}
                   </p>
                 )}
                 {o.managementSettlement && (
                   <p>
-                    Management/Legal: {o.managementSettlement.name} ?{' '}
-                    {o.managementSettlement.bankName} ? {o.managementSettlement.accountNumber}
+                    Management/Legal: {o.managementSettlement.name} ·{' '}
+                    {o.managementSettlement.bankName} · {o.managementSettlement.accountNumber}
                   </p>
                 )}
                 {o.agencySettlement && (
                   <p>
-                    Agency: {o.agencySettlement.name} ? {o.agencySettlement.bankName} ?{' '}
+                    Agency: {o.agencySettlement.name} · {o.agencySettlement.bankName} ·{' '}
                     {o.agencySettlement.accountNumber}
                   </p>
                 )}
@@ -440,8 +494,8 @@ export default function TenantApplicationDetailPage() {
                 )}
                 {!o.landlordSettlement && !o.managementSettlement && !o.agencySettlement && (
                   <p>
-                    SC ?{Number(o.serviceChargeAnnual).toLocaleString()}
-                    {o.agencyPayee ? ` ? Agency payee: ${o.agencyPayee}` : ''}
+                    SC NGN {Number(o.serviceChargeAnnual).toLocaleString()}
+                    {o.agencyPayee ? ` · Agency payee: ${o.agencyPayee}` : ''}
                   </p>
                 )}
               </div>
@@ -458,7 +512,7 @@ export default function TenantApplicationDetailPage() {
           onSubmit={saveEvaluation}
           className="mt-4 rounded-lg border border-slate-200 bg-white p-4 space-y-3"
         >
-          <h2 className="font-semibold text-[#1a2744]">FM evaluation (4 ? 0?10)</h2>
+          <h2 className="font-semibold text-[#1a2744]">FM evaluation (4 × 0–10)</h2>
           <p className="text-xs text-slate-500">Tenant does not self-score. Average preview: {avgPreview}</p>
           <div className="grid gap-3 sm:grid-cols-2">
             {CRITERIA.map((c) => (
@@ -580,7 +634,7 @@ export default function TenantApplicationDetailPage() {
           <InfoRow label="Rent accepted" value={`?${Number(app.rentAccepted).toLocaleString()}`} />
           <InfoRow
             label="Agency+Legal (20% clause)"
-            value={`?${Number(app.agencyFeeAmount).toLocaleString()}`}
+            value={`NGN ${Number(app.agencyFeeAmount).toLocaleString()}`}
           />
         </InfoCard>
         <InfoCard title="Unit & guarantor">

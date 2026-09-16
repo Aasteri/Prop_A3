@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { api, downloadPdf, getToken } from '@/lib/api';
-import { CARD, INPUT, PAGE_HEADER } from '@/lib/ui';
+import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type LineItem = {
   id: string;
@@ -86,6 +86,10 @@ type DepositSettlement = {
   shortfallAmount: string | number;
   linesJson: CompareLine[];
   refundPaidAt?: string | null;
+  refundReference?: string | null;
+  refundBankName?: string | null;
+  refundAccountName?: string | null;
+  refundAccountNumber?: string | null;
   shortfallInvoice: { id: string; invoiceNumber: string; outstanding: string | number } | null;
 };
 
@@ -394,7 +398,29 @@ function DepositSettlementPanel({
   setError: (s: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [refundForm, setRefundForm] = useState({
+    refundBankName: '',
+    refundAccountName: '',
+    refundAccountNumber: '',
+    refundReference: '',
+  });
   const draft = !settlement || settlement.status === 'DRAFT';
+
+  useEffect(() => {
+    if (!settlement) return;
+    setRefundForm({
+      refundBankName: settlement.refundBankName ?? '',
+      refundAccountName: settlement.refundAccountName ?? '',
+      refundAccountNumber: settlement.refundAccountNumber ?? '',
+      refundReference: settlement.refundReference ?? '',
+    });
+  }, [
+    settlement?.id,
+    settlement?.refundBankName,
+    settlement?.refundAccountName,
+    settlement?.refundAccountNumber,
+    settlement?.refundReference,
+  ]);
 
   const totals = (() => {
     const deductions =
@@ -470,14 +496,40 @@ function DepositSettlementPanel({
     }
   }
 
+  async function saveRefundPayout() {
+    if (!settlement) return;
+    setBusy(true);
+    setError('');
+    try {
+      await api(`/deposit-settlements/${settlement.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          refundBankName: refundForm.refundBankName || undefined,
+          refundAccountName: refundForm.refundAccountName || undefined,
+          refundAccountNumber: refundForm.refundAccountNumber || undefined,
+        }),
+      });
+      await onRefresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Save payout failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function markRefundPaid() {
     if (!settlement) return;
     setBusy(true);
+    setError('');
     try {
-      const ref = window.prompt('Refund reference (optional)') || undefined;
       await api(`/deposit-settlements/${settlement.id}/refund-paid`, {
         method: 'PATCH',
-        body: JSON.stringify({ refundReference: ref }),
+        body: JSON.stringify({
+          refundBankName: refundForm.refundBankName || undefined,
+          refundAccountName: refundForm.refundAccountName || undefined,
+          refundAccountNumber: refundForm.refundAccountNumber || undefined,
+          refundReference: refundForm.refundReference || undefined,
+        }),
       });
       await onRefresh();
     } catch (err) {
@@ -590,6 +642,81 @@ function DepositSettlementPanel({
         <Stat label="Refund" value={totals.refund} />
         <Stat label="Shortfall" value={totals.shortfall} />
       </div>
+
+      {settlement &&
+        Number(settlement.refundAmount) > 0 &&
+        (settlement.status === 'DRAFT' ||
+          settlement.status === 'REFUND_PENDING' ||
+          settlement.status === 'REFUND_PAID') && (
+          <div className="rounded-md border border-slate-100 bg-slate-50 p-3 space-y-3">
+            <p className="text-sm font-medium text-[#1a2744]">Tenant refund payout account</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className={LABEL}>Bank name</label>
+                <input
+                  className={INPUT}
+                  disabled={settlement.status === 'REFUND_PAID' || busy}
+                  value={refundForm.refundBankName}
+                  onChange={(e) =>
+                    setRefundForm({ ...refundForm, refundBankName: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Account name</label>
+                <input
+                  className={INPUT}
+                  disabled={settlement.status === 'REFUND_PAID' || busy}
+                  value={refundForm.refundAccountName}
+                  onChange={(e) =>
+                    setRefundForm({ ...refundForm, refundAccountName: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className={LABEL}>Account number</label>
+                <input
+                  className={INPUT}
+                  disabled={settlement.status === 'REFUND_PAID' || busy}
+                  value={refundForm.refundAccountNumber}
+                  onChange={(e) =>
+                    setRefundForm({ ...refundForm, refundAccountNumber: e.target.value })
+                  }
+                />
+              </div>
+              {(settlement.status === 'REFUND_PENDING' ||
+                settlement.status === 'REFUND_PAID') && (
+                <div>
+                  <label className={LABEL}>Transfer reference</label>
+                  <input
+                    className={INPUT}
+                    disabled={settlement.status === 'REFUND_PAID' || busy}
+                    value={refundForm.refundReference}
+                    onChange={(e) =>
+                      setRefundForm({ ...refundForm, refundReference: e.target.value })
+                    }
+                  />
+                </div>
+              )}
+            </div>
+            {settlement.status !== 'REFUND_PAID' && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={saveRefundPayout}
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs"
+              >
+                Save payout details
+              </button>
+            )}
+            {settlement.refundPaidAt && (
+              <p className="text-xs text-green-700">
+                Refund paid {settlement.refundPaidAt.slice(0, 10)}
+                {settlement.refundReference ? ` · ref ${settlement.refundReference}` : ''}
+              </p>
+            )}
+          </div>
+        )}
 
       {settlement?.shortfallInvoice && (
         <p className="text-sm text-slate-600">
