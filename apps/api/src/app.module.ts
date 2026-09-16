@@ -41,6 +41,7 @@ import { OffersModule } from './offers/offers.module';
 import { PmEngagementsModule } from './pm-engagements/pm-engagements.module';
 import { SalesOffersModule } from './sales-offers/sales-offers.module';
 import { DepositSettlementsModule } from './deposit-settlements/deposit-settlements.module';
+import { CloseoutsModule } from './closeouts/closeouts.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -89,6 +90,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     PmEngagementsModule,
     SalesOffersModule,
     DepositSettlementsModule,
+    CloseoutsModule,
     MailModule,
   ],
   controllers: [AppController],

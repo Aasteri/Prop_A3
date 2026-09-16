@@ -66,6 +66,12 @@ export const STAFF_NAV: NavGroup[] = [
         icon: 'file',
         match: (p) => p.startsWith('/planning-docs'),
       },
+      {
+        href: '/closeouts',
+        label: 'Project closeouts',
+        icon: 'check',
+        match: (p) => p.startsWith('/closeouts'),
+      },
     ],
   },
   {

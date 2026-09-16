@@ -168,8 +168,45 @@ model Project {
   hseIncidents   HseIncident[]
   worksContracts WorksContract[]
   inspections    ProjectInspection[]
+  closeouts      ProjectCloseout[]
 
   @@map("projects")
+}
+
+enum ProjectCloseoutStatus {
+  DRAFT
+  ISSUED
+  ACKNOWLEDGED
+}
+
+/// Doc 7 / FORM_CLOSEOUT_REPORT — Guzape closeout schema (EXTRACTED)
+model ProjectCloseout {
+  id                   String                @id @default(cuid())
+  number               String                @unique
+  projectId            String                @map("project_id")
+  developerName        String                @map("developer_name")
+  clientName           String                @map("client_name")
+  durationStart        DateTime?             @map("duration_start") @db.Date
+  durationEnd          DateTime?             @map("duration_end") @db.Date
+  executiveSummary     String                @map("executive_summary") @db.Text
+  /// [{ "zone": "Basement", "items": ["Cinema", ...] }, ...]
+  accomplishmentsJson  Json                  @map("accomplishments_json")
+  openItems            String?               @map("open_items") @db.Text
+  overBudget           Boolean               @default(false) @map("over_budget")
+  onSchedule           Boolean               @default(true) @map("on_schedule")
+  preparedBy           String?               @map("prepared_by")
+  status               ProjectCloseoutStatus @default(DRAFT)
+  issuedAt             DateTime?             @map("issued_at")
+  clientAcknowledgedAt DateTime?             @map("client_acknowledged_at")
+  clientAcknowledgedBy String?               @map("client_acknowledged_by")
+  notes                String?               @db.Text
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, status])
+  @@map("project_closeouts")
 }
 
 // ─── Notifications & HSE ────────────────────────────────────────────────────
@@ -192,6 +229,7 @@ enum NotificationType {
   TENANCY_OFFER_ACCEPTED
   DEPOSIT_SETTLEMENT
   LANDLORD_REMITTANCE
+  PROJECT_CLOSEOUT
 }
 
 model Notification {

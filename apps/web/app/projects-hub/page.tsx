@@ -42,7 +42,14 @@ export default function ProjectsHubPage() {
           title: 'Planning documents',
           description: 'TDP, C of O, soil test, Arch/Structural/M&E, BOQ, schedules.',
           icon: 'file',
-          status: 'building',
+          status: 'live',
+        },
+        {
+          href: '/closeouts',
+          title: 'Project closeouts',
+          description: 'Doc 7 handover: floor/zone features, open items, client ack.',
+          icon: 'check',
+          status: 'live',
         },
         {
           href: '/material-requests',
