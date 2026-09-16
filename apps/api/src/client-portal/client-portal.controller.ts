@@ -34,6 +34,11 @@ export class ClientPortalController {
     return this.portal.documents(user);
   }
 
+  @Get('instalments')
+  instalments(@CurrentUser() user: AuthUser) {
+    return this.portal.instalments(user);
+  }
+
   @Get('maintenance/properties')
   maintenanceProperties(@CurrentUser() user: AuthUser) {
     return this.portal.portalMaintenanceProperties(user);

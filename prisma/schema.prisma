@@ -169,6 +169,7 @@ model Project {
   worksContracts WorksContract[]
   inspections    ProjectInspection[]
   closeouts      ProjectCloseout[]
+  instalmentPlans PurchaserInstalmentPlan[]
 
   @@map("projects")
 }
@@ -230,6 +231,7 @@ enum NotificationType {
   DEPOSIT_SETTLEMENT
   LANDLORD_REMITTANCE
   PROJECT_CLOSEOUT
+  PURCHASER_INSTALMENT
 }
 
 model Notification {
@@ -1039,6 +1041,7 @@ model Client {
   portalUser User?            @relation("ClientPortalUser", fields: [portalUserId], references: [id])
   projects   ClientProject[]
   invoices   Invoice[]
+  instalmentPlans PurchaserInstalmentPlan[]
 
   @@map("clients")
 }
@@ -1055,6 +1058,63 @@ model ClientProject {
 
   @@unique([clientId, projectId])
   @@map("client_projects")
+}
+
+enum InstalmentPlanStatus {
+  ACTIVE
+  COMPLETED
+  DEFAULTED
+}
+
+enum InstalmentLineStatus {
+  PENDING
+  PARTIAL
+  PAID
+  MISSED
+}
+
+/// Sheet 2 / FORM_PURCHASER_INSTALMENT — 6-month purchaser inflow (EXTRACTED)
+model PurchaserInstalmentPlan {
+  id             String               @id @default(cuid())
+  number         String               @unique
+  purchaserName  String               @map("purchaser_name")
+  unitPlotNo     String               @map("unit_plot_no")
+  contractPrice  Decimal              @map("contract_price") @db.Decimal(14, 2)
+  clientId       String?              @map("client_id")
+  projectId      String?              @map("project_id")
+  status         InstalmentPlanStatus @default(ACTIVE)
+  notes          String?              @db.Text
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
+
+  client  Client?                   @relation(fields: [clientId], references: [id])
+  project Project?                  @relation(fields: [projectId], references: [id])
+  lines   PurchaserInstalmentLine[]
+
+  @@index([clientId])
+  @@index([projectId, status])
+  @@map("purchaser_instalment_plans")
+}
+
+model PurchaserInstalmentLine {
+  id              String               @id @default(cuid())
+  planId          String               @map("plan_id")
+  monthIndex      Int                  @map("month_index")
+  pctDue          Decimal              @map("pct_due") @db.Decimal(5, 2)
+  amountDue       Decimal              @map("amount_due") @db.Decimal(14, 2)
+  amountCollected Decimal              @default(0) @map("amount_collected") @db.Decimal(14, 2)
+  dueDate         DateTime?            @map("due_date") @db.Date
+  paidAt          DateTime?            @map("paid_at")
+  status          InstalmentLineStatus @default(PENDING)
+  paymentRef      String?              @map("payment_ref")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  plan PurchaserInstalmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, monthIndex])
+  @@index([dueDate, status])
+  @@map("purchaser_instalment_lines")
 }
 
 // ─── Documents ──────────────────────────────────────────────────────────────

@@ -207,6 +207,12 @@ export const STAFF_NAV: NavGroup[] = [
         icon: 'transfer',
         match: (p) => p.startsWith('/remittances'),
       },
+      {
+        href: '/instalments',
+        label: 'Purchaser instalments',
+        icon: 'invoice',
+        match: (p) => p.startsWith('/instalments'),
+      },
     ],
   },
   {
@@ -243,6 +249,12 @@ export const PORTAL_NAV: NavItem[] = [
     label: 'Payments',
     icon: 'invoice',
     match: (p) => p.startsWith('/portal/payments'),
+  },
+  {
+    href: '/portal/instalments',
+    label: 'Instalments',
+    icon: 'wallet',
+    match: (p) => p.startsWith('/portal/instalments'),
   },
   {
     href: '/portal/maintenance',

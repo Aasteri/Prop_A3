@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { DocumentsService } from '../documents/documents.service';
 import { MaintenanceService } from '../maintenance/maintenance.service';
+import { InstalmentsService } from '../instalments/instalments.service';
 import { CreateMaintenanceDto } from '../maintenance/dto/maintenance.dto';
 
 @Injectable()
@@ -16,6 +17,7 @@ export class ClientPortalService {
     private readonly prisma: PrismaService,
     private readonly documentsService: DocumentsService,
     private readonly maintenance: MaintenanceService,
+    private readonly instalmentPlans: InstalmentsService,
   ) {}
 
   async dashboard(user: AuthUser) {
@@ -201,6 +203,11 @@ export class ClientPortalService {
 
   documents(user: AuthUser) {
     return this.documentsService.clientDocuments(user);
+  }
+
+  async instalments(user: AuthUser) {
+    const client = await this.requireClient(user);
+    return this.instalmentPlans.findForClient(client.id);
   }
 
   portalMaintenanceProperties(user: AuthUser) {
