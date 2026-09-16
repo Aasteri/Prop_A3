@@ -1328,16 +1328,25 @@ model TenancyRenewalNotice {
 }
 
 model PmEngagement {
-  id                String   @id @default(cuid())
-  ownerName         String   @map("owner_name")
-  ownerPhone        String?  @map("owner_phone")
-  lettingFeePct     Decimal? @map("letting_fee_pct") @db.Decimal(5, 2)
-  managementFeePct  Decimal? @map("management_fee_pct") @db.Decimal(5, 2)
-  startDate         DateTime? @map("start_date") @db.Date
-  endDate           DateTime? @map("end_date") @db.Date
-  status            String   @default("active")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id                         String    @id @default(cuid())
+  ownerName                  String    @map("owner_name")
+  ownerPhone                 String?   @map("owner_phone")
+  /// Doc 11 letting fee for new tenant (typically 10% of gross rent)
+  lettingFeePct              Decimal?  @default(10) @map("letting_fee_pct") @db.Decimal(5, 2)
+  /// Doc 10 agency fee line (typically 10%)
+  agencyFeePct               Decimal?  @default(10) @map("agency_fee_pct") @db.Decimal(5, 2)
+  /// Doc 10 legal fee line (typically 5%)
+  legalFeePct                Decimal?  @default(5) @map("legal_fee_pct") @db.Decimal(5, 2)
+  /// Doc 10 / Doc 11 management fee (agreed %)
+  managementFeePct           Decimal?  @default(5) @map("management_fee_pct") @db.Decimal(5, 2)
+  /// Doc 12 application Agency+Legal combined clause (typically 20%)
+  applicationAgencyLegalPct  Decimal?  @default(20) @map("application_agency_legal_pct") @db.Decimal(5, 2)
+  startDate                  DateTime? @map("start_date") @db.Date
+  endDate                    DateTime? @map("end_date") @db.Date
+  status                     String    @default("active")
+  notes                      String?   @db.Text
+  createdAt                  DateTime  @default(now()) @map("created_at")
+  updatedAt                  DateTime  @updatedAt @map("updated_at")
 
   properties PmEngagementProperty[]
 

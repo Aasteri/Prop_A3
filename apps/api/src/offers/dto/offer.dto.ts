@@ -69,5 +69,9 @@ export class CreateTenancyOfferDto {
 
   @IsOptional()
   @IsString()
+  propertyId?: string;
+
+  @IsOptional()
+  @IsString()
   notes?: string;
 }

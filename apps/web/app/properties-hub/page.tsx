@@ -31,6 +31,13 @@ export default function PropertiesHubPage() {
           status: 'live',
         },
         {
+          href: '/pm-engagements',
+          title: 'PM fee schedules',
+          description: 'Per-owner Doc 10/11/12 fee % for offers and applications.',
+          icon: 'contract',
+          status: 'live',
+        },
+        {
           href: '/inventories',
           title: 'Inventories',
           description: 'Move-in / move-out condition, keys, meters, 7-day discrepancy.',

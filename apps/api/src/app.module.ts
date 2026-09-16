@@ -38,6 +38,7 @@ import { InventoriesModule } from './inventories/inventories.module';
 import { WorksModule } from './works/works.module';
 import { InspectionsModule } from './inspections/inspections.module';
 import { OffersModule } from './offers/offers.module';
+import { PmEngagementsModule } from './pm-engagements/pm-engagements.module';
 import { SalesOffersModule } from './sales-offers/sales-offers.module';
 import { DepositSettlementsModule } from './deposit-settlements/deposit-settlements.module';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -85,6 +86,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     WorksModule,
     InspectionsModule,
     OffersModule,
+    PmEngagementsModule,
     SalesOffersModule,
     DepositSettlementsModule,
     MailModule,

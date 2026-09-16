@@ -119,6 +119,16 @@ export default function TenantApplicationDetailPage() {
     managementSettlementEntityId: '',
     agencySettlementEntityId: '',
   });
+  const [properties, setProperties] = useState<{ id: string; name: string }[]>([]);
+  const [offerPropertyId, setOfferPropertyId] = useState('');
+  const [feeSchedule, setFeeSchedule] = useState<{
+    agencyFeePct: number;
+    legalFeePct: number;
+    managementFeePct: number;
+    applicationAgencyLegalPct: number;
+    source: string;
+    note?: string;
+  } | null>(null);
 
   async function load() {
     const data = await api<ApplicationDetail>(`/tenant-applications/${id}`);
@@ -161,7 +171,35 @@ export default function TenantApplicationDetailPage() {
         });
       })
       .catch(() => setSettlements([]));
+    api<{ id: string; name: string }[]>('/properties')
+      .then(setProperties)
+      .catch(() => setProperties([]));
+    api<{
+      agencyFeePct: number;
+      legalFeePct: number;
+      managementFeePct: number;
+      applicationAgencyLegalPct: number;
+      source: string;
+      note?: string;
+    }>('/pm-engagements/schedule')
+      .then(setFeeSchedule)
+      .catch(() => setFeeSchedule(null));
   }, [id, router]);
+
+  useEffect(() => {
+    if (!getToken()) return;
+    const q = offerPropertyId ? `?propertyId=${offerPropertyId}` : '';
+    api<{
+      agencyFeePct: number;
+      legalFeePct: number;
+      managementFeePct: number;
+      applicationAgencyLegalPct: number;
+      source: string;
+      note?: string;
+    }>(`/pm-engagements/schedule${q}`)
+      .then(setFeeSchedule)
+      .catch(() => setFeeSchedule(null));
+  }, [offerPropertyId]);
 
   const canReview =
     user?.role === 'PROJECT_MANAGER' || user?.role === 'CEO' || user?.role === 'ADMIN';
@@ -181,6 +219,10 @@ export default function TenantApplicationDetailPage() {
         body: JSON.stringify({
           applicationId: id,
           rentAnnual: Number(app?.rentAccepted) || undefined,
+          propertyId: offerPropertyId || undefined,
+          agencyFeePct: feeSchedule?.agencyFeePct,
+          legalFeePct: feeSchedule?.legalFeePct,
+          managementFeePct: feeSchedule?.managementFeePct,
           landlordSettlementEntityId: offerPayees.landlordSettlementEntityId || undefined,
           managementSettlementEntityId: offerPayees.managementSettlementEntityId || undefined,
           agencySettlementEntityId: offerPayees.agencySettlementEntityId || undefined,
@@ -378,6 +420,44 @@ export default function TenantApplicationDetailPage() {
               </button>
             )}
           </div>
+          {canOffer && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className={LABEL}>Property (for fee schedule)</label>
+                <select
+                  className={INPUT}
+                  value={offerPropertyId}
+                  onChange={(e) => setOfferPropertyId(e.target.value)}
+                >
+                  <option value="">Doc defaults (no engagement)</option>
+                  {properties.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {feeSchedule && (
+                <div className="rounded-md border border-slate-100 bg-slate-50 p-3 text-xs text-slate-600">
+                  <p className="font-medium text-[#1a2744]">
+                    Schedule source: {feeSchedule.source}
+                  </p>
+                  <p className="mt-1">
+                    Offer Agency {feeSchedule.agencyFeePct}% · Legal {feeSchedule.legalFeePct}% ·
+                    Mgmt {feeSchedule.managementFeePct}%
+                  </p>
+                  <p>
+                    App Agency+Legal clause {feeSchedule.applicationAgencyLegalPct}% (Doc 12 —
+                    separate invoice)
+                  </p>
+                  {feeSchedule.note && <p className="mt-1 text-slate-500">{feeSchedule.note}</p>}
+                  <Link href="/pm-engagements" className="mt-1 inline-block text-[#e87722] hover:underline">
+                    Manage engagements →
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
           {canOffer && settlements.length > 0 && (
             <div className="grid gap-3 sm:grid-cols-3">
               {(

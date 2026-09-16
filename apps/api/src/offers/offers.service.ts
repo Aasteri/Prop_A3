@@ -16,6 +16,10 @@ import { AuthUser } from '../common/decorators/current-user.decorator';
 import { NotificationsService } from '../notifications/notifications.service';
 import { generateInvoiceNumber } from '../invoices/invoices.utils';
 import { CreateTenancyOfferDto } from './dto/offer.dto';
+import {
+  DEFAULT_FEE_SCHEDULE,
+  PmEngagementsService,
+} from '../pm-engagements/pm-engagements.service';
 
 /** Doc 10 defaults — separate from Doc 12 application 20% Agency+Legal clause. */
 export function calcOfferFeeLines(
@@ -63,6 +67,7 @@ export class OffersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly engagements: PmEngagementsService,
   ) {}
 
   findByApplication(applicationId: string, user: AuthUser) {
@@ -87,12 +92,19 @@ export class OffersService {
     }
 
     const rent = dto.rentAnnual ?? Number(app.rentAccepted);
-    const agencyPct = dto.agencyFeePct ?? 10;
-    const legalPct = dto.legalFeePct ?? 5;
-    const mgmtPct = dto.managementFeePct ?? 5;
+    const schedule = await this.engagements.resolveSchedule(user, dto.propertyId);
+    const agencyPct = dto.agencyFeePct ?? schedule.agencyFeePct ?? DEFAULT_FEE_SCHEDULE.agencyFeePct;
+    const legalPct = dto.legalFeePct ?? schedule.legalFeePct ?? DEFAULT_FEE_SCHEDULE.legalFeePct;
+    const mgmtPct =
+      dto.managementFeePct ?? schedule.managementFeePct ?? DEFAULT_FEE_SCHEDULE.managementFeePct;
     const fees = calcOfferFeeLines(rent, agencyPct, legalPct, mgmtPct);
     const year = new Date().getFullYear();
     const stamp = Date.now().toString(36).toUpperCase().slice(-5);
+
+    const scheduleNote =
+      schedule.source === 'engagement'
+        ? `Fee schedule from PM engagement ${schedule.engagementId} (${'ownerName' in schedule ? schedule.ownerName : 'owner'})`
+        : 'Fee schedule: Doc 10/11/12 production defaults';
 
     const landlordEntity = dto.landlordSettlementEntityId
       ? await this.requireSettlement(dto.landlordSettlementEntityId)
@@ -129,7 +141,7 @@ export class OffersService {
           dto.managementPayee ?? managementEntity?.name ?? 'Management entity',
         agencyPayee:
           dto.agencyPayee ?? agencyEntity?.name ?? 'A. A Laucarie Consulting',
-        notes: dto.notes,
+        notes: [dto.notes, scheduleNote].filter(Boolean).join('\n') || undefined,
         status: TenancyOfferStatus.ISSUED,
       },
       include,

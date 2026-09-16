@@ -20,11 +20,10 @@ export async function generateApplicationRef(
   return `${prefix}${String(seq).padStart(3, '0')}`;
 }
 
-export function calcAgencyFee(rentAccepted: number): number {
-  // Doc 12 application clause: combined Agency+Legal = 20% of rental value.
-  // Doc 10 offer letter uses separate Agency 10% + Legal 5% + Mgmt 5% — that split
-  // belongs on the offer entity (not this application acceptance fee).
-  return Math.round(rentAccepted * 0.2 * 100) / 100;
+export function calcAgencyFee(rentAccepted: number, pct = 20): number {
+  // Doc 12 application clause: combined Agency+Legal (default 20% of rental value).
+  // Configurable per PM engagement — Doc 10 offer split stays separate.
+  return Math.round(rentAccepted * (pct / 100) * 100) / 100;
 }
 
 export function calcEvaluationAverage(c1: number, c2: number, c3: number, c4: number): number {
