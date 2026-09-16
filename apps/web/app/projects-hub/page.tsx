@@ -45,6 +45,13 @@ export default function ProjectsHubPage() {
           status: 'live',
         },
         {
+          href: '/charters',
+          title: 'Charters & kick-off',
+          description: 'Doc 1 dual sign-off unlocks Doc 2 kick-off minutes.',
+          icon: 'flag',
+          status: 'live',
+        },
+        {
           href: '/closeouts',
           title: 'Project closeouts',
           description: 'Doc 7 handover: floor/zone features, open items, client ack.',

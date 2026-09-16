@@ -72,6 +72,12 @@ export const STAFF_NAV: NavGroup[] = [
         icon: 'check',
         match: (p) => p.startsWith('/closeouts'),
       },
+      {
+        href: '/charters',
+        label: 'Charters & kick-off',
+        icon: 'flag',
+        match: (p) => p.startsWith('/charters') || p.startsWith('/kickoffs'),
+      },
     ],
   },
   {
@@ -241,6 +247,15 @@ export const STAFF_NAV: NavGroup[] = [
     ],
   },
 ];
+
+export function filterNavByRole(groups: NavGroup[], role: string): NavGroup[] {
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !item.roles || item.roles.includes(role)),
+    }))
+    .filter((group) => group.items.length > 0);
+}
 
 export const PORTAL_NAV: NavItem[] = [
   { href: '/portal', label: 'Dashboard', icon: 'dashboard', match: (p) => p === '/portal' },

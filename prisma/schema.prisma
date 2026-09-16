@@ -170,6 +170,8 @@ model Project {
   inspections    ProjectInspection[]
   closeouts      ProjectCloseout[]
   instalmentPlans PurchaserInstalmentPlan[]
+  charter        ProjectCharter?
+  kickoffs       ProjectKickoff[]
 
   @@map("projects")
 }
@@ -210,6 +212,76 @@ model ProjectCloseout {
   @@map("project_closeouts")
 }
 
+enum CharterStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+}
+
+/// Doc 1 / FORM_PROJECT_CHARTER — initiation authority (EXTRACTED Jikwoyi schema)
+model ProjectCharter {
+  id                   String        @id @default(cuid())
+  number               String        @unique
+  projectId            String        @unique @map("project_id")
+  title                String
+  executiveSummary     String        @map("executive_summary") @db.Text
+  goalsJson            Json          @map("goals_json")
+  deliverablesJson     Json          @map("deliverables_json")
+  businessCase         String?       @map("business_case") @db.Text
+  benefits             String?       @db.Text
+  costs                String?       @db.Text
+  budgetRange          String?       @map("budget_range")
+  timeline             String?
+  risksJson            Json?         @map("risks_json")
+  scopeInJson          Json?         @map("scope_in_json")
+  scopeOutJson         Json?         @map("scope_out_json")
+  teamJson             Json?         @map("team_json")
+  successCriteriaJson  Json?         @map("success_criteria_json")
+  status               CharterStatus @default(DRAFT)
+  preparedBy           String?       @map("prepared_by")
+  companySignedAt      DateTime?     @map("company_signed_at")
+  companySignedBy      String?       @map("company_signed_by")
+  clientSignedAt       DateTime?     @map("client_signed_at")
+  clientSignedBy       String?       @map("client_signed_by")
+  approvedAt           DateTime?     @map("approved_at")
+  notes                String?       @db.Text
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_charters")
+}
+
+enum KickoffStatus {
+  DRAFT
+  PUBLISHED
+}
+
+/// Doc 2 / FORM_KICKOFF_MEETING
+model ProjectKickoff {
+  id                 String        @id @default(cuid())
+  number             String        @unique
+  projectId          String        @map("project_id")
+  meetingAt          DateTime      @map("meeting_at")
+  location           String?
+  projectManagerName String?       @map("project_manager_name")
+  preparedBy         String?       @map("prepared_by")
+  attendeesJson      Json          @map("attendees_json")
+  agendaJson         Json          @map("agenda_json")
+  actionsJson        Json          @map("actions_json")
+  status             KickoffStatus @default(DRAFT)
+  publishedAt        DateTime?     @map("published_at")
+  notes              String?       @db.Text
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, status])
+  @@map("project_kickoffs")
+}
+
 // ─── Notifications & HSE ────────────────────────────────────────────────────
 
 enum NotificationType {
@@ -232,6 +304,8 @@ enum NotificationType {
   LANDLORD_REMITTANCE
   PROJECT_CLOSEOUT
   PURCHASER_INSTALMENT
+  PROJECT_CHARTER
+  PROJECT_KICKOFF
 }
 
 model Notification {
