@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
-import { api, getToken } from '@/lib/api';
+import { api, downloadPdf, getToken } from '@/lib/api';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Property = { id: string; name: string; landlordName: string | null };
@@ -24,12 +24,29 @@ type Remittance = {
   property: { id: string; name: string };
 };
 
+type Preview = {
+  suggestedGrossRent: number;
+  suggestedOtherReceipts: number;
+  suggestedExpenses: number;
+  suggestedNet: number;
+  expenseNotesSuggested: string | null;
+  note: string;
+  breakdown: {
+    rentPayments: { amount: number; invoiceNumber: string }[];
+    depositShortfalls: { number: string; shortfallPaid: number }[];
+    landlordMaintenance: { workOrder: string; amount: number }[];
+    depositRefunds: { number: string; refundAmount: number }[];
+  };
+};
+
 export default function RemittancesPage() {
   const router = useRouter();
   const [rows, setRows] = useState<Remittance[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
+  const [preview, setPreview] = useState<Preview | null>(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
   const [form, setForm] = useState({
     propertyId: '',
     landlordName: '',
@@ -66,6 +83,35 @@ export default function RemittancesPage() {
     api<Property[]>('/properties').then(setProperties).catch(console.error);
   }, [router]);
 
+  async function loadPreview() {
+    if (!form.propertyId || !form.periodStart || !form.periodEnd) {
+      setError('Select property and period before suggesting figures');
+      return;
+    }
+    setError('');
+    setPreviewBusy(true);
+    try {
+      const q = new URLSearchParams({
+        propertyId: form.propertyId,
+        periodStart: form.periodStart,
+        periodEnd: form.periodEnd,
+      });
+      const data = await api<Preview>(`/remittances/preview?${q}`);
+      setPreview(data);
+      setForm((f) => ({
+        ...f,
+        grossRent: String(data.suggestedGrossRent),
+        otherReceipts: String(data.suggestedOtherReceipts),
+        expensesTotal: String(data.suggestedExpenses),
+        expenseNotes: data.expenseNotesSuggested ?? f.expenseNotes,
+      }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Preview failed');
+    } finally {
+      setPreviewBusy(false);
+    }
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
@@ -85,6 +131,7 @@ export default function RemittancesPage() {
         }),
       });
       setShowForm(false);
+      setPreview(null);
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create remittance');
@@ -118,7 +165,8 @@ export default function RemittancesPage() {
                 Landlord remittances
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-slate-200/90">
-                Gross rent − approved expenses → net paid to landlord (BRD G.9–G.10).
+                Gross rent − approved expenses → net paid to landlord (BRD G.9–G.10). Suggests
+                figures from rent payments, deposit shortfalls, and landlord maintenance.
               </p>
             </div>
             <button
@@ -146,6 +194,7 @@ export default function RemittancesPage() {
                     propertyId: e.target.value,
                     landlordName: p?.landlordName ?? form.landlordName,
                   });
+                  setPreview(null);
                 }}
               >
                 <option value="">Select…</option>
@@ -172,7 +221,10 @@ export default function RemittancesPage() {
                 className={INPUT}
                 required
                 value={form.periodStart}
-                onChange={(e) => setForm({ ...form, periodStart: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, periodStart: e.target.value });
+                  setPreview(null);
+                }}
               />
             </div>
             <div>
@@ -182,11 +234,43 @@ export default function RemittancesPage() {
                 className={INPUT}
                 required
                 value={form.periodEnd}
-                onChange={(e) => setForm({ ...form, periodEnd: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, periodEnd: e.target.value });
+                  setPreview(null);
+                }}
               />
             </div>
+            <div className="sm:col-span-2">
+              <button
+                type="button"
+                disabled={previewBusy}
+                onClick={loadPreview}
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-[#1a2744] disabled:opacity-50"
+              >
+                {previewBusy ? 'Suggesting…' : 'Suggest from payments / deposits / maintenance'}
+              </button>
+            </div>
+            {preview && (
+              <div className="sm:col-span-2 rounded-md border border-slate-100 bg-slate-50 p-3 text-xs text-slate-600 space-y-1">
+                <p>
+                  Suggested net NGN {preview.suggestedNet.toLocaleString()} ·{' '}
+                  {preview.breakdown.rentPayments.length} rent payment(s) ·{' '}
+                  {preview.breakdown.depositShortfalls.length} shortfall(s) ·{' '}
+                  {preview.breakdown.landlordMaintenance.length} landlord WO(s)
+                </p>
+                {preview.breakdown.depositRefunds.length > 0 && (
+                  <p>
+                    Tenant refunds excluded:{' '}
+                    {preview.breakdown.depositRefunds
+                      .map((r) => `${r.number} NGN ${r.refundAmount.toLocaleString()}`)
+                      .join(', ')}
+                  </p>
+                )}
+                <p className="text-slate-500">{preview.note}</p>
+              </div>
+            )}
             <div>
-              <label className={LABEL}>Gross rent (₦)</label>
+              <label className={LABEL}>Gross rent (NGN)</label>
               <input
                 type="number"
                 min={0}
@@ -197,7 +281,17 @@ export default function RemittancesPage() {
               />
             </div>
             <div>
-              <label className={LABEL}>Expenses (₦)</label>
+              <label className={LABEL}>Other receipts (NGN)</label>
+              <input
+                type="number"
+                min={0}
+                className={INPUT}
+                value={form.otherReceipts}
+                onChange={(e) => setForm({ ...form, otherReceipts: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className={LABEL}>Expenses (NGN)</label>
               <input
                 type="number"
                 min={0}
@@ -241,13 +335,24 @@ export default function RemittancesPage() {
                     {r.property.name} · {r.landlordName}
                   </h2>
                   <p className="mt-1 text-sm text-slate-600">
-                    {r.periodStart.slice(0, 10)} → {r.periodEnd.slice(0, 10)} · Gross ₦
-                    {r.grossRent.toLocaleString()} − Exp ₦{r.expensesTotal.toLocaleString()} ={' '}
-                    <strong>Net ₦{r.netAmount.toLocaleString()}</strong>
+                    {r.periodStart.slice(0, 10)} → {r.periodEnd.slice(0, 10)} · Gross NGN{' '}
+                    {r.grossRent.toLocaleString()}
+                    {r.otherReceipts > 0
+                      ? ` + other NGN ${r.otherReceipts.toLocaleString()}`
+                      : ''}{' '}
+                    − Exp NGN {r.expensesTotal.toLocaleString()} ={' '}
+                    <strong>Net NGN {r.netAmount.toLocaleString()}</strong>
                   </p>
                   <p className="mt-1 text-xs text-slate-500">{r.status}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => downloadPdf(`/remittances/${r.id}/pdf`, `${r.number}.pdf`)}
+                    className="rounded-md border border-slate-300 px-3 py-1.5 text-xs text-[#1a2744]"
+                  >
+                    PDF
+                  </button>
                   {r.status === 'DRAFT' && (
                     <button
                       type="button"

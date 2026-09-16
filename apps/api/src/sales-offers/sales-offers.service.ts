@@ -96,7 +96,7 @@ export class SalesOffersService {
       ...(await this.notifications.salesUserIds()),
       ...(await this.notifications.ceoUserIds()),
       lead.assignedToId,
-    ].filter((id) => id && id !== user.id);
+    ].filter((id): id is string => !!id && id !== user.id);
     if (recipients.length) {
       await this.notifications.notifyUsers(recipients, {
         type: NotificationType.SALES_OFFER_ISSUED,
@@ -143,7 +143,7 @@ export class SalesOffersService {
       ...(await this.notifications.salesUserIds()),
       ...(await this.notifications.ceoUserIds()),
       existing.lead.assignedToId,
-    ].filter((id) => id && id !== user.id);
+    ].filter((id): id is string => !!id && id !== user.id);
     if (recipients.length) {
       await this.notifications.notifyUsers(recipients, {
         type: NotificationType.SALES_OFFER_RESPONDED,
