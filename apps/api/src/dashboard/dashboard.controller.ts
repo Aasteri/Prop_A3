@@ -13,6 +13,11 @@ export class DashboardController {
     return this.dashboard.getPmSummary(user);
   }
 
+  @Get('finance')
+  financeSummary(@CurrentUser() user: AuthUser) {
+    return this.dashboard.getFinanceSummary(user);
+  }
+
   @Get('ceo')
   ceoSummary(@CurrentUser() user: AuthUser) {
     return this.dashboard.getCeoSummary(user);

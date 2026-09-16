@@ -86,6 +86,13 @@ type CeoSummary = {
     totalExpenses: number;
     netIncome: number;
   };
+  propertyFinance?: {
+    pendingRemittances: number;
+    pendingRemittanceNet: number;
+    openDepositSettlements: number;
+    activeTenancies: number;
+    openMaintenance: number;
+  };
   compliance: {
     openHseCount: number;
     pendingLogApprovals: number;
@@ -525,6 +532,46 @@ export default function DashboardPage() {
                       Open register →
                     </Link>
                   </Panel>
+
+                  {ceoSummary.propertyFinance && (
+                    <Panel title="Property finance">
+                      <ul className="space-y-3 text-sm">
+                        <li className="flex items-center justify-between">
+                          <span className="text-slate-600">Pending remittances</span>
+                          <span className="font-semibold text-[#1a2744]">
+                            {ceoSummary.propertyFinance.pendingRemittances} ·{' '}
+                            {formatNaira(ceoSummary.propertyFinance.pendingRemittanceNet)}
+                          </span>
+                        </li>
+                        <li className="flex items-center justify-between">
+                          <span className="text-slate-600">Open deposit settlements</span>
+                          <span className="font-semibold text-[#1a2744]">
+                            {ceoSummary.propertyFinance.openDepositSettlements}
+                          </span>
+                        </li>
+                        <li className="flex items-center justify-between">
+                          <span className="text-slate-600">Active / pending tenancies</span>
+                          <span className="font-semibold text-[#1a2744]">
+                            {ceoSummary.propertyFinance.activeTenancies}
+                          </span>
+                        </li>
+                        <li className="flex items-center justify-between">
+                          <span className="text-slate-600">Open maintenance</span>
+                          <span className="font-semibold text-[#1a2744]">
+                            {ceoSummary.propertyFinance.openMaintenance}
+                          </span>
+                        </li>
+                      </ul>
+                      <div className="mt-4 flex flex-wrap gap-3 text-sm font-medium">
+                        <Link href="/remittances" className="text-[#e87722] hover:underline">
+                          Remittances →
+                        </Link>
+                        <Link href="/properties-hub" className="text-[#e87722] hover:underline">
+                          Properties →
+                        </Link>
+                      </div>
+                    </Panel>
+                  )}
 
                   {ceoSummary.fcdaMissing.length > 0 && (
                     <AlertPanel title="FCDA permits missing" variant="warning">

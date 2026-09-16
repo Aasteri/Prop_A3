@@ -30,7 +30,7 @@ echo "==> Create + submit + approve site log (JKW)"
 PROJECT_ID="seed-jkw-mixuse"
 TODAY=$(date -u +%Y-%m-%d)
 LOG_ID=$(curl -sf "$BASE/site-tracker/logs" -H "Authorization: Bearer $FOREMAN_TOKEN" -H 'Content-Type: application/json' \
-  -d "{\"projectId\":\"$PROJECT_ID\",\"date\":\"$TODAY\",\"projectName\":\"E2E Duplex\",\"projectLocation\":\"Guzape\",\"startTime\":\"07:00\",\"endTime\":\"17:00\",\"activities\":[{\"activity\":\"E2E works\",\"status\":\"ONGOING\",\"progressPercent\":50}],\"materials\":[{\"material\":\"Cement\",\"receivedQty\":10,\"consumedQty\":15}],\"safetyIncidentsNearMisses\":true,\"issueMaterialShortage\":true}" \
+  -d "{\"projectId\":\"$PROJECT_ID\",\"date\":\"$TODAY\",\"projectName\":\"E2E Duplex\",\"projectLocation\":\"Guzape\",\"startTime\":\"07:00\",\"endTime\":\"17:00\",\"activities\":[{\"activity\":\"E2E works\",\"status\":\"ONGOING\",\"progressPercent\":50}],\"materials\":[{\"material\":\"Cement\",\"receivedQty\":10,\"consumedQty\":8}]}" \
   | jget "process.stdout.write(d.id)")
 echo "logId=$LOG_ID"
 
@@ -96,7 +96,23 @@ curl -sf "$BASE/client-portal/documents" -H "Authorization: Bearer $CLIENT_TOKEN
 echo "==> CEO dashboard"
 CEO_TOKEN=$(login 'ceo@propa3.com' 'RwrsW9r8xz&noJv3tept')
 curl -sf "$BASE/dashboard/ceo" -H "Authorization: Bearer $CEO_TOKEN" \
-  | jget "console.log('ceoSites',d.siteHealth.length,'outstanding',d.revenue.totalOutstanding,'leads',d.leads.active,'fcdaMissing',d.fcdaMissing.length)"
+  | jget "console.log('ceoSites',d.siteHealth.length,'outstanding',d.revenue.totalOutstanding,'leads',d.leads.active,'fcdaMissing',d.fcdaMissing.length,'pendingRemit',d.propertyFinance?.pendingRemittances)"
+
+echo "==> Finance dashboard + remittances"
+FIN_TOKEN=$(login 'finance@propa3.com' 'QNp5miQQr@oaQwWD$UPB')
+curl -sf "$BASE/dashboard/finance" -H "Authorization: Bearer $FIN_TOKEN" \
+  | jget "console.log('finance',d.propertyFinance?.pendingRemittances,d.propertyFinance?.openDepositSettlements,d.revenue?.totalOutstanding)"
+curl -sf "$BASE/remittances" -H "Authorization: Bearer $FIN_TOKEN" \
+  | jget "console.log('remittances',d.length,d[0]?.number,d[0]?.status)"
+PROP_ID=$(curl -sf "$BASE/properties" -H "Authorization: Bearer $FIN_TOKEN" \
+  | jget "process.stdout.write(d[0]?.id||'')")
+if [ -n "$PROP_ID" ]; then
+  PERIOD_START=$(date -u -d '30 days ago' +%Y-%m-%d 2>/dev/null || date -u -v-30d +%Y-%m-%d 2>/dev/null || date -u +%Y-%m-01)
+  PERIOD_END=$(date -u +%Y-%m-%d)
+  curl -sf "$BASE/remittances/preview?propertyId=$PROP_ID&periodStart=$PERIOD_START&periodEnd=$PERIOD_END" \
+    -H "Authorization: Bearer $FIN_TOKEN" \
+    | jget "console.log('remitPreview',d.suggestedGrossRent,d.suggestedOtherReceipts,d.suggestedExpenses,d.suggestedNet)"
+fi
 
 echo "==> Audit log"
 curl -sf "$BASE/audit?limit=5" -H "Authorization: Bearer $CEO_TOKEN" \

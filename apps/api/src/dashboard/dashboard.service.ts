@@ -3,10 +3,13 @@ import {
   ChangeImpactLevel,
   ChangeLogStatus,
   DailyLogStatus,
+  DepositSettlementStatus,
   LeadStage,
   MaterialRequestStatus,
   MilestoneStage,
   ProjectStatus,
+  RemittanceStatus,
+  TenancyStatus,
   UserRole,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -37,6 +40,11 @@ export class DashboardService {
       openHse,
       pendingLogs,
       pendingLogsBySite,
+      remittancePending,
+      remittanceNetPending,
+      depositOpen,
+      activeTenancies,
+      openMaintenance,
     ] = await Promise.all([
       this.prisma.site.findMany({
         where: { isActive: true },
@@ -115,6 +123,38 @@ export class DashboardService {
         by: ['siteId'],
         where: { status: DailyLogStatus.SUBMITTED },
         _count: true,
+      }),
+      this.prisma.landlordRemittance.count({
+        where: {
+          status: { in: [RemittanceStatus.DRAFT, RemittanceStatus.APPROVED] },
+        },
+      }),
+      this.prisma.landlordRemittance.aggregate({
+        _sum: { netAmount: true },
+        where: {
+          status: { in: [RemittanceStatus.DRAFT, RemittanceStatus.APPROVED] },
+        },
+      }),
+      this.prisma.depositSettlement.count({
+        where: {
+          status: {
+            in: [
+              DepositSettlementStatus.DRAFT,
+              DepositSettlementStatus.APPROVED,
+              DepositSettlementStatus.REFUND_PENDING,
+            ],
+          },
+        },
+      }),
+      this.prisma.tenancy.count({
+        where: { status: { in: [TenancyStatus.ACTIVE, TenancyStatus.PENDING_MOVE_IN] } },
+      }),
+      this.prisma.maintenanceRequest.count({
+        where: {
+          status: {
+            notIn: ['CLOSED', 'CANCELLED', 'REMOTE_RESOLVED'],
+          },
+        },
       }),
     ]);
 
@@ -217,12 +257,107 @@ export class DashboardService {
         totalExpenses: Number(terrierAgg._sum.expenseAmount ?? 0),
         netIncome: Number(terrierAgg._sum.netRentalIncome ?? 0),
       },
+      propertyFinance: {
+        pendingRemittances: remittancePending,
+        pendingRemittanceNet: Number(remittanceNetPending._sum.netAmount ?? 0),
+        openDepositSettlements: depositOpen,
+        activeTenancies,
+        openMaintenance,
+      },
       compliance: {
         openHseCount: openHse,
         pendingLogApprovals: pendingLogs,
         fcdaMissingCount: fcdaMissing.length,
         highImpactChangeCount: highImpactChanges.length,
         expiringCorenCount: corenLicences.filter((l) => l.status === 'EXPIRING').length,
+      },
+    };
+  }
+
+  async getFinanceSummary(user: AuthUser) {
+    const allowed: UserRole[] = [
+      UserRole.FINANCE,
+      UserRole.CEO,
+      UserRole.ADMIN,
+      UserRole.PROJECT_MANAGER,
+    ];
+    if (!allowed.includes(user.role)) {
+      throw new ForbiddenException('Finance dashboard access only');
+    }
+
+    const [
+      invoiceAgg,
+      remittancePending,
+      remittanceNetPending,
+      remittancePaidMonth,
+      depositOpen,
+      activeTenancies,
+      openMaintenance,
+    ] = await Promise.all([
+      this.prisma.invoice.aggregate({
+        _sum: { paidTotal: true, outstanding: true, revisedTotal: true },
+        _count: true,
+        where: { status: { not: 'CANCELLED' } },
+      }),
+      this.prisma.landlordRemittance.count({
+        where: {
+          status: { in: [RemittanceStatus.DRAFT, RemittanceStatus.APPROVED] },
+        },
+      }),
+      this.prisma.landlordRemittance.aggregate({
+        _sum: { netAmount: true },
+        where: {
+          status: { in: [RemittanceStatus.DRAFT, RemittanceStatus.APPROVED] },
+        },
+      }),
+      this.prisma.landlordRemittance.aggregate({
+        _sum: { netAmount: true },
+        _count: true,
+        where: {
+          status: RemittanceStatus.PAID,
+          paidAt: {
+            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+          },
+        },
+      }),
+      this.prisma.depositSettlement.count({
+        where: {
+          status: {
+            in: [
+              DepositSettlementStatus.DRAFT,
+              DepositSettlementStatus.APPROVED,
+              DepositSettlementStatus.REFUND_PENDING,
+            ],
+          },
+        },
+      }),
+      this.prisma.tenancy.count({
+        where: { status: { in: [TenancyStatus.ACTIVE, TenancyStatus.PENDING_MOVE_IN] } },
+      }),
+      this.prisma.maintenanceRequest.count({
+        where: {
+          status: {
+            notIn: ['CLOSED', 'CANCELLED', 'REMOTE_RESOLVED'],
+          },
+        },
+      }),
+    ]);
+
+    return {
+      revenue: {
+        invoiceCount: invoiceAgg._count,
+        totalBilled: Number(invoiceAgg._sum.revisedTotal ?? 0),
+        totalCollected: Number(invoiceAgg._sum.paidTotal ?? 0),
+        totalOutstanding: Number(invoiceAgg._sum.outstanding ?? 0),
+      },
+      propertyFinance: {
+        pendingRemittances: remittancePending,
+        pendingRemittanceNet: Number(remittanceNetPending._sum.netAmount ?? 0),
+        paidRemittancesThisMonth: remittancePaidMonth._count,
+        paidRemittanceNetThisMonth: Number(remittancePaidMonth._sum.netAmount ?? 0),
+        openDepositSettlements: depositOpen,
+        activeTenancies,
+        openMaintenance,
       },
     };
   }
