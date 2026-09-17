@@ -136,7 +136,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       },
       {
         title: 'This user guide',
-        body: 'Keep /user-guide open in a second tab. Search the glossary for any acronym before asking the team.',
+        body: 'Keep /user-guide open in a second tab. Search glossary, role playbooks, and module sections for any acronym before asking the team.',
       },
     ],
     tips: [
@@ -452,472 +452,6 @@ export type RoleGuide = {
   relatedGuideSectionIds?: string[];
 };
 
-export const ROLE_GUIDES: RoleGuide[] = [
-  {
-    role: 'CEO',
-    title: 'CEO playbook',
-    summary:
-      'See portfolio health, unblock dual sign-offs, and keep commercial/compliance decisions on EXTRACTED facts.',
-    dailyFocus: [
-      'Dashboard KPIs: project health, arrears, remittances, and open approvals',
-      'Charters waiting company or client sign',
-      'IVCs / invoices that need executive visibility',
-      'Audit signals and Admin changes that affect live operations',
-    ],
-    doThis: [
-      {
-        title: 'Scan the dashboard',
-        href: '/dashboard',
-        body: 'Start with arrears, remittance status, and project signals before diving into a single site.',
-      },
-      {
-        title: 'Company-sign charters',
-        href: '/charters',
-        body: 'Complete company sign-off so dual-approved charters can unlock kick-off publish and ACTIVE status.',
-      },
-      {
-        title: 'Review closeouts & retrospectives',
-        href: '/closeouts',
-        body: 'Confirm handover quality and lessons before marking projects complete.',
-      },
-      {
-        title: 'Check audit / admin only when needed',
-        href: '/audit-log',
-        body: 'Use audit log for disputes; leave day-to-day user/site setup to Admin unless risk is high.',
-      },
-    ],
-    neverDo: [
-      'Invent JV equity/share fields or fee splits that are still WAITING from Abraham',
-      'Bypass dual charter sign-off to rush a project live',
-      'Approve tenant applications without an override reason when scoring guidance is BORDERLINE/UNSUITABLE',
-    ],
-    relatedGuideSectionIds: [
-      'getting-started',
-      'projects-initiation',
-      'projects-closure',
-      'finance',
-      'platform',
-    ],
-  },
-  {
-    role: 'PROJECT_MANAGER',
-    title: 'Project Manager playbook',
-    summary:
-      'Own initiation → planning → execution → monitoring → closure. You are the hub between site, client, store, and finance.',
-    dailyFocus: [
-      'Approve yesterday’s site logs and unblock inspections',
-      'Charter / kick-off status for new projects',
-      'WBS % and PMT tasks vs IVC readiness',
-      'Material requests awaiting PM approval',
-      'Progress report and change-log queue',
-    ],
-    doThis: [
-      {
-        title: 'Drive charters & kick-off',
-        href: '/charters',
-        body: 'Draft → submit → dual sign. Publish kick-off only after charter is APPROVED.',
-      },
-      {
-        title: 'Keep WBS and labour current',
-        href: '/work-schedule',
-        body: 'Update owners, dates, % done, and PMT flags; align labour gangs to the plan.',
-      },
-      {
-        title: 'Approve site logs & QC',
-        href: '/site-tracker',
-        body: 'Review daily logs; ensure Pre-pour inspections cannot PASS without complete YES/NA + sign-off.',
-      },
-      {
-        title: 'Route IVCs to approval',
-        href: '/ivcs',
-        body: 'Link works contracts, measured stages, then PM + supervisor sign before Finance pays.',
-      },
-      {
-        title: 'Close with Doc 7 / Doc 8',
-        href: '/closeouts',
-        body: 'Issue closeout, capture client ack, then retrospective for lessons.',
-      },
-    ],
-    neverDo: [
-      'Publish kick-off without an APPROVED charter',
-      'Treat unsigned change-log variations as scope',
-      'Issue materials or pay works without measured/approved trail (IVC / GRN as applicable)',
-      'Mix Doc 12 Agency+Legal % with Doc 10 offer fee splits',
-    ],
-    relatedGuideSectionIds: [
-      'projects-initiation',
-      'projects-planning',
-      'projects-execution',
-      'projects-monitoring',
-      'projects-closure',
-      'procurement',
-      'property-management',
-    ],
-  },
-  {
-    role: 'FOREMAN',
-    title: 'Foreman playbook',
-    summary:
-      'Control the day on site: manpower, activities, HSE, materials asks, and inspection readiness.',
-    dailyFocus: [
-      'Submit today’s site log before leaving site',
-      'Manpower vs labour schedule',
-      'Open material requests / issues',
-      'Inspection sections due (especially Pre-pour)',
-      'HSE notes and blockers for the PM',
-    ],
-    doThis: [
-      {
-        title: 'Write the daily site log',
-        href: '/site-tracker',
-        body: 'Record manpower, activities, materials used, and HSE. Submit for PM approval.',
-      },
-      {
-        title: 'Raise material needs early',
-        href: '/material-requests',
-        body: 'Request issues against project need; do not wait until pour day.',
-      },
-      {
-        title: 'Complete inspection checklists',
-        href: '/inspections',
-        body: 'Mark Yes/No/NA, remarks, and section sign-off. Pre-pour is a hard gate.',
-      },
-      {
-        title: 'Acknowledge ethics',
-        href: '/ethics',
-        body: 'Confirm the 10 professional ethics principles before leading crews.',
-      },
-    ],
-    neverDo: [
-      'Skip the daily log or backfill without facts',
-      'Mark Pre-pour PASS with open NO items or missing sign-off',
-      'Issue store stock yourself — that is Store Manager after PM approval',
-      'Promise scope changes without a change-log entry',
-    ],
-    relatedGuideSectionIds: [
-      'projects-execution',
-      'projects-planning',
-      'projects-monitoring',
-      'procurement',
-    ],
-  },
-  {
-    role: 'ENGINEER',
-    title: 'Engineer playbook',
-    summary:
-      'Protect technical quality: WBS accuracy, inspections, planning docs, and measured progress inputs.',
-    dailyFocus: [
-      'Inspection / QC queue for your sections',
-      'WBS tasks you own — % and blockers',
-      'Planning documents (drawings, BOQ, TDP) completeness',
-      'Technical input to progress reports and IVC measured %',
-    ],
-    doThis: [
-      {
-        title: 'Own technical WBS rows',
-        href: '/work-schedule',
-        body: 'Keep engineering packages numbered, dated, and % truthful for PMT-linked tasks.',
-      },
-      {
-        title: 'Run / sign inspections',
-        href: '/inspections',
-        body: 'Use Doc 4 section checklists; enforce Pre-pour gate before concrete.',
-      },
-      {
-        title: 'Upload planning docs',
-        href: '/planning-docs',
-        body: 'Keep drawings, BOQ, and schedules in the project library so site and PM share one source.',
-      },
-      {
-        title: 'Support progress & IVC facts',
-        href: '/progress-reports',
-        body: 'Feed completed/upcoming technical work and measured % — never estimate for payment without measure.',
-      },
-    ],
-    neverDo: [
-      'Pass QC with incomplete checklist items',
-      'Change structural/scope intent without change control',
-      'Leave BOQ / drawing revisions only on WhatsApp — file them in planning docs',
-    ],
-    relatedGuideSectionIds: [
-      'projects-planning',
-      'projects-execution',
-      'projects-monitoring',
-    ],
-  },
-  {
-    role: 'ARCHITECT',
-    title: 'Architect playbook',
-    summary:
-      'Guard design intent: drawings, planning library, change impact, and design-related inspections.',
-    dailyFocus: [
-      'Latest drawings / revisions in planning documents',
-      'Change-log items that affect design or finishes',
-      'Design-related inspection remarks',
-      'Closeout zone accomplishments vs original intent',
-    ],
-    doThis: [
-      {
-        title: 'Maintain the drawing set',
-        href: '/planning-docs',
-        body: 'Upload revisioned drawings and related design docs so site never works from stale sheets.',
-      },
-      {
-        title: 'Review design changes',
-        href: '/change-log',
-        body: 'Capture cost/time impact and route approval before treating variations as scope.',
-      },
-      {
-        title: 'Support QC where design criteria apply',
-        href: '/inspections',
-        body: 'Add clear remarks when work diverges from drawings; do not verbal-only correct.',
-      },
-      {
-        title: 'Input to closeout',
-        href: '/closeouts',
-        body: 'Confirm design zones and open items before client acknowledgement.',
-      },
-    ],
-    neverDo: [
-      'Issue informal sketch changes without a logged revision',
-      'Approve site deviations that conflict with statutory or client brief without PM/change control',
-    ],
-    relatedGuideSectionIds: [
-      'projects-planning',
-      'projects-execution',
-      'projects-closure',
-    ],
-  },
-  {
-    role: 'STORE_MANAGER',
-    title: 'Store Manager playbook',
-    summary:
-      'Control stock movement: approved material requests, GRNs, vendor reliability, and site issues.',
-    dailyFocus: [
-      'Material requests approved and waiting issue',
-      'Open POs needing GRN',
-      'Vendor directory accuracy (Sheet 7)',
-      'Site shortages flagged by Foreman / Engineer',
-    ],
-    doThis: [
-      {
-        title: 'Issue against approved requests',
-        href: '/material-requests',
-        body: 'Issue stock only after PM (or allowed role) approval — keep quantities auditable.',
-      },
-      {
-        title: 'Complete GRNs for goods',
-        href: '/procurement/goods',
-        body: 'Confirm receipts against PO; do not book stock from informal delivery notes alone.',
-      },
-      {
-        title: 'Keep vendors current',
-        href: '/vendors',
-        body: 'Business name, products, location, contact, reliability stars (1–5), and notes.',
-      },
-      {
-        title: 'Use the procurement hub',
-        href: '/procurement',
-        body: 'Jump between goods, services, and works from one place when unsure.',
-      },
-    ],
-    neverDo: [
-      'Issue materials on verbal-only authority',
-      'Skip GRN and still treat goods as received for payment',
-      'Invent vendor prices or reliability scores without evidence',
-    ],
-    relatedGuideSectionIds: ['procurement', 'projects-execution'],
-  },
-  {
-    role: 'FINANCE',
-    title: 'Finance playbook',
-    summary:
-      'Money in/out with proof: invoices, payment verification, remittances, instalments, and IVC pay readiness.',
-    dailyFocus: [
-      'Payment proofs waiting verification',
-      'IVCs approaching APPROVED / pay',
-      'Landlord remittances due',
-      'Purchaser instalment arrears',
-      'Service charge vs maintenance spend boundary',
-    ],
-    doThis: [
-      {
-        title: 'Verify invoices & payments',
-        href: '/invoices',
-        body: 'Raise against settlement entities; verify bank-transfer proof (Phase 1 — no auto bank verify yet).',
-      },
-      {
-        title: 'Track IVCs',
-        href: '/ivcs',
-        body: 'Pay only after measured stages and PM + supervisor sign-off to APPROVED.',
-      },
-      {
-        title: 'Remit to landlords',
-        href: '/remittances',
-        body: 'Net rent after agreed deductions; keep SC spend within available levy.',
-      },
-      {
-        title: 'Purchaser instalments',
-        href: '/instalments',
-        body: 'Record receipts; clients see balances on /portal/instalments.',
-      },
-      {
-        title: 'Use audit when disputed',
-        href: '/audit-log',
-        body: 'Who changed what — especially fee schedules and approvals.',
-      },
-    ],
-    neverDo: [
-      'Pay works without APPROVED IVC trail',
-      'Mix Doc 10 and Doc 12 fee bases',
-      'Spend service charge beyond available levy',
-      'Invent platform fee rates — works ~10%, services 2.5% (materials out of 2.5% base)',
-    ],
-    relatedGuideSectionIds: [
-      'finance',
-      'projects-monitoring',
-      'property-management',
-      'property-sales',
-      'platform',
-    ],
-  },
-  {
-    role: 'SALES',
-    title: 'Sales playbook',
-    summary:
-      'Fill the pipeline and close compliant lettings/sales: CRM, listings, viewings, tenant scoring, offers, instalments.',
-    dailyFocus: [
-      'Hot CRM leads and overdue viewings',
-      'Tenant applications ready to score / decide',
-      'Listings that need publish or price refresh',
-      'Sales offers and purchaser instalment follow-ups',
-    ],
-    doThis: [
-      {
-        title: 'Work CRM & viewings',
-        href: '/crm',
-        body: 'Capture leads, book viewings/inspections, and advance stages with notes.',
-      },
-      {
-        title: 'Publish listings',
-        href: '/listings',
-        body: 'Keep sales listings accurate; flag JV interest only — no invented equity fields.',
-      },
-      {
-        title: 'Score tenant applications',
-        href: '/tenant-applications',
-        body: 'Staff score 4 parameters 0–10; system averages only. Override reason required if average < 6.0.',
-      },
-      {
-        title: 'Issue Doc 10 offers when path is clear',
-        href: '/tenant-applications',
-        body: 'Use Doc 10 fee split + settlement entities after acceptance path — not Doc 12 combined %.',
-      },
-      {
-        title: 'Follow purchaser instalments',
-        href: '/instalments',
-        body: 'Coordinate with Finance on receipts; client sees balance in the portal.',
-      },
-    ],
-    neverDo: [
-      'Let tenants self-score applications',
-      'Approve BORDERLINE/UNSUITABLE without a written override',
-      'Invent JV commercial share fields still WAITING confirmation',
-      'Quote Agency/Legal from the wrong document (Doc 10 vs Doc 12)',
-    ],
-    relatedGuideSectionIds: [
-      'property-management',
-      'property-sales',
-      'getting-started',
-    ],
-  },
-  {
-    role: 'CLIENT',
-    title: 'Client portal playbook',
-    summary:
-      'External clients use /portal — payments, instalments, maintenance, shared documents — not staff hubs.',
-    dailyFocus: [
-      'Open invoices and upload payment proof',
-      'Purchaser instalment balance',
-      'Maintenance tickets you raised',
-      'Shared project/property documents',
-    ],
-    doThis: [
-      {
-        title: 'Open the portal dashboard',
-        href: '/portal',
-        body: 'Start here for status cards and shortcuts; staff menus are not for CLIENT accounts.',
-      },
-      {
-        title: 'Pay / upload proof',
-        href: '/portal/payments',
-        body: 'View invoices and upload bank-transfer proof for Finance to verify.',
-      },
-      {
-        title: 'Check instalments',
-        href: '/portal/instalments',
-        body: 'See schedule and outstanding balance for purchaser plans.',
-      },
-      {
-        title: 'Raise maintenance',
-        href: '/portal/maintenance',
-        body: 'Log facility issues where enabled; attach photos when helpful.',
-      },
-      {
-        title: 'Download documents',
-        href: '/portal/documents',
-        body: 'Use shared files issued by the team — do not rely on email-only copies.',
-      },
-    ],
-    neverDo: [
-      'Expect staff hub screens (/dashboard, /charters, etc.) to work for CLIENT',
-      'Assume payment is cleared before Finance verifies proof',
-      'Treat informal WhatsApp instructions as a substitute for portal records',
-    ],
-    relatedGuideSectionIds: ['portal', 'getting-started'],
-  },
-  {
-    role: 'ADMIN',
-    title: 'Admin playbook',
-    summary:
-      'Keep the platform operable: users, sites, documents hygiene, ethics access, and controlled settings.',
-    dailyFocus: [
-      'New user / role / site assignment requests',
-      'Inactive or wrong-role accounts',
-      'Document store hygiene for projects/properties',
-      'Escalations that need audit evidence',
-    ],
-    doThis: [
-      {
-        title: 'Manage users & sites',
-        href: '/admin',
-        body: 'Create/activate users, set roles, and primary sites. Restrict admin powers to CEO/Admin.',
-      },
-      {
-        title: 'Watch the audit log',
-        href: '/audit-log',
-        body: 'Support Finance/CEO on disputes — who changed approvals, fees, or tenant decisions.',
-      },
-      {
-        title: 'Documents library',
-        href: '/documents',
-        body: 'Keep central files linked to the right project/property where applicable.',
-      },
-      {
-        title: 'Point staff to this guide',
-        href: '/user-guide',
-        body: 'Role chips + glossary reduce tribal knowledge; update WAITING notes when Abraham confirms.',
-      },
-    ],
-    neverDo: [
-      'Grant ADMIN/CEO casually',
-      'Edit live commercial clauses outside EXTRACTED / engagement schedules',
-      'Delete audit history or bypass role checks for convenience',
-    ],
-    relatedGuideSectionIds: ['platform', 'getting-started', 'finance'],
-  },
-];
-
 /** One playbook per UserRole — so every role can operate without guessing. */
 export const ROLE_GUIDES: RoleGuide[] = [
   {
@@ -970,50 +504,6 @@ export const ROLE_GUIDES: RoleGuide[] = [
       'finance',
       'platform',
     ],
-  },
-  {
-    role: 'ADMIN',
-    title: 'Admin playbook',
-    summary:
-      'Keep the platform usable: users, sites, documents, and clean master data so other roles are not blocked.',
-    dailyFocus: [
-      'New user access and correct roles',
-      'Sites / estates ready for projects and terrier',
-      'Settlement entities and PM fee schedules accurate',
-      'Point staff to role playbooks and ethics acknowledgement',
-    ],
-    doThis: [
-      {
-        title: 'Manage users and sites',
-        href: '/admin',
-        body: 'Create accounts, assign roles, attach primary sites, deactivate leavers.',
-      },
-      {
-        title: 'Keep documents organised',
-        href: '/documents',
-        body: 'Ensure planning packs and signed PDFs land in Documents / planning-docs, not only WhatsApp.',
-      },
-      {
-        title: 'Configure PM fee schedules',
-        href: '/pm-engagements',
-        body: 'Doc 10/11/12 percentages drive applications and offers. Download Doc 11 proposal PDF when engaging landlords.',
-      },
-      {
-        title: 'Support terrier master data',
-        href: '/estate-terrier',
-        body: 'Estates and units must exist before Sales can approve applications onto a terrier row.',
-      },
-      {
-        title: 'Point staff to this guide',
-        href: '/user-guide',
-        body: 'Onboard with role chips + glossary so people stop asking the same terminology questions.',
-      },
-    ],
-    neverDo: [
-      'Do not give CLIENT accounts staff-hub expectations — clients use /portal.',
-      'Do not hard-code fee myths; always use engagement schedule values.',
-    ],
-    relatedGuideSectionIds: ['getting-started', 'platform', 'property-management', 'finance'],
   },
   {
     role: 'PROJECT_MANAGER',
@@ -1394,6 +884,48 @@ export const ROLE_GUIDES: RoleGuide[] = [
     ],
     relatedGuideSectionIds: ['portal'],
   },
+  {
+    role: 'ADMIN',
+    title: 'Admin playbook',
+    summary:
+      'Keep the platform usable: users, sites, documents, and clean master data so other roles are not blocked.',
+    dailyFocus: [
+      'New user access and correct roles',
+      'Sites / estates ready for projects and terrier',
+      'Settlement entities and PM fee schedules accurate',
+      'Point staff to role playbooks and ethics acknowledgement',
+    ],
+    doThis: [
+      {
+        title: 'Manage users and sites',
+        href: '/admin',
+        body: 'Create accounts, assign roles, attach primary sites, deactivate leavers.',
+      },
+      {
+        title: 'Keep documents organised',
+        href: '/documents',
+        body: 'Ensure planning packs and signed PDFs land in Documents / planning-docs, not only WhatsApp.',
+      },
+      {
+        title: 'Configure PM fee schedules',
+        href: '/pm-engagements',
+        body: 'Doc 10/11/12 percentages drive applications and offers. Download Doc 11 proposal PDF when engaging landlords.',
+      },
+      {
+        title: 'Support terrier master data',
+        href: '/estate-terrier',
+        body: 'Estates and units must exist before Sales can approve applications onto a terrier row.',
+      },
+      {
+        title: 'Point staff to this guide',
+        href: '/user-guide',
+        body: 'Onboard with role chips + glossary so people stop asking the same terminology questions.',
+      },
+    ],
+    neverDo: [
+      'Do not give CLIENT accounts staff-hub expectations — clients use /portal.',
+      'Do not hard-code fee myths; always use engagement schedule values.',
+    ],
+    relatedGuideSectionIds: ['getting-started', 'platform', 'property-management', 'finance'],
+  }
 ];
-
-export const ALL_ROLES = ROLE_GUIDES.map((r) => r.role);

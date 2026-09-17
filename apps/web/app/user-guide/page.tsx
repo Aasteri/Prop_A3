@@ -12,13 +12,22 @@ import {
   GUIDE_SECTIONS,
   ROLE_GUIDES,
   type RoleGuide,
+  type UserRole,
 } from '@/lib/user-guide-content';
+
+function isUserRole(value: string): value is UserRole {
+  return (ALL_ROLES as string[]).includes(value);
+}
+
+function roleLabel(role: string) {
+  return role.replace(/_/g, ' ');
+}
 
 function UserGuideInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [q, setQ] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('ALL');
+  const [roleFilter, setRoleFilter] = useState<'ALL' | UserRole>('ALL');
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
@@ -27,10 +36,15 @@ function UserGuideInner() {
       return;
     }
     const user = getUser<AuthUser>();
-    const fromQuery = searchParams.get('role')?.toUpperCase() ?? '';
-    const validQuery = ALL_ROLES.includes(fromQuery) ? fromQuery : '';
+    const fromQuery = (searchParams.get('role') ?? '').toUpperCase();
     if (user?.role) setUserRole(user.role);
-    setRoleFilter(validQuery || user?.role || 'ALL');
+    if (isUserRole(fromQuery)) {
+      setRoleFilter(fromQuery);
+    } else if (user?.role && isUserRole(user.role)) {
+      setRoleFilter(user.role);
+    } else {
+      setRoleFilter('ALL');
+    }
   }, [router, searchParams]);
 
   const query = q.trim().toLowerCase();
@@ -64,9 +78,7 @@ function UserGuideInner() {
 
   const sections = useMemo(() => {
     const selected =
-      roleFilter === 'ALL'
-        ? null
-        : ROLE_GUIDES.find((r) => r.role === roleFilter) ?? null;
+      roleFilter === 'ALL' ? null : (ROLE_GUIDES.find((r) => r.role === roleFilter) ?? null);
     const allowedIds = selected?.relatedGuideSectionIds;
 
     let list = GUIDE_SECTIONS;
@@ -88,7 +100,7 @@ function UserGuideInner() {
     });
   }, [query, roleFilter]);
 
-  function selectRole(role: string) {
+  function selectRole(role: 'ALL' | UserRole) {
     setRoleFilter(role);
     const url = role === 'ALL' ? '/user-guide' : `/user-guide?role=${role}`;
     router.replace(url);
@@ -124,7 +136,7 @@ function UserGuideInner() {
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
-              All roles
+              All
             </button>
             {ALL_ROLES.map((role) => (
               <button
@@ -137,7 +149,7 @@ function UserGuideInner() {
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
-                {role.replace(/_/g, ' ')}
+                {roleLabel(role)}
                 {userRole === role ? ' · you' : ''}
               </button>
             ))}
@@ -163,6 +175,15 @@ function UserGuideInner() {
             <a href="#by-role" className="text-[#e87722] hover:underline">
               By role
             </a>
+            <ul className="mt-1 space-y-0.5 pl-4 text-xs text-slate-600">
+              {ALL_ROLES.map((role) => (
+                <li key={role}>
+                  <a href={`#role-${role}`} className="hover:text-[#e87722] hover:underline">
+                    {roleLabel(role)}
+                  </a>
+                </li>
+              ))}
+            </ul>
           </li>
           <li className="mb-1 break-inside-avoid">
             <a href="#glossary" className="text-[#e87722] hover:underline">
@@ -193,7 +214,7 @@ function UserGuideInner() {
           >
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-[#e87722]">
-                {r.role.replace(/_/g, ' ')}
+                {roleLabel(r.role)}
                 {userRole === r.role ? ' · your role' : ''}
               </p>
               <h3 className="mt-1 text-lg font-semibold text-[#1a2744]">{r.title}</h3>
@@ -210,7 +231,9 @@ function UserGuideInner() {
               </ul>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Do this</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Do this
+              </p>
               <ol className="mt-2 list-decimal space-y-3 pl-5 text-sm text-slate-700">
                 {r.doThis.map((step) => (
                   <li key={step.title}>
@@ -230,6 +253,23 @@ function UserGuideInner() {
                   <li key={item}>• {item}</li>
                 ))}
               </ul>
+            )}
+            {r.relatedGuideSectionIds && r.relatedGuideSectionIds.length > 0 && (
+              <p className="flex flex-wrap gap-2 text-sm">
+                <span className="text-slate-500">Related modules:</span>
+                {r.relatedGuideSectionIds.map((id) => {
+                  const section = GUIDE_SECTIONS.find((s) => s.id === id);
+                  return (
+                    <a
+                      key={id}
+                      href={`#${id}`}
+                      className="rounded-md bg-[#1a2744]/5 px-2 py-0.5 font-medium text-[#1a2744] hover:bg-[#1a2744]/10"
+                    >
+                      {section?.title ?? id}
+                    </a>
+                  );
+                })}
+              </p>
             )}
           </article>
         ))}
@@ -302,8 +342,8 @@ function UserGuideInner() {
       )}
 
       <p className="pb-8 text-center text-xs text-slate-500">
-        Triple A Realty / Propa3 · Role playbooks for CEO, Admin, PM, Foreman, Engineer, Architect,
-        Store, Finance, Sales, Client
+        Triple A Realty / Propa3 · Role playbooks for CEO, PM, Foreman, Engineer, Architect, Store,
+        Finance, Sales, Client, Admin
       </p>
     </div>
   );
@@ -312,7 +352,7 @@ function UserGuideInner() {
 export default function UserGuidePage() {
   return (
     <AppShell>
-      <Suspense fallback={<p className="p-6 text-sm text-slate-500">Loading guide…</p>}>
+      <Suspense fallback={<p className={`${CARD} p-6 text-sm text-slate-500`}>Loading guide…</p>}>
         <UserGuideInner />
       </Suspense>
     </AppShell>
