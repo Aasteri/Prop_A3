@@ -12,16 +12,6 @@ export type GuideSection = {
   related?: string[];
 };
 
-export type RoleGuide = {
-  role: string;
-  title: string;
-  summary: string;
-  dailyFocus: string[];
-  doThis: { title: string; href?: string; body: string }[];
-  neverDo?: string[];
-  relatedGuideSectionIds?: string[];
-};
-
 /** In-app staff user guide — keep aligned with live modules on main. */
 export const GLOSSARY: GuideTerm[] = [
   {
