@@ -52,6 +52,13 @@ export default function ProjectsHubPage() {
           status: 'live',
         },
         {
+          href: '/retrospectives',
+          title: 'Retrospectives',
+          description: 'Doc 8 lessons learned and optional client testimonial.',
+          icon: 'clipboard',
+          status: 'live',
+        },
+        {
           href: '/closeouts',
           title: 'Project closeouts',
           description: 'Doc 7 handover: floor/zone features, open items, client ack.',

@@ -172,6 +172,7 @@ model Project {
   instalmentPlans PurchaserInstalmentPlan[]
   charter        ProjectCharter?
   kickoffs       ProjectKickoff[]
+  retrospectives ProjectRetrospective[]
 
   @@map("projects")
 }
@@ -282,6 +283,51 @@ model ProjectKickoff {
   @@map("project_kickoffs")
 }
 
+enum RetrospectiveStatus {
+  DRAFT
+  PUBLISHED
+}
+
+/// Doc 8 / FORM_RETROSPECTIVE — lessons learned + optional client testimonial (US-CLOSE-07/08)
+model ProjectRetrospective {
+  id                   String              @id @default(cuid())
+  number               String              @unique
+  projectId            String              @map("project_id")
+  heldAt               DateTime?           @map("held_at") @db.Date
+  ownerName            String?             @map("owner_name")
+  collaborators        String?             @db.Text
+  projectSummary       String              @map("project_summary") @db.Text
+  projectStatusNote    String?             @map("project_status_note")
+  goalsObjectives      String?             @map("goals_objectives") @db.Text
+  durationNote         String?             @map("duration_note")
+  teamNote             String?             @map("team_note") @db.Text
+  docsLink             String?             @map("docs_link")
+  methodology          String?
+  resources            String?             @db.Text
+  wentWellJson         Json                @map("went_well_json")
+  improvementsJson     Json                @map("improvements_json")
+  luckyJson            Json                @map("lucky_json")
+  /// [{ "action": "...", "type": "tool|process|team", "owner": "...", "links": "..." }]
+  actionsJson          Json                @map("actions_json")
+  nextSteps            String?             @map("next_steps") @db.Text
+  /// [{ "dateAchieved": "...", "milestone": "..." }]
+  timelineJson         Json                @map("timeline_json")
+  clientTestimonial    String?             @map("client_testimonial") @db.Text
+  clientFeedbackAt     DateTime?           @map("client_feedback_at")
+  clientFeedbackBy     String?             @map("client_feedback_by")
+  status               RetrospectiveStatus @default(DRAFT)
+  publishedAt          DateTime?           @map("published_at")
+  preparedBy           String?             @map("prepared_by")
+  notes                String?             @db.Text
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, status])
+  @@map("project_retrospectives")
+}
+
 // ─── Notifications & HSE ────────────────────────────────────────────────────
 
 enum NotificationType {
@@ -306,6 +352,7 @@ enum NotificationType {
   PURCHASER_INSTALMENT
   PROJECT_CHARTER
   PROJECT_KICKOFF
+  PROJECT_RETROSPECTIVE
 }
 
 model Notification {

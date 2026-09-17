@@ -44,6 +44,7 @@ import { DepositSettlementsModule } from './deposit-settlements/deposit-settleme
 import { CloseoutsModule } from './closeouts/closeouts.module';
 import { InstalmentsModule } from './instalments/instalments.module';
 import { ChartersModule } from './charters/charters.module';
+import { RetrospectivesModule } from './retrospectives/retrospectives.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -95,6 +96,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     CloseoutsModule,
     InstalmentsModule,
     ChartersModule,
+    RetrospectivesModule,
     MailModule,
   ],
   controllers: [AppController],

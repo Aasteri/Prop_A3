@@ -78,6 +78,12 @@ export const STAFF_NAV: NavGroup[] = [
         icon: 'flag',
         match: (p) => p.startsWith('/charters') || p.startsWith('/kickoffs'),
       },
+      {
+        href: '/retrospectives',
+        label: 'Retrospectives',
+        icon: 'clipboard',
+        match: (p) => p.startsWith('/retrospectives'),
+      },
     ],
   },
   {
