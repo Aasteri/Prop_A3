@@ -40,6 +40,34 @@ export class OffersController {
     res.send(buf);
   }
 
+  @Get(':id/tenancy-agreement-pdf')
+  async tenancyAgreementPdf(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Res() res: Response,
+  ) {
+    const buf = await this.offers.buildTenancyAgreementPdf(id, user);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="tenancy-agreement-${id}.pdf"`,
+    });
+    res.send(buf);
+  }
+
+  @Post(':id/tenancy-agreement-pdf')
+  async tenancyAgreementPdfPost(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Res() res: Response,
+  ) {
+    const buf = await this.offers.buildTenancyAgreementPdf(id, user);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="tenancy-agreement-${id}.pdf"`,
+    });
+    res.send(buf);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.offers.findOne(id, user);

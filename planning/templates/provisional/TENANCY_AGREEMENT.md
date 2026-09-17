@@ -1,10 +1,9 @@
-# Tenancy Agreement — Production Default
+# Tenancy Agreement — Nigeria Residential (Production Default)
 
 > **Status: PRODUCTION DEFAULT** — Complete operational template for propA3.  
-> **Supersession:** If Abraham later supplies a different agreement, extract and replace this file; until then this is the system source of truth.  
 > **Form ID:** `FORM_TENANCY_AGREEMENT`  
-> **Governing context:** Residential / mixed-use tenancies in FCT Abuja and similar Nigerian jurisdictions. Adapt state-specific notice periods via config.  
-> **Related:** Offer Letter (Doc 10 EXTRACTED), Tenant Application (Doc 12 EXTRACTED), Inventory (Doc 9 EXTRACTED), FM–Landlord Agreement.
+> **Jurisdiction:** Federal Capital Territory, Abuja (default; adapt notice periods by state).  
+> **Placeholders (PDF fill):** `{{landlord}}` · `{{tenant}}` · `{{property}}` · `{{rent}}` · `{{start}}` · `{{end}}` · `{{caution}}`
 
 ---
 
@@ -13,13 +12,11 @@
 | Field | Value |
 |-------|-------|
 | Agreement No. | `TA-{PROPERTY_CODE}-{YYYY}-{SEQ}` |
-| Version | 1.0 |
+| Version | 1.1 |
 | Prepared by | Facility / Property Manager |
-| Jurisdiction | Federal Capital Territory, Abuja (default; configurable) |
-| Effective date | |
-| Linked offer letter ref | |
-| Linked tenant application ref | |
-| Linked inventory (move-in) ref | |
+| Linked offer letter | |
+| Linked tenant application | |
+| Linked move-in inventory | |
 
 ---
 
@@ -29,42 +26,35 @@
 
 | Field | Value |
 |-------|-------|
-| Full legal name | |
+| Full legal name | {{landlord}} |
 | Address | |
-| Phone | |
-| Email | |
-| ID type / number (optional) | |
+| Phone / email | |
 
 ### 2.2 Managing Agent (if appointed)
 
 | Field | Value |
 |-------|-------|
-| Firm name | Triple A Realty Projects Ltd / A. Laucarie Consulting |
-| Address | Suite D15B, Platinum Mega Plaza, Jahi, Abuja (configurable) |
-| Phone | |
-| Email | |
+| Firm name | Triple A Realty Projects Ltd |
+| Address | Suite D15B, Platinum Mega Plaza, Jahi, Abuja |
 | Authority to collect rent | Yes / No |
 | Authority to issue notices | Yes / No |
+| Agency fee | Per offer / application schedule |
 
 ### 2.3 Tenant(s)
 
 | Field | Value |
 |-------|-------|
-| Full name(s) | |
-| Phone | |
-| Email | |
+| Full name(s) | {{tenant}} |
+| Phone / email | |
 | Occupation | |
 | Permanent address | |
-| Next of kin name / phone | |
 
 ### 2.4 Guarantor
 
 | Field | Value |
 |-------|-------|
 | Full name | |
-| Phone | |
-| Address / place of work | |
-| Relationship to tenant | |
+| Phone / work address | |
 | Guarantee scope | Rent, caution shortfall, and tenant obligations under this agreement |
 
 ---
@@ -73,12 +63,9 @@
 
 | Field | Value |
 |-------|-------|
-| Property name / estate | |
-| Full address | |
-| Unit identifier | e.g. Flat 2, Block B |
-| Property type | 1-bed / 2-bed / 3-bed / duplex / other |
-| Inclusive amenities | Parking · BQ · Generator access · Borehole · Estate facilities (list) |
-| Title / ownership note | For reference only — not a title transfer |
+| Description / address | {{property}} |
+| Unit identifier | |
+| Inclusive amenities | Parking · BQ · Generator · Borehole · Estate facilities (list) |
 
 ---
 
@@ -86,114 +73,61 @@
 
 | Field | Value |
 |-------|-------|
-| Commencement date | |
-| Expiry date | |
+| Commencement | {{start}} |
+| Expiry | {{end}} |
 | Tenancy term | Usually 1 year (configurable) |
-| Renewal | By mutual written agreement; subject to renewal notices at **3 months** and **1 month** before expiry |
-| Holding over | Occupancy after expiry without renewal/payment is breach; recovery process may commence |
+| Renewal | Mutual written agreement; reminders at **3 months** and **1 month** before expiry |
+| Holding over | Occupancy after expiry without renewal/payment is breach |
 
 ---
 
-## 5. Rent, deposits and charges
+## 5. Rent, deposit (caution), service charge & agency
 
-| Item | Amount (₦) | Frequency | Payable to |
-|------|------------|-----------|------------|
-| Fixed rent | | Per annum | Landlord account (per offer) |
-| Caution / security deposit | | One-off | Landlord / Agent as stated on offer |
-| Service charge | | Per annum | Management / SC ledger |
-| Estate surcharge (if any) | | Per annum | As stated on offer (e.g. ENL) |
-| Agency fee | | As offer / application | Agency account |
-| Legal fee | | As offer / application | Management / legal account |
+| Item | Amount | Notes |
+|------|--------|-------|
+| Fixed rent | {{rent}} | Per annum unless stated otherwise |
+| Caution / security deposit | {{caution}} | One-off; refundable less lawful deductions |
+| Service charge | | Annual; administered by Manager |
+| Agency / professional fees | | Per offer letter / application |
 
-**Payment rules**
-
-| Rule | Detail |
-|------|--------|
-| Due date | As stated on offer / anniversary |
-| Mode | Bank transfer / cheque / other approved |
-| Receipt | Issued for every payment |
-| Late payment | Reminder → arrears notice → recovery process per notices module |
-| Rent vs expenses | Recorded separately; remittance = gross − approved expenses |
-
-**Application fee clause (from Doc 12 EXTRACTED):** Tenant acknowledged on application that **20% of rental value** may be payable as Agency and Legal fees for professional services (configurable schedule may split Agency/Legal/Management as on Offer Letter Doc 10).
+**Payment:** Bank transfer into the system (or approved channel). Receipt issued for every payment. Late payment → reminder → arrears notice → recovery process.
 
 ---
 
-## 6. Landlord covenants
+## 6. Quiet enjoyment
 
-1. Allow quiet enjoyment while tenant complies with this agreement.  
-2. Keep structure (roof, external walls, foundation) in reasonable repair.  
-3. Ensure major plumbing, electrical, and common services are maintained (directly or via Agent).  
-4. Not unlawfully disturb occupation or use self-help eviction.  
-5. Return caution deposit (less lawful deductions) within configured days after move-out settlement.
+Landlord (and Agent) covenant that while Tenant pays rent and observes this agreement, Tenant may quietly enjoy the premises without unlawful interruption or self-help eviction.
 
 ---
 
-## 7. Tenant covenants
+## 7. Repairs — landlord / tenant split (default)
+
+| Party | Responsibility |
+|-------|----------------|
+| **Landlord** | Structure (roof, external walls, foundation); major MEP; keep premises fit for habitation at start of term |
+| **Tenant** | Interior cleanliness; minor upkeep (bulbs, minor fittings); damage beyond fair wear and tear |
+| **Manager (SC)** | Common services funded from **available service-charge balance**; escalate to Landlord when cost exceeds SC |
+
+Full default matrix: `MAINTENANCE_PAYOR_MATRIX.md`.
+
+---
+
+## 8. Tenant covenants (summary)
 
 1. Pay rent and agreed charges on time.  
-2. Use premises only as private residence / agreed use.  
-3. Keep interior clean; perform minor upkeep (bulbs, minor fittings, cleanliness).  
-4. Not cause damage beyond fair wear and tear.  
-5. Not sublet, assign, or part with possession without prior written consent.  
-6. Not make structural alterations without written consent.  
-7. Report defects promptly via the maintenance channel.  
-8. Allow reasonable inspection access on notice (except emergencies).  
-9. Comply with estate rules and service-charge regulations.  
-10. Return keys and vacant possession on expiry/termination.
+2. Use as private residence / agreed use only.  
+3. No subletting/assignment without written consent.  
+4. No structural alterations without written consent.  
+5. Report defects promptly; allow reasonable inspection on notice.  
+6. Comply with estate rules; return keys and vacant possession on exit.
 
 ---
 
-## 8. Managing Agent / Facility Manager duties (when appointed)
-
-1. Collect rent and remit per remittance schedule.  
-2. Administer tenancy, renewals, and inspections.  
-3. Coordinate maintenance using **available service-charge funds** as the spend boundary; escalate to Landlord when cost exceeds available SC.  
-4. Keep financial records and provide statements.  
-5. Manage move-in / move-out inventory comparison and deposit settlement.
-
----
-
-## 9. Maintenance responsibility matrix (default)
-
-| Category | Examples | Responsible | Funding |
-|----------|----------|-------------|---------|
-| Structural | Roof leak (structure), foundation, external wall fabric | Landlord | Landlord |
-| Major MEP | Main electrical board failure, major pipe burst, borehole pump (if landlord asset) | Landlord | Landlord (unless SC covers) |
-| SC-covered common services | External lights, compound cleaning, AEPB, estate water, security (per offer SC description) | FM | Service charge |
-| Minor internal | Bulbs, minor taps washers, internal cleanliness, tenant-caused breakage | Tenant | Tenant |
-| Pre-move-in defects | Found at inventory before move-in | Landlord | Landlord approval gate before move-in |
-| Emergency make-safe | Stop leak, isolate power | FM may act immediately | SC if available else Landlord |
-
----
-
-## 10. Service charge
-
-| Field | Detail |
-|-------|--------|
-| Annual SC amount | |
-| What SC covers | Per offer letter schedule |
-| Unspent SC | Carried in ledger (treatment configurable; default: remain credited to property SC account) |
-| Spend rule | FM may commit maintenance only within **available SC balance**; excess requires Landlord approval |
-
----
-
-## 11. Inventory, damage and deposit
-
-1. Move-in inventory (Doc 9 schema) is baseline.  
-2. Discrepancies on move-in inventory must be reported **in writing within 7 days**.  
-3. Move-out inventory compared room-by-room.  
-4. Fair wear and tear → not charged to tenant.  
-5. Tenant-caused damage → deduct from caution; if shortfall → invoice tenant.  
-6. Settlement record produced before deposit release.
-
----
-
-## 12. Termination & notices
+## 9. Termination & notice
 
 | Event | Action |
 |-------|--------|
-| End of term | Renewal or exit; reminders at 3 months and 1 month |
+| End of term | Renewal or exit; 3-month and 1-month reminders |
 | Breach / arrears | Arrears notice → remedy window → possession process |
 | Early termination | Only as written addendum allows |
 
@@ -201,30 +135,26 @@ Notice templates: `RENEWAL_NOTICE.md`, `POSSESSION_ARREARS_NOTICE.md`.
 
 ---
 
-## 13. Dispute resolution
+## 10. Service charge & agency
 
-Negotiate in good faith → mediation → courts of competent jurisdiction in the configured state/FCT.
+Service charge covers items listed on the offer. Unspent SC remains in the property SC ledger (default). Agency acts for Landlord within the FM–Landlord appointment; fee lines as on the accepted offer.
 
 ---
 
-## 14. Signatures
+## 11. Signatures
 
 | Party | Name | Signature | Date |
 |-------|------|-----------|------|
-| Landlord / Owner | | | |
-| Managing Agent | | | |
-| Tenant | | | |
+| Landlord | {{landlord}} | | |
+| Managing Agent | Triple A Realty Projects Ltd | | |
+| Tenant | {{tenant}} | | |
 | Guarantor | | | |
-| Witness (optional) | | | |
 
 ---
 
-## 15. App data model
+## 12. App model
 
 ```
-tenancy: id, property_id, unit_id, tenant_id, guarantor_id, agent_org_id,
-  agreement_no, start_date, end_date, rent_annual, caution, service_charge,
-  estate_surcharge, status [draft|active|renewal_pending|expired|terminated],
-  offer_letter_id, application_id, move_in_inventory_id, move_out_inventory_id
-tenancy_fee_lines: type [agency|legal|management|other], pct_or_amount, payee_account_id
+tenancy: id, property_id, unit_id, tenant_name, start_date, end_date,
+  rent_annual, caution_amount, service_charge, agreement_no, status
 ```

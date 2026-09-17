@@ -46,6 +46,8 @@ export async function purgeDemoData(prisma: PrismaClient): Promise<PurgeDemoData
     await tx.tenantApplication.updateMany({ data: { agencyFeeInvoiceId: null } });
 
     const steps: [string, () => Promise<{ count: number }>][] = [
+      ['moneyAttributions', () => tx.moneyAttribution.deleteMany()],
+      ['moneyInflows', () => tx.moneyInflow.deleteMany()],
       ['payments', () => tx.payment.deleteMany()],
       ['invoiceVariations', () => tx.invoiceVariation.deleteMany()],
       ['invoiceLines', () => tx.invoiceLine.deleteMany()],

@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorator';
 import {
@@ -26,9 +27,36 @@ export class TenanciesController {
 
   @Post('renewals/scan')
   scanRenewals(@CurrentUser() user: AuthUser) {
-    // Manual trigger for staff / ops
     void user;
     return this.tenancies.processRenewalReminders();
+  }
+
+  @Get(':id/agreement-pdf')
+  async agreementPdf(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Res() res: Response,
+  ) {
+    const buf = await this.tenancies.buildAgreementPdf(id, user);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="tenancy-agreement-${id}.pdf"`,
+    });
+    res.send(buf);
+  }
+
+  @Post(':id/agreement-pdf')
+  async agreementPdfPost(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Res() res: Response,
+  ) {
+    const buf = await this.tenancies.buildAgreementPdf(id, user);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="tenancy-agreement-${id}.pdf"`,
+    });
+    res.send(buf);
   }
 
   @Get(':id')

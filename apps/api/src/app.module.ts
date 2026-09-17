@@ -50,6 +50,9 @@ import { SchedulesModule } from './schedules/schedules.module';
 import { ProgressReportsModule } from './progress-reports/progress-reports.module';
 import { PlanningCyclesModule } from './planning-cycles/planning-cycles.module';
 import { EthicsModule } from './ethics/ethics.module';
+import { LegalTemplatesModule } from './legal-templates/legal-templates.module';
+import { MoneyInflowsModule } from './money-inflows/money-inflows.module';
+import { PaystackModule } from './paystack/paystack.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -107,6 +110,9 @@ import { ScheduleModule } from '@nestjs/schedule';
     ProgressReportsModule,
     PlanningCyclesModule,
     EthicsModule,
+    LegalTemplatesModule,
+    MoneyInflowsModule,
+    PaystackModule,
     MailModule,
   ],
   controllers: [AppController],

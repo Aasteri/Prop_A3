@@ -24,7 +24,7 @@ import {
   calcEvaluationAverage,
   clause2Text,
   CLAUSE_1,
-  evaluationBand,
+  starRatingFromAverage,
   generateApplicationRef,
   TENANT_EVALUATION_CRITERIA,
 } from './tenant-applications.utils';
@@ -64,17 +64,14 @@ export class TenantApplicationsService {
 
   evaluationCriteria() {
     return {
-      scale: { min: 0, max: 10, meaning: '0 = lowest · 10 = highest' },
+      scale: { min: 1, max: 10, meaning: '1 = lowest · 10 = highest' },
       whoScores:
         'Facility/property manager, Sales agent, PM, CEO, or Admin — never the tenant applicant.',
       formula: 'average = (C1 + C2 + C3 + C4) / 4',
+      starRating:
+        'starRating = average / 2 (1–5, one decimal); decision = STAR_1..STAR_5 from rounded stars',
       criteria: TENANT_EVALUATION_CRITERIA,
-      guidanceBands: [
-        { band: 'PREFERRED', range: '7.5 – 10', note: 'Advisory only' },
-        { band: 'ACCEPTABLE', range: '6.0 – 7.4', note: 'Advisory only' },
-        { band: 'BORDERLINE', range: '4.0 – 5.9', note: 'Requires override reason to approve' },
-        { band: 'UNSUITABLE', range: '0 – 3.9', note: 'Reject, or override with reason' },
-      ],
+      note: 'System only calculates average and star rating. Accept/reject is a human decision after seeing stars — no pass bands or mandatory override gates.',
     };
   }
 
@@ -300,7 +297,7 @@ export class TenantApplicationsService {
     }
 
     const average = calcEvaluationAverage(dto.c1, dto.c2, dto.c3, dto.c4);
-    const decision = evaluationBand(average);
+    const { starRating, decision } = starRatingFromAverage(average);
     if (dto.overrideUsed && !dto.overrideReason?.trim()) {
       throw new BadRequestException('Override reason is required when override is used');
     }
@@ -315,6 +312,7 @@ export class TenantApplicationsService {
         c3: dto.c3,
         c4: dto.c4,
         average,
+        starRating,
         decision,
         overrideUsed: dto.overrideUsed ?? false,
         overrideReason: dto.overrideReason,
@@ -327,6 +325,7 @@ export class TenantApplicationsService {
         c3: dto.c3,
         c4: dto.c4,
         average,
+        starRating,
         decision,
         overrideUsed: dto.overrideUsed ?? false,
         overrideReason: dto.overrideReason,
@@ -351,19 +350,9 @@ export class TenantApplicationsService {
       where: { applicationId: id },
     });
     if (!evaluation) {
-      throw new BadRequestException('Complete FM 4×0–10 evaluation before approval');
+      throw new BadRequestException('Complete FM 4×1–10 evaluation before approval');
     }
-    const avg = Number(evaluation.average);
-    if (avg < 4.0 && !evaluation.overrideUsed) {
-      throw new BadRequestException(
-        'Average < 4.0 (Unsuitable) — reject or record an override with reason',
-      );
-    }
-    if (avg < 6.0 && avg >= 4.0 && !evaluation.overrideUsed) {
-      throw new BadRequestException(
-        'Borderline score (4.0–5.9) requires further review override with reason before approval',
-      );
-    }
+    // Stars are informational only — human decides accept/reject after seeing the rating.
 
     const tenantName = `${app.surname} ${app.otherNames}`.trim();
     const rentAmount = Number(app.rentAccepted);

@@ -147,25 +147,27 @@ async function main() {
     }
   }
 
+  // CONFIRMED Triple A corporate bank (default settlement / invoice payee)
   await prisma.settlementEntity.upsert({
     where: { id: 'seed-triplea' },
     update: {
-      name: 'TRIPLE A REALTY PROJECTS LTD.',
-      bankName: 'Guaranty Trust Bank Plc.',
-      accountName: 'TRIPLE A REALTY PROJECTS LTD.',
-      accountNumber: '0123456789',
+      name: 'Triple A Realty Projects Ltd',
+      bankName: 'Tajbank',
+      accountName: 'TRIPLE A REALTY PROJECTS LTD',
+      accountNumber: '0013925425',
       isDefault: true,
     },
     create: {
       id: 'seed-triplea',
-      name: 'TRIPLE A REALTY PROJECTS LTD.',
-      bankName: 'Guaranty Trust Bank Plc.',
-      accountName: 'TRIPLE A REALTY PROJECTS LTD.',
-      accountNumber: '0123456789',
+      name: 'Triple A Realty Projects Ltd',
+      bankName: 'Tajbank',
+      accountName: 'TRIPLE A REALTY PROJECTS LTD',
+      accountNumber: '0013925425',
       isDefault: true,
     },
   });
 
+  // Legacy Laucarie Consulting sample account — kept for historical offers, not default
   await prisma.settlementEntity.upsert({
     where: { id: 'seed-laucarie' },
     update: {

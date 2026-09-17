@@ -2,8 +2,7 @@
 
 > **Status: PRODUCTION DEFAULT**  
 > **Form ID:** `FORM_FM_LANDLORD_AGREEMENT`  
-> **Anchors:** Doc 11 PM Services Proposal (EXTRACTED) · Abraham SC spend rule · Doc 10 fee patterns  
-> **Supersession:** Replace only when Abraham supplies a fuller owner–manager instrument.
+> **Anchors:** Doc 11 PM Services Proposal · Abraham SC spend rule · Doc 10 fee patterns
 
 ---
 
@@ -20,7 +19,7 @@
 
 ## 2. Parties
 
-### Owner (Principal)
+### Owner (Principal / Landlord)
 
 | Field | Value |
 |-------|-------|
@@ -33,81 +32,74 @@
 
 | Field | Value |
 |-------|-------|
-| Firm | A. Laucarie Consulting / Triple A Realty Projects Ltd |
+| Firm | Triple A Realty Projects Ltd |
+| Trading / related | A. Laucarie Consulting (legacy offers may still show) |
 | Address | Suite D15B, Platinum Mega Plaza, Jahi, Abuja |
-| Phones | 09121061221, 08052538585 (configurable) |
 | Professional capacity | Estate Surveyors & Valuers / Property & Facility Management |
 
 ---
 
-## 3. Property schedule
+## 3. Appointment & services
 
-| # | Address / description | Units | Type |
-|---|----------------------|-------|------|
-| 1 | | | e.g. 4 × 2-bed + 1 × 5-bed duplex |
+Owner appoints Manager to:
 
-Attach title copies / C of O where available (reference only).
-
----
-
-## 4. Appointed services (mandatory scope)
-
-| # | Service | Included |
-|---|---------|----------|
-| 1 | Tenant acquisition & screening (advertising, showings, background checks, evaluation scores) | Yes |
-| 2 | Lease / tenancy preparation & administration | Yes |
-| 3 | Rent collection, receipts, remittance to Owner | Yes |
-| 4 | Service-charge administration & maintenance coordination | Yes |
-| 5 | Move-in / move-out inventories | Yes |
-| 6 | Renewals & vacancy marketing | Yes |
-| 7 | Financial reporting (income, expenses, cash position) | Yes |
-| 8 | Digital advertising + on-site “For Lease” signage | Yes (Owner authorises) |
+1. Tenant acquisition & screening (advertising, showings, evaluation scores)  
+2. Lease / tenancy preparation & administration  
+3. Rent collection, receipts, remittance to Owner  
+4. Service-charge administration & maintenance coordination  
+5. Move-in / move-out inventories  
+6. Renewals & vacancy marketing  
+7. Financial reporting (income, expenses, cash position)  
+8. Digital advertising + on-site “For Lease” signage (Owner authorises)
 
 ---
 
-## 5. Professional fees (defaults — configurable per property)
+## 4. Professional fees (defaults — configurable per property)
 
-| Fee | Default rule | Source |
-|-----|--------------|--------|
-| **Letting fee** | **10% of gross rent** for securing a **new tenant** | Doc 11 EXTRACTED |
-| **Management fee** | Agreed **% of gross yearly rent collected** after tenant secured | Doc 11 EXTRACTED |
-| **Agency fee (tenant side)** | Often **10% of rent** on offer | Doc 10 EXTRACTED |
-| **Legal fee** | Often **5% of rent** on offer | Doc 10 EXTRACTED |
-| **Management fee (tenant-facing line)** | Often **5% of rent** on offer | Doc 10 EXTRACTED |
-| **Application acceptance** | Tenant accepts **20% Agency + Legal** combined on application | Doc 12 EXTRACTED |
+| Fee | Default rule |
+|-----|--------------|
+| Letting fee | **10% of gross rent** for securing a **new tenant** |
+| Management fee | Agreed **% of gross yearly rent collected** after tenant secured |
+| Agency fee (tenant side) | Often **10% of rent** on offer |
+| Legal fee | Often **5% of rent** on offer |
+| Management fee (tenant-facing line) | Often **5% of rent** on offer |
+| Application acceptance | Tenant accepts **Agency + Legal** combined % on application (often 20%) |
 
-Fee schedule attachment must list exact % and payee accounts for each property.
-
----
-
-## 6. Authority & limits
-
-| Authority | Rule |
-|-----------|------|
-| Advertise property | Yes — digital + physical signage |
-| Sign tenancy ≤ 1 year | Yes, unless Owner opts out |
-| Collect rent | Yes |
-| Maintenance spend | **Only within available service-charge balance** (Abraham CONFIRMED). Above balance → written Owner approval before commit |
-| Emergency make-safe | Manager may act immediately to prevent further loss; notify Owner within 24 hours |
-| Instruct artisans / suppliers | Yes, via platform KYC vendors |
-| Legal proceedings | Only with Owner written instruction |
+Exact % and payee accounts listed on the property fee schedule / offer.
 
 ---
 
-## 7. Remittance & reporting
+## 5. Remittance
 
 | Item | Default |
 |------|---------|
-| Remittance frequency | Monthly (configurable) |
-| Net remittance | Gross collected − approved expenses |
-| Reports | Rent roll, SC statement, maintenance log, arrears aging |
-| Documents | Offers, tenancies, inventories stored on propA3 |
+| Frequency | Monthly (configurable) |
+| Computation | **Gross collected − approved deductions = net** remitted to Owner |
+| Statement | Remittance advice / `REMITTANCE_STATEMENT.md` |
+| Channel | All money into the system first; then attributed and remitted |
+
+---
+
+## 6. Service charge handling & maintenance spend
+
+| Rule | Detail |
+|------|--------|
+| SC collection | Per offer / SC schedule; held in property SC ledger |
+| Spend boundary | Manager may commit maintenance **only within available SC balance** (CONFIRMED) |
+| Excess | Written Owner approval before commit |
+| Emergency make-safe | Manager may act immediately; notify Owner within 24 hours |
+
+---
+
+## 7. Reporting
+
+Rent roll · SC statement · maintenance log · arrears aging · offers/tenancies/inventories on propA3.
 
 ---
 
 ## 8. Owner obligations
 
-Provide keys, access, title info, insurance status, decision on spends above SC, and timely funding when required.
+Provide keys, access, title info, insurance status, decisions on spends above SC, and timely funding when required.
 
 ---
 
@@ -117,7 +109,7 @@ Either party: 30 days written notice after initial term (configurable), or immed
 
 ---
 
-## 10. Acceptance (from Doc 11 pattern)
+## 10. Acceptance
 
 Owner authorises Manager to: (1) advertise; (2) place signage; (3) collect professional fees as scheduled.
 

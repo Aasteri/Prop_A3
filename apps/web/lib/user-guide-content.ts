@@ -92,12 +92,12 @@ export const GLOSSARY: GuideTerm[] = [
   },
   {
     term: 'Settlement entity',
-    definition: 'Named bank account / payee used on invoices and offer letters (landlord, management, agency).',
+    definition: 'Named bank account / payee used on invoices and offer letters (landlord, management, agency). Default: Triple A Realty Projects Ltd — Tajbank 0013925425.',
   },
   {
-    term: 'Override (tenant scoring)',
+    term: 'Tenant star rating',
     definition:
-      'Written reason allowing approval when the average score guidance is BORDERLINE or UNSUITABLE. Creates an audit trail.',
+      'Staff score four parameters 1–10; the system averages them and converts to 1–5 stars (average ÷ 2). Accept/reject is a human decision after seeing the stars — no automatic pass bands.',
   },
 ];
 
@@ -258,8 +258,8 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         body: 'Capture bio-data and clauses. Agency+Legal % comes from the PM engagement schedule (not Doc 10 split).',
       },
       {
-        title: 'Evaluate (4 parameters × 0–10)',
-        body: 'Staff scores Compatibility, Ability to pay, Vacating reason, Guarantor. System averages only. Tenant never self-scores. Approve/Reject is a human decision; override reason required if average < 6.0.',
+        title: 'Evaluate (4 parameters × 1–10)',
+        body: 'Staff scores Compatibility, Ability to pay, Vacating reason, Guarantor each 1–10. System averages and shows a 1–5 star rating. Tenant never self-scores. Approve/Reject is a human decision after seeing stars.',
       },
       {
         title: 'Offer letter (Doc 10)',
@@ -347,14 +347,14 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     steps: [
       {
         title: 'Invoices & payments',
-        body: 'Raise invoices against settlement entities. Clients/staff upload payment proof; Finance verifies. Phase 1 = bank transfer + proof (no auto bank verify yet).',
+        body: 'Raise invoices against settlement entities (default: Triple A Tajbank 0013925425). Clients/staff upload payment proof; Finance verifies. Verified payments create money inflows with auto attribution. Paystack webhook is stubbed until keys arrive.',
       },
       {
         title: 'Dashboard KPIs',
         body: 'Use the staff dashboard for arrears, remittances, and project health signals.',
       },
     ],
-    related: ['/invoices', '/dashboard'],
+    related: ['/invoices', '/money-inflows', '/dashboard'],
   },
   {
     id: 'platform',
@@ -484,7 +484,7 @@ export const ROLE_GUIDES: RoleGuide[] = [
     ],
     neverDo: [
       'Do not invent JV equity/share fields until Abraham confirms commercials.',
-      'Do not treat tenant guidance bands as automatic accept/reject — humans decide; overrides need reasons.',
+      'Do not treat tenant star ratings as automatic accept/reject — humans decide after seeing stars.',
     ],
     relatedGuideSectionIds: [
       'getting-started',
@@ -536,7 +536,7 @@ export const ROLE_GUIDES: RoleGuide[] = [
       {
         title: 'FM tenant scoring when required',
         href: '/tenant-applications',
-        body: 'Score four parameters 0–10; save evaluation; approve/reject with override if average < 6.0.',
+        body: 'Score four parameters 1–10; system shows average and star rating; approve/reject as a human decision.',
       },
       {
         title: 'Acknowledge ethics',
@@ -741,7 +741,12 @@ export const ROLE_GUIDES: RoleGuide[] = [
       {
         title: 'Verify payments',
         href: '/invoices',
-        body: 'Match proof uploads to invoices/settlement entities. Phase 1 is manual verify — not Paystack auto-clear.',
+        body: 'Match proof uploads to invoices/settlement entities. Verify creates a money inflow + attributions. Paystack keys optional later.',
+      },
+      {
+        title: 'Review money attributions',
+        href: '/money-inflows',
+        body: 'See who earned each receipt (company, landlord, agents, artisans). Adjust splits when needed.',
       },
       {
         title: 'Process remittances',
@@ -784,7 +789,7 @@ export const ROLE_GUIDES: RoleGuide[] = [
     role: 'SALES',
     title: 'Sales / agent playbook',
     summary:
-      'Win and qualify customers: listings, CRM, viewings, tenant applications, 0–10 evaluation, offers, instalments.',
+      'Win and qualify customers: listings, CRM, viewings, tenant applications, 1–10 evaluation → stars, offers, instalments.',
     dailyFocus: [
       'New leads and follow-ups in CRM',
       'Tenant applications pending evaluation',
@@ -810,7 +815,7 @@ export const ROLE_GUIDES: RoleGuide[] = [
       {
         title: 'Score applicants (you are allowed)',
         href: '/tenant-applications',
-        body: 'Score Compatibility, Ability to pay, Vacating reason, Guarantor each 0–10. Tenant never self-scores. Override reason required if approving average < 6.0.',
+        body: 'Score Compatibility, Ability to pay, Vacating reason, Guarantor each 1–10. Tenant never self-scores. System converts average to 1–5 stars; you decide accept/reject.',
       },
       {
         title: 'Issue Doc 10 offers',

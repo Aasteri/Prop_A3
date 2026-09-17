@@ -13,6 +13,7 @@ type Evaluation = {
   c3: number;
   c4: number;
   average: string | number;
+  starRating?: string | number;
   decision: string;
   overrideUsed: boolean;
   overrideReason: string | null;
@@ -118,11 +119,10 @@ const CRITERIA = [
   },
 ];
 
-function bandLabel(avg: number) {
-  if (avg >= 7.5) return 'PREFERRED';
-  if (avg >= 6.0) return 'ACCEPTABLE';
-  if (avg >= 4.0) return 'BORDERLINE';
-  return 'UNSUITABLE';
+function starPreview(avg: number) {
+  const stars = Math.min(5, Math.max(1, Math.round(avg / 2) || 1));
+  const rating = Math.min(5, Math.max(0.5, Math.round((avg / 2) * 10) / 10));
+  return { stars, rating, label: `${stars}_STARS`, display: '★'.repeat(stars) + '☆'.repeat(5 - stars) };
 }
 
 export default function TenantApplicationDetailPage() {
@@ -134,8 +134,6 @@ export default function TenantApplicationDetailPage() {
   const [busy, setBusy] = useState(false);
   const [scores, setScores] = useState({ c1: 7, c2: 7, c3: 7, c4: 7 });
   const [notesInternal, setNotesInternal] = useState('');
-  const [overrideUsed, setOverrideUsed] = useState(false);
-  const [overrideReason, setOverrideReason] = useState('');
   const [offers, setOffers] = useState<TenancyOffer[]>([]);
   const [offerBusy, setOfferBusy] = useState(false);
   const [settlements, setSettlements] = useState<SettlementEntity[]>([]);
@@ -166,8 +164,6 @@ export default function TenantApplicationDetailPage() {
         c4: data.evaluation.c4,
       });
       setNotesInternal(data.evaluation.notesInternal ?? '');
-      setOverrideUsed(data.evaluation.overrideUsed);
-      setOverrideReason(data.evaluation.overrideReason ?? '');
     }
   }
 
@@ -184,15 +180,17 @@ export default function TenantApplicationDetailPage() {
     setUser(getUser<AuthUser>());
     load().catch(() => router.push('/tenant-applications'));
     loadOffers().catch(() => setOffers([]));
-    api<SettlementEntity[]>('/invoices/settlement-entities')
-      .then((rows) => {
+    api<{ note?: string; entities: SettlementEntity[] } | SettlementEntity[]>(
+      '/invoices/settlement-entities',
+    )
+      .then((res) => {
+        const rows = Array.isArray(res) ? res : res.entities;
         setSettlements(rows);
         const def = rows.find((r) => r.isDefault) ?? rows[0];
-        const agency = rows.find((r) => /laucarie/i.test(r.name)) ?? def;
         setOfferPayees({
           landlordSettlementEntityId: '',
           managementSettlementEntityId: def?.id ?? '',
-          agencySettlementEntityId: agency?.id ?? '',
+          agencySettlementEntityId: def?.id ?? '',
         });
       })
       .catch(() => setSettlements([]));
@@ -286,8 +284,6 @@ export default function TenantApplicationDetailPage() {
         body: JSON.stringify({
           ...scores,
           notesInternal: notesInternal || undefined,
-          overrideUsed,
-          overrideReason: overrideUsed ? overrideReason : undefined,
         }),
       });
       setApp(updated);
@@ -627,19 +623,24 @@ export default function TenantApplicationDetailPage() {
           <div>
             <h2 className="font-semibold text-[#1a2744]">Tenant evaluation (staff only)</h2>
             <p className="mt-1 text-sm text-slate-600">
-              List the four parameters below and score each on a scale of{' '}
-              <strong>0–10</strong> (0 = lowest, 10 = highest). The applicant never self-scores.
-              Sales agents, FM/PM, CEO, or Admin may score. The system only averages your scores.
+              Score each parameter on a scale of <strong>1–10</strong> (1 = lowest, 10 = highest).
+              The applicant never self-scores. The system averages your scores and converts to a
+              star rating (1–5).
             </p>
           </div>
           <div className="rounded-md border border-[#e87722]/30 bg-[#fff8f2] px-3 py-2 text-sm text-[#1a2744]">
-            Average preview: <strong>{avgPreview}</strong> · Guidance band:{' '}
-            <strong>{bandLabel(avgPreview)}</strong>
+            Average preview: <strong>{avgPreview}</strong> · Star rating:{' '}
+            <strong>
+              {starPreview(avgPreview).display} ({starPreview(avgPreview).rating}/5)
+            </strong>
             {app.evaluation && (
               <span className="text-slate-600">
                 {' '}
                 (saved {app.evaluation.decision}
-                {app.evaluation.overrideUsed ? ', override on file' : ''})
+                {app.evaluation.starRating != null
+                  ? ` · ${Number(app.evaluation.starRating).toFixed(1)}★`
+                  : ''}
+                )
               </span>
             )}
           </div>
@@ -651,7 +652,7 @@ export default function TenantApplicationDetailPage() {
                 <div className="flex items-center gap-3">
                   <input
                     type="range"
-                    min={0}
+                    min={1}
                     max={10}
                     step={1}
                     className="w-full accent-[#e87722]"
@@ -662,14 +663,14 @@ export default function TenantApplicationDetailPage() {
                   />
                   <input
                     type="number"
-                    min={0}
+                    min={1}
                     max={10}
                     className={`${INPUT} w-16 shrink-0 text-center`}
                     value={scores[c.key]}
                     onChange={(e) =>
                       setScores({
                         ...scores,
-                        [c.key]: Math.min(10, Math.max(0, Number(e.target.value) || 0)),
+                        [c.key]: Math.min(10, Math.max(1, Number(e.target.value) || 1)),
                       })
                     }
                   />
@@ -687,34 +688,10 @@ export default function TenantApplicationDetailPage() {
               placeholder="Investigations, landlord preferences, observations…"
             />
           </div>
-          <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 space-y-1">
-            <p className="font-medium text-slate-800">Guidance bands (advisory — final decision is yours)</p>
-            <p>PREFERRED ≥ 7.5 · ACCEPTABLE 6.0–7.4 · BORDERLINE 4.0–5.9 · UNSUITABLE &lt; 4.0</p>
-            <p>
-              Approving a borderline or unsuitable average requires an override reason so the audit
-              trail is clear.
-            </p>
-          </div>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={overrideUsed}
-              onChange={(e) => setOverrideUsed(e.target.checked)}
-            />
-            Record override (required to approve when average &lt; 6.0)
-          </label>
-          {overrideUsed && (
-            <div>
-              <label className={LABEL}>Override reason</label>
-              <input
-                className={INPUT}
-                required
-                value={overrideReason}
-                onChange={(e) => setOverrideReason(e.target.value)}
-                placeholder="Why approve despite the guidance band?"
-              />
-            </div>
-          )}
+          <p className="text-xs text-slate-600">
+            Stars are informational. Approve or reject after reviewing the rating — no automatic
+            pass/fail bands.
+          </p>
           <div className="flex flex-wrap gap-3">
             <button
               type="submit"
@@ -751,9 +728,12 @@ export default function TenantApplicationDetailPage() {
 
       {app.evaluation && (
         <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
-          Evaluation average <strong>{Number(app.evaluation.average).toFixed(1)}</strong> ?{' '}
-          {app.evaluation.decision}
-          {app.evaluation.overrideUsed ? ' (override)' : ''}
+          Evaluation average <strong>{Number(app.evaluation.average).toFixed(1)}</strong>
+          {' · '}
+          {app.evaluation.starRating != null
+            ? `${Number(app.evaluation.starRating).toFixed(1)}★`
+            : starPreview(Number(app.evaluation.average)).display}{' '}
+          ({app.evaluation.decision})
         </div>
       )}
 

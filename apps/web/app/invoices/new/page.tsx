@@ -54,9 +54,12 @@ export default function NewInvoicePage() {
     }
     Promise.all([
       api<Project[]>('/projects'),
-      api<SettlementEntity[]>('/invoices/settlement-entities'),
+      api<{ note?: string; entities: SettlementEntity[] } | SettlementEntity[]>(
+        '/invoices/settlement-entities',
+      ),
       api<ApprovedChange[]>('/invoices/approved-changes'),
-    ]).then(([projs, ents, changes]) => {
+    ]).then(([projs, entsRes, changes]) => {
+      const ents = Array.isArray(entsRes) ? entsRes : entsRes.entities;
       setProjects(projs);
       setEntities(ents);
       setApprovedChanges(changes);

@@ -13,7 +13,7 @@ Every template here must include:
 3. Workflow / status machine where relevant  
 4. Signature or approval blocks  
 5. App data-model sketch  
-6. Abraham **CONFIRMED** rules baked in (SC spend boundary, 2.5%/10% fees, photo requests, 4×0–10 scoring, inspection mandates, fee lines from Docs 10–12, etc.)
+6. Abraham **CONFIRMED** rules baked in (SC spend boundary, 2.5%/10% fees, photo requests, 4×1–10 scoring → stars, inspection mandates, fee lines from Docs 10–12, etc.)
 
 ## Index
 
@@ -21,15 +21,18 @@ Every template here must include:
 
 | File | Form ID | Notes |
 |------|---------|-------|
-| [TENANCY_AGREEMENT.md](./TENANCY_AGREEMENT.md) | FORM_TENANCY_AGREEMENT | Full covenants + SC matrix |
-| [FM_LANDLORD_AGREEMENT.md](./FM_LANDLORD_AGREEMENT.md) | FORM_FM_LANDLORD_AGREEMENT | Doc 11 fees + SC authority |
+| [TENANCY_AGREEMENT.md](./TENANCY_AGREEMENT.md) | FORM_TENANCY_AGREEMENT | Full covenants + placeholders for PDF |
+| [FM_LANDLORD_AGREEMENT.md](./FM_LANDLORD_AGREEMENT.md) | FORM_FM_LANDLORD_AGREEMENT | Appointment, fees, remittance, SC spend |
+| [FITNESS_CERTIFICATE.md](./FITNESS_CERTIFICATE.md) | FORM_FITNESS_CERTIFICATE | UAT / handover fitness cert |
+| [MAINTENANCE_PAYOR_MATRIX.md](./MAINTENANCE_PAYOR_MATRIX.md) | FORM_MAINTENANCE_PAYOR_MATRIX | Default who pays what |
 | [OFFER_ACCEPTANCE.md](./OFFER_ACCEPTANCE.md) | FORM_OFFER_ACCEPTANCE | After Doc 10 offer |
-| [TENANT_EVALUATION_SCORES.md](./TENANT_EVALUATION_SCORES.md) | FORM_TENANT_EVALUATION | Method confirmed + default bands |
+| [TENANT_EVALUATION_SCORES.md](./TENANT_EVALUATION_SCORES.md) | FORM_TENANT_EVALUATION | 1–10 scores → star rating |
 | [MAINTENANCE_REQUEST.md](./MAINTENANCE_REQUEST.md) | FORM_MAINTENANCE_REQUEST | Photo required |
 | [MAINTENANCE_WORK_ORDER.md](./MAINTENANCE_WORK_ORDER.md) | FORM_MAINTENANCE_WORK_ORDER | SC gate + tenant confirm |
 | [MAINTENANCE_INVOICE.md](./MAINTENANCE_INVOICE.md) | FORM_MAINTENANCE_INVOICE | 2.5% on labour |
 | [SERVICE_CHARGE_STATEMENT.md](./SERVICE_CHARGE_STATEMENT.md) | FORM_SERVICE_CHARGE_STATEMENT | Spend boundary ledger |
 | [LANDLORD_REMITTANCE.md](./LANDLORD_REMITTANCE.md) | FORM_LANDLORD_REMITTANCE | Gross − expenses |
+| [REMITTANCE_STATEMENT.md](./REMITTANCE_STATEMENT.md) | FORM_REMITTANCE_STATEMENT | Gross − deductions = net |
 | [RENEWAL_NOTICE.md](./RENEWAL_NOTICE.md) | FORM_RENEWAL_NOTICE | 3mo / 1mo |
 | [POSSESSION_ARREARS_NOTICE.md](./POSSESSION_ARREARS_NOTICE.md) | FORM_POSSESSION_NOTICE | Operational + counsel path |
 

@@ -128,22 +128,22 @@ export class SubmitTenantApplicationDto {
 
 export class EvaluateTenantApplicationDto {
   @IsInt()
-  @Min(0)
+  @Min(1)
   @Max(10)
   c1!: number;
 
   @IsInt()
-  @Min(0)
+  @Min(1)
   @Max(10)
   c2!: number;
 
   @IsInt()
-  @Min(0)
+  @Min(1)
   @Max(10)
   c3!: number;
 
   @IsInt()
-  @Min(0)
+  @Min(1)
   @Max(10)
   c4!: number;
 

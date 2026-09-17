@@ -238,6 +238,13 @@ export const STAFF_NAV: NavGroup[] = [
         match: (p) => p.startsWith('/invoices'),
       },
       {
+        href: '/money-inflows',
+        label: 'Money inflows',
+        icon: 'wallet',
+        match: (p) => p.startsWith('/money-inflows'),
+        roles: ['CEO', 'FINANCE', 'ADMIN', 'PROJECT_MANAGER'],
+      },
+      {
         href: '/service-charges',
         label: 'Service charges',
         icon: 'wallet',

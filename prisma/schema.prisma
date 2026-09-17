@@ -66,6 +66,7 @@ model User {
   professionalLicences ProfessionalLicence[]
   passwordResetTokens PasswordResetToken[]
   ethicsAcknowledgements EthicsAcknowledgement[]
+  moneyAttributions    MoneyAttribution[] @relation("MoneyAttributionEarner")
 
   @@map("users")
 }
@@ -935,6 +936,7 @@ model Invoice {
   offerLandlordInvoice  TenancyOffer? @relation("OfferLandlordInvoice")
   offerManagementInvoice TenancyOffer? @relation("OfferManagementInvoice")
   offerAgencyInvoice    TenancyOffer? @relation("OfferAgencyInvoice")
+  moneyInflows          MoneyInflow[]
 
   @@index([status, issueDate])
   @@map("invoices")
@@ -987,9 +989,10 @@ model Payment {
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
-  invoice    Invoice @relation(fields: [invoiceId], references: [id])
-  uploadedBy User?   @relation("PaymentUploadedBy", fields: [uploadedById], references: [id])
-  verifiedBy User?   @relation("PaymentVerifiedBy", fields: [verifiedById], references: [id])
+  invoice     Invoice       @relation(fields: [invoiceId], references: [id])
+  uploadedBy  User?         @relation("PaymentUploadedBy", fields: [uploadedById], references: [id])
+  verifiedBy  User?         @relation("PaymentVerifiedBy", fields: [verifiedById], references: [id])
+  moneyInflow MoneyInflow?
 
   @@map("payments")
 }
@@ -1138,10 +1141,11 @@ model TenantApplication {
 }
 
 enum TenantEvalDecision {
-  PREFERRED
-  ACCEPTABLE
-  BORDERLINE
-  UNSUITABLE
+  STAR_1
+  STAR_2
+  STAR_3
+  STAR_4
+  STAR_5
 }
 
 model TenantEvaluation {
@@ -1153,6 +1157,8 @@ model TenantEvaluation {
   c3              Int
   c4              Int
   average         Decimal            @db.Decimal(4, 1)
+  /// Average / 2 (1–5, may include .5) — system star rating from 1–10 parameter scores
+  starRating      Decimal            @map("star_rating") @db.Decimal(2, 1)
   decision        TenantEvalDecision
   overrideUsed    Boolean            @default(false) @map("override_used")
   overrideReason  String?            @map("override_reason") @db.Text
@@ -2306,4 +2312,79 @@ model TenancyOffer {
 
   @@index([applicationId])
   @@map("tenancy_offers")
+}
+
+// ─── Money inflows & attribution (all receipts into the system) ───────────────
+
+enum MoneyChannel {
+  BANK_TRANSFER
+  PAYSTACK
+  MANUAL_OTHER
+}
+
+enum EarnerType {
+  COMPANY
+  INTERNAL_STAFF
+  EXTERNAL_AGENT
+  ARTISAN
+  PROFESSIONAL
+  SUBCONTRACTOR
+  LANDLORD
+  OTHER
+}
+
+enum MoneyInflowStatus {
+  RECEIVED
+  ALLOCATED
+  REVERSED
+}
+
+model MoneyInflow {
+  id              String            @id @default(cuid())
+  number          String            @unique
+  paymentId       String?           @unique @map("payment_id")
+  invoiceId       String?           @map("invoice_id")
+  channel         MoneyChannel
+  grossAmount     Decimal           @map("gross_amount") @db.Decimal(14, 2)
+  receivedAt      DateTime          @map("received_at")
+  payerName       String?           @map("payer_name")
+  payerReference  String?           @map("payer_reference")
+  paystackRef     String?           @map("paystack_ref")
+  status          MoneyInflowStatus @default(RECEIVED)
+  notes           String?           @db.Text
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  payment      Payment?           @relation(fields: [paymentId], references: [id])
+  invoice      Invoice?           @relation(fields: [invoiceId], references: [id])
+  attributions MoneyAttribution[]
+
+  @@index([receivedAt])
+  @@index([status])
+  @@map("money_inflows")
+}
+
+model MoneyAttribution {
+  id           String     @id @default(cuid())
+  inflowId     String     @map("inflow_id")
+  earnerType   EarnerType @map("earner_type")
+  earnerUserId String?    @map("earner_user_id")
+  earnerName   String?    @map("earner_name")
+  earnerRef    String?    @map("earner_ref")
+  sharePct     Decimal?   @map("share_pct") @db.Decimal(5, 2)
+  amount       Decimal    @db.Decimal(14, 2)
+  /// AGENCY_FEE | MANAGEMENT_FEE | WORKS_FEE | GOODS_MARGIN | ARTISAN_FEE |
+  /// PLATFORM_FEE_2_5 | PLATFORM_FEE_10 | COMMISSION | RENT_TO_LANDLORD |
+  /// SERVICE_CHARGE | OTHER
+  category     String?
+  notes        String?    @db.Text
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  inflow     MoneyInflow @relation(fields: [inflowId], references: [id], onDelete: Cascade)
+  earnerUser User?       @relation("MoneyAttributionEarner", fields: [earnerUserId], references: [id])
+
+  @@index([inflowId])
+  @@index([earnerType])
+  @@map("money_attributions")
 }

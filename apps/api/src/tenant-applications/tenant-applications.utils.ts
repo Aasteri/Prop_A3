@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, TenantEvalDecision } from '@prisma/client';
 
 export async function generateApplicationRef(
   tx: Prisma.TransactionClient,
@@ -30,12 +30,24 @@ export function calcEvaluationAverage(c1: number, c2: number, c3: number, c4: nu
   return Math.round(((c1 + c2 + c3 + c4) / 4) * 10) / 10;
 }
 
-/** Advisory guidance labels only — final accept/reject is a human decision (G.5.2 / G.5.3). */
-export function evaluationBand(average: number): 'PREFERRED' | 'ACCEPTABLE' | 'BORDERLINE' | 'UNSUITABLE' {
-  if (average >= 7.5) return 'PREFERRED';
-  if (average >= 6.0) return 'ACCEPTABLE';
-  if (average >= 4.0) return 'BORDERLINE';
-  return 'UNSUITABLE';
+/**
+ * Convert 1–10 average into a 1–5 star rating.
+ * starRating stores average/2 (1 decimal); decision is STAR_1..STAR_5 from rounded stars.
+ */
+export function starRatingFromAverage(average: number): {
+  starRating: number;
+  decision: TenantEvalDecision;
+} {
+  const raw = average / 2;
+  const starRating = Math.min(5, Math.max(0.5, Math.round(raw * 10) / 10));
+  const starsInt = Math.min(5, Math.max(1, Math.round(raw) || 1));
+  const decision = `STAR_${starsInt}` as TenantEvalDecision;
+  return { starRating, decision };
+}
+
+/** @deprecated Use starRatingFromAverage — bands removed; system shows stars only. */
+export function evaluationBand(average: number): TenantEvalDecision {
+  return starRatingFromAverage(average).decision;
 }
 
 export const TENANT_EVALUATION_CRITERIA = [
@@ -60,7 +72,6 @@ export const TENANT_EVALUATION_CRITERIA = [
     help: 'Guarantor’s ability to attest character, reliability, care of property, and meeting obligations.',
   },
 ];
-
 
 export function calcNetRentalIncome(rentAmount: number, expenseAmount: number): number {
   return Math.round((rentAmount - expenseAmount) * 100) / 100;

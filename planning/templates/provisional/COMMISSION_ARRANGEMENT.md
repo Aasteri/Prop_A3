@@ -1,23 +1,50 @@
 # Commission Arrangement — Production Default
 
-> **Status: PRODUCTION DEFAULT** — Complete operational template. Superseded only if Abraham supplies a replacement.
-> **Form ID:** `FORM_COMMISSION`
-> Defaults provided for operations; override per deal. Not invented as Abraham mandate — clearly marked defaults.
+> **Status: PRODUCTION DEFAULT**  
+> **Form ID:** `FORM_COMMISSION`  
+> Defaults for internal vs external agents. Override per deal; always show schedule before acceptance.
+
 ---
 
+## 1. Default schedule (editable per org / deal)
 
-## Default schedule (PRODUCTION DEFAULT — editable per org)
+| Scenario | Default commission | Notes |
+|----------|-------------------|-------|
+| **Internal agent** (propA3 staff / sole listing) | **5%** of sale price to firm (configurable) | Staff incentive split is internal HR/payroll — not hidden from deal memo |
+| **External agent** listing / intro | Split e.g. **external 3% / propA3 2%** (configurable) | Show both payees on deal |
+| Co-brokerage | As deal memo | Written before acceptance |
+| Letting / agency (rentals) | Per Doc 10 / engagement fee schedule | Not this sales commission form |
 
-| Scenario | Default commission |
-|----------|-------------------|
-| propA3 sole listing | 5% of sale price to firm (configurable) |
-| External agent listing | Split: external 3% / propA3 2% (configurable) |
-| Co-brokerage intro | As deal memo |
+All % are **configurable**; never hard-code hidden fees.
 
-## Fields
+---
 
-Deal / listing · Gross price · Commission % · Amount · Payee parties · When payable (on deposit / on completion) · Invoice refs · Signatures
+## 2. Fields
 
-## Rule
+| Field | Value |
+|-------|-------|
+| Deal / listing ref | |
+| Gross price ₦ | |
+| Commission % (total) | |
+| Commission amount ₦ | |
+| Internal share % / ₦ | |
+| External agent name / share % / ₦ | |
+| When payable | On deposit · On completion · Other |
+| Invoice / money inflow refs | |
+| Signatures | |
 
-Never hard-code hidden fees; always show schedule on deal before acceptance.
+---
+
+## 3. Attribution
+
+When payment is received into the system, create money attributions:
+
+- Firm share → `COMPANY` / `COMMISSION`  
+- External agent share → `EXTERNAL_AGENT` / `COMMISSION`  
+- Internal staff bonus (if tracked) → `INTERNAL_STAFF` / `COMMISSION`
+
+---
+
+## 4. Rule
+
+Never hard-code hidden fees; always show schedule on the deal before acceptance.

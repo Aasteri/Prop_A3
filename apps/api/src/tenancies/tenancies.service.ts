@@ -8,6 +8,7 @@ import {
 import { NotificationType, RenewalNoticeKind, TenancyStatus, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { LegalTemplatesService } from '../legal-templates/legal-templates.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import {
   ActivateMoveInDto,
@@ -17,7 +18,15 @@ import {
 } from './dto/tenancy.dto';
 
 const include = {
-  property: { select: { id: true, name: true, code: true, address: true } },
+  property: {
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      address: true,
+      landlordName: true,
+    },
+  },
   unit: { select: { id: true, unitCode: true, unitType: true } },
   renewalNotices: true,
   _count: { select: { inventories: true } },
@@ -34,6 +43,7 @@ export class TenanciesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly legalTemplates: LegalTemplatesService,
   ) {}
 
   findAll(user: AuthUser, query: ListTenanciesQueryDto) {
@@ -62,6 +72,28 @@ export class TenanciesService {
     const row = await this.prisma.tenancy.findUnique({ where: { id }, include });
     if (!row) throw new NotFoundException('Tenancy not found');
     return row;
+  }
+
+  async buildAgreementPdf(id: string, user: AuthUser) {
+    const tenancy = await this.findOne(id, user);
+    const money = (n: number) => `₦${n.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+    const propertyLabel = [
+      tenancy.property.name,
+      tenancy.unit?.unitCode,
+      tenancy.property.address,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+    return this.legalTemplates.buildTenancyAgreementPdf({
+      landlord: tenancy.property.landlordName ?? 'Landlord',
+      tenant: tenancy.tenantName,
+      property: propertyLabel,
+      rent: money(Number(tenancy.rentAnnual)),
+      start: tenancy.startDate.toISOString().slice(0, 10),
+      end: tenancy.endDate.toISOString().slice(0, 10),
+      caution: money(Number(tenancy.cautionAmount ?? 0)),
+    });
   }
 
   async create(dto: CreateTenancyDto, user: AuthUser) {

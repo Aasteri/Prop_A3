@@ -26,6 +26,9 @@ npm run db:push
 echo "==> Seeding demo users (idempotent)..."
 npx --yes tsx prisma/seed.ts
 
+echo "==> Upserting Triple A settlement bank (CONFIRMED)..."
+npx --yes tsx scripts/upsert-settlement-entities.ts
+
 echo "==> Syncing web env for Next build..."
 if grep -q '^NEXT_PUBLIC_API_URL=' .env; then
   grep '^NEXT_PUBLIC_API_URL=' .env > apps/web/.env.production

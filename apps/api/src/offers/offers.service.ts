@@ -20,6 +20,7 @@ import {
   DEFAULT_FEE_SCHEDULE,
   PmEngagementsService,
 } from '../pm-engagements/pm-engagements.service';
+import { LegalTemplatesService } from '../legal-templates/legal-templates.service';
 
 /** Doc 10 defaults — separate from Doc 12 application 20% Agency+Legal clause. */
 export function calcOfferFeeLines(
@@ -68,6 +69,7 @@ export class OffersService {
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly engagements: PmEngagementsService,
+    private readonly legalTemplates: LegalTemplatesService,
   ) {}
 
   findByApplication(applicationId: string, user: AuthUser) {
@@ -114,9 +116,7 @@ export class OffersService {
       : await this.prisma.settlementEntity.findFirst({ where: { isDefault: true } });
     const agencyEntity = dto.agencySettlementEntityId
       ? await this.requireSettlement(dto.agencySettlementEntityId)
-      : await this.prisma.settlementEntity.findFirst({
-          where: { name: { contains: 'Laucarie' } },
-        });
+      : await this.prisma.settlementEntity.findFirst({ where: { isDefault: true } });
 
     return this.prisma.tenancyOffer.create({
       data: {
@@ -140,7 +140,7 @@ export class OffersService {
         managementPayee:
           dto.managementPayee ?? managementEntity?.name ?? 'Management entity',
         agencyPayee:
-          dto.agencyPayee ?? agencyEntity?.name ?? 'A. A Laucarie Consulting',
+          dto.agencyPayee ?? agencyEntity?.name ?? 'Triple A Realty Projects Ltd',
         notes: [dto.notes, scheduleNote].filter(Boolean).join('\n') || undefined,
         status: TenancyOfferStatus.ISSUED,
       },
@@ -457,6 +457,28 @@ export class OffersService {
       serviceChargeNotes: offer.serviceChargeNotes,
       settlements,
       issuedAt: offer.createdAt,
+    });
+  }
+
+  async buildTenancyAgreementPdf(id: string, user: AuthUser) {
+    const offer = await this.findOne(id, user);
+    const app = offer.application;
+    const propertyLabel = app.terrierRow
+      ? `#${app.terrierRow.serialNo} ${app.terrierRow.propertyType} · ${app.terrierRow.location}`
+      : app.estate.name;
+    const money = (n: number) => `₦${n.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+    const start = offer.createdAt;
+    const end = new Date(start);
+    end.setFullYear(end.getFullYear() + 1);
+
+    return this.legalTemplates.buildTenancyAgreementPdf({
+      landlord: offer.landlordPayee ?? offer.landlordSettlement?.name ?? 'Landlord',
+      tenant: `${app.surname} ${app.otherNames}`.trim(),
+      property: propertyLabel,
+      rent: money(Number(offer.rentAnnual)),
+      start: start.toISOString().slice(0, 10),
+      end: end.toISOString().slice(0, 10),
+      caution: money(Number(offer.cautionAmount)),
     });
   }
 

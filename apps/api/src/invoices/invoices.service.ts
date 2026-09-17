@@ -19,6 +19,7 @@ import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuditService } from '../audit/audit.service';
+import { MoneyInflowsService } from '../money-inflows/money-inflows.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { CreateInvoiceDto, RejectPaymentDto, UpdateInvoiceDto } from './dto/invoice.dto';
 import {
@@ -58,12 +59,18 @@ export class InvoicesService {
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
+    private readonly moneyInflows: MoneyInflowsService,
   ) {
     fs.mkdirSync(this.uploadsDir, { recursive: true });
   }
 
   listSettlementEntities() {
-    return this.prisma.settlementEntity.findMany({ orderBy: { name: 'asc' } });
+    return this.prisma.settlementEntity.findMany({ orderBy: [{ isDefault: 'desc' }, { name: 'asc' }] }).then(
+      (rows) => ({
+        note: 'Default payee: Triple A Realty Projects Ltd — Tajbank 0013925425 (CONFIRMED). Laucarie kept as legacy non-default.',
+        entities: rows,
+      }),
+    );
   }
 
   findAll(user: AuthUser) {
@@ -454,6 +461,14 @@ export class InvoicesService {
       await tx.invoice.update({
         where: { id: invoice.id },
         data: { paidTotal, outstanding, status },
+      });
+
+      await this.moneyInflows.createFromVerifiedPayment(tx, {
+        paymentId,
+        invoiceId: invoice.id,
+        amount: Number(payment.amount),
+        clientName: invoice.clientName,
+        invoiceType: invoice.invoiceType,
       });
 
       return tx.payment.findUnique({
