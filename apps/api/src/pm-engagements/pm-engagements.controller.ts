@@ -6,8 +6,10 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorator';
 import {
@@ -32,6 +34,20 @@ export class PmEngagementsController {
     @Query('propertyId') propertyId?: string,
   ) {
     return this.engagements.resolveSchedule(user, propertyId);
+  }
+
+  @Get(':id/pdf')
+  async pdf(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Res() res: Response,
+  ) {
+    const buf = await this.engagements.buildPdf(id, user);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="pm-engagement-${id}.pdf"`,
+    });
+    res.send(buf);
   }
 
   @Get(':id')

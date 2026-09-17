@@ -14,6 +14,16 @@ export class InspectionsController {
     return this.inspections.meta();
   }
 
+  @Get('doc4-sections')
+  doc4Sections() {
+    return this.inspections.doc4Sections();
+  }
+
+  @Get('construction-checklist')
+  constructionChecklist() {
+    return this.inspections.constructionChecklist();
+  }
+
   @Get()
   findAll(@CurrentUser() user: AuthUser, @Query('projectId') projectId?: string) {
     return this.inspections.findAll(user, projectId);

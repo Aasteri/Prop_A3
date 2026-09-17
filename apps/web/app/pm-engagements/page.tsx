@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
-import { api, getToken } from '@/lib/api';
+import { api, downloadPdf, getToken } from '@/lib/api';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Property = { id: string; name: string; code: string | null };
@@ -242,18 +242,34 @@ export default function PmEngagementsPage() {
         <div className="space-y-3">
           {rows.map((r) => (
             <div key={r.id} className={`${CARD} p-4`}>
-              <p className="text-xs font-semibold text-[#e87722]">{r.status}</p>
-              <h2 className="mt-1 font-semibold text-[#1a2744]">{r.ownerName}</h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Letting {r.lettingFeePct}% · Agency {r.agencyFeePct}% · Legal {r.legalFeePct}% ·
-                Mgmt {r.managementFeePct}% · App Agency+Legal {r.applicationAgencyLegalPct}%
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Properties:{' '}
-                {r.properties.length
-                  ? r.properties.map((x) => x.property.name).join(', ')
-                  : 'none linked'}
-              </p>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold text-[#e87722]">{r.status}</p>
+                  <h2 className="mt-1 font-semibold text-[#1a2744]">{r.ownerName}</h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Letting {r.lettingFeePct}% · Agency {r.agencyFeePct}% · Legal {r.legalFeePct}% ·
+                    Mgmt {r.managementFeePct}% · App Agency+Legal {r.applicationAgencyLegalPct}%
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Properties:{' '}
+                    {r.properties.length
+                      ? r.properties.map((x) => x.property.name).join(', ')
+                      : 'none linked'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    downloadPdf(
+                      `/pm-engagements/${r.id}/pdf`,
+                      `pm-engagement-${r.ownerName.replace(/\s+/g, '-').toLowerCase()}.pdf`,
+                    )
+                  }
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-[#1a2744] hover:bg-slate-50"
+                >
+                  Download proposal PDF
+                </button>
+              </div>
             </div>
           ))}
           {!rows.length && (

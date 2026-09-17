@@ -1,5 +1,26 @@
-import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsDateString,
+  IsEnum,
+  IsIn,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 import { InspectionResult } from '@prisma/client';
+
+export class ChecklistItemDto {
+  @IsString()
+  item!: string;
+
+  @IsIn(['YES', 'NO', 'NA'])
+  status!: 'YES' | 'NO' | 'NA';
+
+  @IsOptional()
+  @IsString()
+  remarks?: string;
+}
 
 export class CreateInspectionDto {
   @IsString()
@@ -11,6 +32,10 @@ export class CreateInspectionDto {
   @IsOptional()
   @IsString()
   phase?: string;
+
+  @IsOptional()
+  @IsString()
+  section?: string;
 
   @IsDateString()
   inspectedAt!: string;
@@ -26,6 +51,16 @@ export class CreateInspectionDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChecklistItemDto)
+  checklist?: ChecklistItemDto[];
+
+  @IsOptional()
+  @IsString()
+  sectionSignedBy?: string;
 }
 
 export class UpdateInspectionDto {
@@ -36,4 +71,22 @@ export class UpdateInspectionDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  section?: string;
+
+  @IsOptional()
+  @IsString()
+  category?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ChecklistItemDto)
+  checklist?: ChecklistItemDto[];
+
+  @IsOptional()
+  @IsString()
+  sectionSignedBy?: string;
 }

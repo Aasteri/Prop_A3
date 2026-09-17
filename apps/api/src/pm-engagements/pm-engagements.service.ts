@@ -180,6 +180,26 @@ export class PmEngagementsService {
     };
   }
 
+  async buildPdf(id: string, user: AuthUser) {
+    const row = await this.findOne(id, user);
+    const { buildPmEngagementPdf } = await import('./pm-engagement.pdf');
+    const properties = (row.properties as { property: { name: string } }[]) ?? [];
+    return buildPmEngagementPdf({
+      ownerName: row.ownerName as string,
+      ownerPhone: (row.ownerPhone as string | null) ?? null,
+      status: row.status as string,
+      lettingFeePct: Number(row.lettingFeePct),
+      agencyFeePct: Number(row.agencyFeePct),
+      legalFeePct: Number(row.legalFeePct),
+      managementFeePct: Number(row.managementFeePct),
+      applicationAgencyLegalPct: Number(row.applicationAgencyLegalPct),
+      startDate: row.startDate ? new Date(row.startDate as string | Date) : null,
+      endDate: row.endDate ? new Date(row.endDate as string | Date) : null,
+      notes: (row.notes as string | null) ?? null,
+      propertyNames: properties.map((p) => p.property.name),
+    });
+  }
+
   private assertCanView(user: AuthUser) {
     const allowed: UserRole[] = [
       UserRole.PROJECT_MANAGER,

@@ -4,9 +4,11 @@ import {
   IsArray,
   IsBoolean,
   IsDateString,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -34,6 +36,28 @@ export class CreateSupplierDto {
   @IsOptional()
   @IsString()
   address?: string;
+
+  /** Sheet 7 PRODUCT/SERVICES */
+  @IsOptional()
+  @IsString()
+  productServices?: string;
+
+  /** Sheet 7 PRODUCT PRICE (free text) */
+  @IsOptional()
+  @IsString()
+  productPrice?: string;
+
+  /** Sheet 7 Reliability 1–5 stars */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  reliabilityStars?: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }
 
 export class PurchaseRequisitionLineDto {

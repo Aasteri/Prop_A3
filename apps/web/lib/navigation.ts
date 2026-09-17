@@ -49,6 +49,18 @@ export const STAFF_NAV: NavGroup[] = [
         match: (p) => p.startsWith('/milestones'),
       },
       {
+        href: '/work-schedule',
+        label: 'Work schedule (WBS)',
+        icon: 'calendar',
+        match: (p) => p.startsWith('/work-schedule'),
+      },
+      {
+        href: '/labour-schedules',
+        label: 'Labour schedules',
+        icon: 'users',
+        match: (p) => p.startsWith('/labour-schedules'),
+      },
+      {
         href: '/change-log',
         label: 'Change control',
         icon: 'changes',
@@ -65,6 +77,18 @@ export const STAFF_NAV: NavGroup[] = [
         label: 'Planning documents',
         icon: 'file',
         match: (p) => p.startsWith('/planning-docs'),
+      },
+      {
+        href: '/progress-reports',
+        label: 'Progress reports',
+        icon: 'clipboard',
+        match: (p) => p.startsWith('/progress-reports'),
+      },
+      {
+        href: '/planning-cycles',
+        label: 'Planning cycles',
+        icon: 'calendar',
+        match: (p) => p.startsWith('/planning-cycles'),
       },
       {
         href: '/closeouts',
@@ -241,6 +265,12 @@ export const STAFF_NAV: NavGroup[] = [
         label: 'Documents',
         icon: 'file',
         match: (p) => p.startsWith('/documents'),
+      },
+      {
+        href: '/ethics',
+        label: 'Professional ethics',
+        icon: 'shield',
+        match: (p) => p.startsWith('/ethics'),
       },
       {
         href: '/audit-log',

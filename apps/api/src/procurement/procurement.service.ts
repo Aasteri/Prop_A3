@@ -47,6 +47,10 @@ export class ProcurementService {
         phone: dto.phone,
         email: dto.email,
         address: dto.address,
+        productServices: dto.productServices,
+        productPrice: dto.productPrice,
+        reliabilityStars: dto.reliabilityStars,
+        notes: dto.notes,
         status: 'active',
       },
     });

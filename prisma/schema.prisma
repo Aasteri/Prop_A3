@@ -65,6 +65,7 @@ model User {
   auditEvents          AuditEvent[]        @relation("AuditActor")
   professionalLicences ProfessionalLicence[]
   passwordResetTokens PasswordResetToken[]
+  ethicsAcknowledgements EthicsAcknowledgement[]
 
   @@map("users")
 }
@@ -174,6 +175,10 @@ model Project {
   kickoffs       ProjectKickoff[]
   retrospectives ProjectRetrospective[]
   ivcs           InterimValuationCertificate[]
+  workTasks      WorkScheduleTask[]
+  labourSchedules LabourSchedule[]
+  progressReports ProgressReport[]
+  planningCycles PlanningCycle[]
 
   @@map("projects")
 }
@@ -355,6 +360,8 @@ enum NotificationType {
   PROJECT_KICKOFF
   PROJECT_RETROSPECTIVE
   PROJECT_IVC
+  PROGRESS_REPORT
+  PLANNING_CYCLE
 }
 
 model Notification {
@@ -429,6 +436,151 @@ model Milestone {
 
   @@unique([projectId, stage])
   @@map("milestones")
+}
+
+/// Sheet 1 / FORM_WORK_SCHEDULE — WBS task rows (EXTRACTED Guzape schema)
+model WorkScheduleTask {
+  id              String    @id @default(cuid())
+  projectId       String    @map("project_id")
+  wbsNumber       String    @map("wbs_number")
+  taskTitle       String    @map("task_title")
+  taskOwner       String?   @map("task_owner")
+  startDate       DateTime? @map("start_date") @db.Date
+  dueDate         DateTime? @map("due_date") @db.Date
+  durationDays    Int?      @map("duration_days")
+  dailyHours      Decimal?  @map("daily_hours") @db.Decimal(5, 2)
+  progressPct     Decimal   @default(0) @map("progress_pct") @db.Decimal(5, 2)
+  isPaymentMilestone Boolean @default(false) @map("is_payment_milestone")
+  sprintGoal      String?   @map("sprint_goal")
+  phaseLabel      String?   @map("phase_label")
+  notes           String?   @db.Text
+  sortOrder       Int       @default(0) @map("sort_order")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, wbsNumber])
+  @@map("work_schedule_tasks")
+}
+
+/// Sheet 5 / FORM_LABOUR_SCHEDULE
+model LabourSchedule {
+  id              String   @id @default(cuid())
+  number          String   @unique
+  projectId       String   @map("project_id")
+  projectTitle    String?  @map("project_title")
+  projectPhase    String?  @map("project_phase")
+  projectManager  String?  @map("project_manager")
+  sheetNo         String?  @map("sheet_no")
+  scheduleDate    DateTime? @map("schedule_date") @db.Date
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  lines   LabourScheduleLine[]
+
+  @@index([projectId])
+  @@map("labour_schedules")
+}
+
+model LabourScheduleLine {
+  id              String    @id @default(cuid())
+  scheduleId      String    @map("schedule_id")
+  sn              Int
+  description     String
+  teamTrade       String?   @map("team_trade")
+  gangLeader      String?   @map("gang_leader")
+  gangSize        Int?      @map("gang_size")
+  workStart       DateTime? @map("work_start") @db.Date
+  workEnd         DateTime? @map("work_end") @db.Date
+  costPerUnit     Decimal?  @map("cost_per_unit") @db.Decimal(14, 2)
+  costUnit        String?   @map("cost_unit") // DAY | HOUR
+  totalAmount     Decimal?  @map("total_amount") @db.Decimal(14, 2)
+  supervisedBy    String?   @map("supervised_by")
+  remark          String?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  schedule LabourSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId, sn])
+  @@map("labour_schedule_lines")
+}
+
+/// Sheet 3 / FORM_PROGRESS_REPORT — Rockvilla-style stakeholder report
+model ProgressReport {
+  id                 String    @id @default(cuid())
+  number             String    @unique
+  projectId          String    @map("project_id")
+  reportDate         DateTime  @map("report_date") @db.Date
+  preparedBy         String?   @map("prepared_by")
+  summary            String    @db.Text
+  /// [{ "role": "Project Manager", "name": "..." }]
+  teamJson           Json      @map("team_json")
+  /// [{ "description", "date", "status", "owner", "comments" }]
+  completedJson      Json      @map("completed_json")
+  upcomingJson       Json      @map("upcoming_json")
+  /// [{ "issue", "impact", "action", "owner" }]
+  risksJson          Json      @map("risks_json")
+  status             String    @default("DRAFT") // DRAFT | PUBLISHED
+  publishedAt        DateTime? @map("published_at")
+  notes              String?   @db.Text
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, reportDate])
+  @@map("progress_reports")
+}
+
+enum PlanningCycleKind {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+/// Doc 3 — Daily / Weekly / Monthly planning rhythm
+model PlanningCycle {
+  id              String            @id @default(cuid())
+  number          String            @unique
+  projectId       String            @map("project_id")
+  kind            PlanningCycleKind
+  periodStart     DateTime          @map("period_start") @db.Date
+  periodEnd       DateTime?         @map("period_end") @db.Date
+  /// checklist items [{ "item", "done": bool, "notes" }]
+  checklistJson   Json              @map("checklist_json")
+  targets         String?           @db.Text
+  resourcesNote   String?           @map("resources_note") @db.Text
+  risksNote       String?           @map("risks_note") @db.Text
+  lookaheadNote   String?           @map("lookahead_note") @db.Text
+  cashflowNote    String?           @map("cashflow_note") @db.Text
+  preparedBy      String?           @map("prepared_by")
+  status          String            @default("DRAFT") // DRAFT | COMPLETE
+  completedAt     DateTime?         @map("completed_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, kind, periodStart])
+  @@map("planning_cycles")
+}
+
+/// Infographic 2 — professional ethics acknowledgement (US-PLAN-24)
+model EthicsAcknowledgement {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  version      String   @default("v1")
+  acknowledgedAt DateTime @default(now()) @map("acknowledged_at")
+  notes        String?  @db.Text
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, version])
+  @@map("ethics_acknowledgements")
 }
 
 // ─── Site Tracker (Daily Site Log) ──────────────────────────────────────────
@@ -1727,17 +1879,24 @@ enum ProcurementCategory {
 }
 
 model Supplier {
-  id         String   @id @default(cuid())
-  legalName  String   @map("legal_name")
-  tradingName String? @map("trading_name")
-  cacNumber  String?  @map("cac_number")
-  phone      String?
-  email      String?
-  address    String?  @db.Text
-  categories Json?
-  status     String   @default("pending_kyc")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(cuid())
+  legalName       String   @map("legal_name")
+  tradingName     String?  @map("trading_name")
+  cacNumber       String?  @map("cac_number")
+  phone           String?
+  email           String?
+  address         String?  @db.Text
+  /// Sheet 7 PRODUCT/SERVICES
+  productServices String?  @map("product_services") @db.Text
+  /// Sheet 7 PRODUCT PRICE free text
+  productPrice    String?  @map("product_price")
+  /// Sheet 7 Reliability 1–5 stars
+  reliabilityStars Int?    @map("reliability_stars")
+  notes           String?  @db.Text
+  categories      Json?
+  status          String   @default("pending_kyc")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   purchaseOrders PurchaseOrder[]
 
@@ -2076,19 +2235,24 @@ enum InspectionResult {
 }
 
 model ProjectInspection {
-  id           String           @id @default(cuid())
-  number       String           @unique
-  projectId    String           @map("project_id")
-  phase        String?
-  category     String
-  result       InspectionResult @default(PENDING)
-  notes        String?          @db.Text
-  checklist    Json?
-  photoUrls    Json?            @map("photo_urls")
-  inspectedAt  DateTime         @map("inspected_at") @db.Date
-  inspectedBy  String?          @map("inspected_by")
-  createdAt    DateTime         @default(now()) @map("created_at")
-  updatedAt    DateTime         @updatedAt @map("updated_at")
+  id                 String           @id @default(cuid())
+  number             String           @unique
+  projectId          String           @map("project_id")
+  phase              String?
+  category           String
+  /// Doc 4 section title e.g. PRE-CONSTRUCTION CHECKLIST
+  section            String?
+  result             InspectionResult @default(PENDING)
+  notes              String?          @db.Text
+  /// [{ "item": "...", "status": "YES"|"NO"|"NA", "remarks": "" }]
+  checklist          Json?
+  photoUrls          Json?            @map("photo_urls")
+  inspectedAt        DateTime         @map("inspected_at") @db.Date
+  inspectedBy        String?          @map("inspected_by")
+  sectionSignedAt    DateTime?        @map("section_signed_at")
+  sectionSignedBy    String?          @map("section_signed_by")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
 
   project Project @relation(fields: [projectId], references: [id])
 

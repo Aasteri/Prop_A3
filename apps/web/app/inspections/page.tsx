@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
@@ -9,25 +9,46 @@ import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Project = { id: string; name: string; site?: { code: string } };
 
+type ChecklistRow = { item: string; status: 'YES' | 'NO' | 'NA' | ''; remarks: string };
+
+type Doc4Section = { title: string; items: string[] };
+
 type Inspection = {
   id: string;
   number: string;
   category: string;
   phase: string | null;
+  section: string | null;
   result: string;
   notes: string | null;
+  checklist: ChecklistRow[] | null;
+  sectionSignedBy: string | null;
   inspectedAt: string;
   inspectedBy: string | null;
   project: { id: string; name: string; site?: { code: string } | null };
 };
 
-type Meta = { categories: string[]; results: string[] };
+type Meta = {
+  categories: string[];
+  results: string[];
+  sections: Doc4Section[];
+};
+
+function isPrePourContext(category: string, section: string) {
+  if (category.toLowerCase().includes('pre-pour')) return true;
+  const s = section.toUpperCase();
+  return s.includes('PRE-POUR') || s.includes('CONCRETE POUR');
+}
+
+function emptyChecklist(items: string[]): ChecklistRow[] {
+  return items.map((item) => ({ item, status: '', remarks: '' }));
+}
 
 export default function InspectionsPage() {
   const router = useRouter();
   const [rows, setRows] = useState<Inspection[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [meta, setMeta] = useState<Meta>({ categories: [], results: [] });
+  const [meta, setMeta] = useState<Meta>({ categories: [], results: [], sections: [] });
   const [projectFilter, setProjectFilter] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
@@ -35,11 +56,25 @@ export default function InspectionsPage() {
     projectId: '',
     category: '',
     phase: '',
+    section: '',
     inspectedAt: new Date().toISOString().slice(0, 10),
     inspectedBy: '',
     result: 'PENDING',
     notes: '',
+    sectionSignedBy: '',
   });
+  const [checklist, setChecklist] = useState<ChecklistRow[]>([]);
+
+  const selectedSection = useMemo(
+    () => meta.sections.find((s) => s.title === form.section),
+    [meta.sections, form.section],
+  );
+
+  const prePour = isPrePourContext(form.category, form.section);
+  const checklistReady =
+    checklist.length > 0 &&
+    checklist.every((c) => c.status === 'YES' || c.status === 'NA');
+  const canPassPrePour = checklistReady && !!form.sectionSignedBy.trim();
 
   const load = (projectId?: string) => {
     const q = projectId ? `?projectId=${projectId}` : '';
@@ -54,11 +89,14 @@ export default function InspectionsPage() {
     api<Meta>('/inspections/meta')
       .then((m) => {
         setMeta(m);
+        const firstSection = m.sections[0];
         setForm((f) => ({
           ...f,
           category: m.categories[0] ?? '',
           result: m.results[0] ?? 'PENDING',
+          section: firstSection?.title ?? '',
         }));
+        if (firstSection) setChecklist(emptyChecklist(firstSection.items));
       })
       .catch(console.error);
     api<Project[]>('/projects')
@@ -75,9 +113,39 @@ export default function InspectionsPage() {
     load(projectFilter || undefined);
   }, [projectFilter]);
 
+  function onSectionChange(title: string) {
+    const section = meta.sections.find((s) => s.title === title);
+    setForm((f) => ({ ...f, section: title }));
+    setChecklist(section ? emptyChecklist(section.items) : []);
+  }
+
+  function setItemStatus(index: number, status: ChecklistRow['status']) {
+    setChecklist((prev) => prev.map((row, i) => (i === index ? { ...row, status } : row)));
+  }
+
+  function setItemRemarks(index: number, remarks: string) {
+    setChecklist((prev) => prev.map((row, i) => (i === index ? { ...row, remarks } : row)));
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
+
+    if (form.result === 'PASS' && prePour && !canPassPrePour) {
+      setError(
+        'Pre-pour PASS requires every checklist item YES or NA, and a section signature.',
+      );
+      return;
+    }
+
+    const payloadChecklist = checklist
+      .filter((c) => c.status === 'YES' || c.status === 'NO' || c.status === 'NA')
+      .map((c) => ({
+        item: c.item,
+        status: c.status as 'YES' | 'NO' | 'NA',
+        remarks: c.remarks || undefined,
+      }));
+
     try {
       await api('/inspections', {
         method: 'POST',
@@ -85,10 +153,13 @@ export default function InspectionsPage() {
           projectId: form.projectId,
           category: form.category,
           phase: form.phase || undefined,
+          section: form.section || undefined,
           inspectedAt: form.inspectedAt,
           inspectedBy: form.inspectedBy || undefined,
           result: form.result,
           notes: form.notes || undefined,
+          checklist: payloadChecklist.length ? payloadChecklist : undefined,
+          sectionSignedBy: form.sectionSignedBy.trim() || undefined,
         }),
       });
       setShowForm(false);
@@ -99,11 +170,16 @@ export default function InspectionsPage() {
   }
 
   async function setResult(id: string, result: string) {
-    await api(`/inspections/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ result }),
-    });
-    load(projectFilter || undefined);
+    setError('');
+    try {
+      await api(`/inspections/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ result }),
+      });
+      load(projectFilter || undefined);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update result');
+    }
   }
 
   return (
@@ -119,12 +195,16 @@ export default function InspectionsPage() {
                 Inspections & QC
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-slate-200/90">
-                20-category inspection log (foundation through snagging / closeout).
+                Doc 4 construction checklists with Yes/No/NA, section sign-off, and
+                pre-pour PASS gate.
               </p>
             </div>
             <div className="flex gap-2">
               <Link href="/projects-hub" className="rounded-lg border border-white/20 px-4 py-2 text-sm">
                 Hub
+              </Link>
+              <Link href="/ethics" className="rounded-lg border border-white/20 px-4 py-2 text-sm">
+                Ethics
               </Link>
               <button
                 type="button"
@@ -192,6 +272,26 @@ export default function InspectionsPage() {
                 ))}
               </select>
             </div>
+            <div className="sm:col-span-2">
+              <label className={LABEL}>Doc 4 section</label>
+              <select
+                className={INPUT}
+                required
+                value={form.section}
+                onChange={(e) => onSectionChange(e.target.value)}
+              >
+                {meta.sections.map((s) => (
+                  <option key={s.title} value={s.title}>
+                    {s.title}
+                  </option>
+                ))}
+              </select>
+              {selectedSection ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  {selectedSection.items.length} checklist items
+                </p>
+              ) : null}
+            </div>
             <div>
               <label className={LABEL}>Phase</label>
               <input
@@ -227,12 +327,87 @@ export default function InspectionsPage() {
                 onChange={(e) => setForm({ ...form, result: e.target.value })}
               >
                 {meta.results.map((r) => (
-                  <option key={r} value={r}>
+                  <option
+                    key={r}
+                    value={r}
+                    disabled={r === 'PASS' && prePour && !canPassPrePour}
+                  >
                     {r}
                   </option>
                 ))}
               </select>
+              {prePour && (
+                <p className="mt-1 text-xs text-amber-700">
+                  Pre-pour gate: PASS needs all items YES/NA and section signature.
+                </p>
+              )}
             </div>
+
+            <div className="sm:col-span-2 space-y-3">
+              <label className={LABEL}>Checklist</label>
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Item</th>
+                      <th className="px-3 py-2 font-medium">Status</th>
+                      <th className="px-3 py-2 font-medium">Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {checklist.map((row, i) => (
+                      <tr key={row.item} className="border-b border-slate-100">
+                        <td className="px-3 py-2 text-[#1a2744]">{row.item}</td>
+                        <td className="px-3 py-2">
+                          <div className="flex flex-wrap gap-2">
+                            {(['YES', 'NO', 'NA'] as const).map((s) => (
+                              <button
+                                key={s}
+                                type="button"
+                                className={`rounded px-2 py-1 text-xs font-medium ${
+                                  row.status === s
+                                    ? s === 'YES'
+                                      ? 'bg-green-600 text-white'
+                                      : s === 'NO'
+                                        ? 'bg-red-600 text-white'
+                                        : 'bg-slate-600 text-white'
+                                    : 'bg-slate-100 text-slate-700'
+                                }`}
+                                onClick={() => setItemStatus(i, s)}
+                              >
+                                {s}
+                              </button>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            className={INPUT}
+                            value={row.remarks}
+                            onChange={(e) => setItemRemarks(i, e.target.value)}
+                            placeholder="Optional"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <label className={LABEL}>
+                Section signed by{prePour ? ' (required for PASS)' : ''}
+              </label>
+              <input
+                className={INPUT}
+                value={form.sectionSignedBy}
+                onChange={(e) => setForm({ ...form, sectionSignedBy: e.target.value })}
+                placeholder="Inspector / supervisor name"
+                required={prePour && form.result === 'PASS'}
+              />
+            </div>
+
             <div className="sm:col-span-2">
               <label className={LABEL}>Notes</label>
               <textarea
@@ -256,7 +431,7 @@ export default function InspectionsPage() {
               <tr>
                 <th className="px-4 py-3 font-medium">Ref</th>
                 <th className="px-4 py-3 font-medium">Project</th>
-                <th className="px-4 py-3 font-medium">Category</th>
+                <th className="px-4 py-3 font-medium">Section / category</th>
                 <th className="px-4 py-3 font-medium">Date</th>
                 <th className="px-4 py-3 font-medium">Result</th>
                 <th className="px-4 py-3 font-medium" />
@@ -271,9 +446,14 @@ export default function InspectionsPage() {
                     {r.project.name}
                   </td>
                   <td className="px-4 py-3">
-                    {r.category}
-                    {r.phase ? (
-                      <span className="block text-xs text-slate-500">{r.phase}</span>
+                    {r.section || r.category}
+                    {r.section ? (
+                      <span className="block text-xs text-slate-500">{r.category}</span>
+                    ) : null}
+                    {r.sectionSignedBy ? (
+                      <span className="block text-xs text-slate-500">
+                        Signed: {r.sectionSignedBy}
+                      </span>
                     ) : null}
                   </td>
                   <td className="px-4 py-3">
