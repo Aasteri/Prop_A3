@@ -45,6 +45,7 @@ import { CloseoutsModule } from './closeouts/closeouts.module';
 import { InstalmentsModule } from './instalments/instalments.module';
 import { ChartersModule } from './charters/charters.module';
 import { RetrospectivesModule } from './retrospectives/retrospectives.module';
+import { IvcsModule } from './ivcs/ivcs.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -97,6 +98,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     InstalmentsModule,
     ChartersModule,
     RetrospectivesModule,
+    IvcsModule,
     MailModule,
   ],
   controllers: [AppController],

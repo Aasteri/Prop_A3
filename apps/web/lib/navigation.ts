@@ -84,6 +84,12 @@ export const STAFF_NAV: NavGroup[] = [
         icon: 'clipboard',
         match: (p) => p.startsWith('/retrospectives'),
       },
+      {
+        href: '/ivcs',
+        label: 'IVC certificates',
+        icon: 'invoice',
+        match: (p) => p.startsWith('/ivcs'),
+      },
     ],
   },
   {

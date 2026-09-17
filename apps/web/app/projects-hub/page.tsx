@@ -59,6 +59,13 @@ export default function ProjectsHubPage() {
           status: 'live',
         },
         {
+          href: '/ivcs',
+          title: 'IVC certificates',
+          description: 'Doc 6 measured % valuation before subcontractor payment.',
+          icon: 'invoice',
+          status: 'live',
+        },
+        {
           href: '/closeouts',
           title: 'Project closeouts',
           description: 'Doc 7 handover: floor/zone features, open items, client ack.',

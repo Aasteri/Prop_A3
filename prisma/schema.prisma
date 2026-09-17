@@ -173,6 +173,7 @@ model Project {
   charter        ProjectCharter?
   kickoffs       ProjectKickoff[]
   retrospectives ProjectRetrospective[]
+  ivcs           InterimValuationCertificate[]
 
   @@map("projects")
 }
@@ -353,6 +354,7 @@ enum NotificationType {
   PROJECT_CHARTER
   PROJECT_KICKOFF
   PROJECT_RETROSPECTIVE
+  PROJECT_IVC
 }
 
 model Notification {
@@ -2014,9 +2016,56 @@ model WorksContract {
   updatedAt              DateTime            @updatedAt @map("updated_at")
 
   project Project @relation(fields: [projectId], references: [id])
+  ivcs    InterimValuationCertificate[]
 
   @@index([projectId, status])
   @@map("works_contracts")
+}
+
+enum IvcStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+}
+
+/// Doc 6 / FORM_IVC — Interim Valuation Certificate (US-MON-06–08)
+model InterimValuationCertificate {
+  id                      String    @id @default(cuid())
+  number                  String    @unique
+  projectId               String    @map("project_id")
+  worksContractId         String?   @map("works_contract_id")
+  workDescription         String    @map("work_description") @db.Text
+  subcontractorName       String    @map("subcontractor_name")
+  accountDetails          String?   @map("account_details") @db.Text
+  scopeOfWork             String    @map("scope_of_work") @db.Text
+  contractReference       String?   @map("contract_reference")
+  contractAmount          Decimal   @map("contract_amount") @db.Decimal(14, 2)
+  deliveryPeriod          String?   @map("delivery_period")
+  startDate               DateTime? @map("start_date") @db.Date
+  endDate                 DateTime? @map("end_date") @db.Date
+  /// [{ "sn": 0, "stage": "Mobilization fee", "measuredPct": 0, "amountPaid": 0, "pctPaid": 0, "datePaid": null, "performanceComment": "" }, ...]
+  stagesJson              Json      @map("stages_json")
+  recommendation          String?   @db.Text
+  status                  IvcStatus @default(DRAFT)
+  preparedBy              String?   @map("prepared_by")
+  submittedAt             DateTime? @map("submitted_at")
+  pmSignedAt              DateTime? @map("pm_signed_at")
+  pmSignedBy              String?   @map("pm_signed_by")
+  supervisorSignedAt      DateTime? @map("supervisor_signed_at")
+  supervisorSignedBy      String?   @map("supervisor_signed_by")
+  subcontractorSignedAt   DateTime? @map("subcontractor_signed_at")
+  subcontractorSignedBy   String?   @map("subcontractor_signed_by")
+  approvedAt              DateTime? @map("approved_at")
+  notes                   String?   @db.Text
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  worksContract  WorksContract?  @relation(fields: [worksContractId], references: [id])
+
+  @@index([projectId, status])
+  @@index([worksContractId])
+  @@map("interim_valuation_certificates")
 }
 
 enum InspectionResult {
