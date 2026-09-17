@@ -23,6 +23,11 @@ export class TenantApplicationsController {
     return this.applications.getClauses(user, propertyId);
   }
 
+  @Get('evaluation-criteria')
+  evaluationCriteria() {
+    return this.applications.evaluationCriteria();
+  }
+
   @Get()
   findAll(@CurrentUser() user: AuthUser, @Query('estateId') estateId?: string) {
     return this.applications.findAll(user, estateId);

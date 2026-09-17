@@ -26,6 +26,7 @@ import {
   CLAUSE_1,
   evaluationBand,
   generateApplicationRef,
+  TENANT_EVALUATION_CRITERIA,
 } from './tenant-applications.utils';
 import { generateInvoiceNumber } from '../invoices/invoices.utils';
 import { PmEngagementsService } from '../pm-engagements/pm-engagements.service';
@@ -58,6 +59,22 @@ export class TenantApplicationsService {
       applicationAgencyLegalPct: pct,
       scheduleSource: schedule.source,
       note: 'note' in schedule ? schedule.note : undefined,
+    };
+  }
+
+  evaluationCriteria() {
+    return {
+      scale: { min: 0, max: 10, meaning: '0 = lowest · 10 = highest' },
+      whoScores:
+        'Facility/property manager, Sales agent, PM, CEO, or Admin — never the tenant applicant.',
+      formula: 'average = (C1 + C2 + C3 + C4) / 4',
+      criteria: TENANT_EVALUATION_CRITERIA,
+      guidanceBands: [
+        { band: 'PREFERRED', range: '7.5 – 10', note: 'Advisory only' },
+        { band: 'ACCEPTABLE', range: '6.0 – 7.4', note: 'Advisory only' },
+        { band: 'BORDERLINE', range: '4.0 – 5.9', note: 'Requires override reason to approve' },
+        { band: 'UNSUITABLE', range: '0 – 3.9', note: 'Reject, or override with reason' },
+      ],
     };
   }
 
@@ -550,9 +567,16 @@ export class TenantApplicationsService {
   }
 
   private assertCanReview(user: AuthUser) {
-    const allowed: UserRole[] = [UserRole.PROJECT_MANAGER, UserRole.CEO, UserRole.ADMIN];
+    const allowed: UserRole[] = [
+      UserRole.SALES,
+      UserRole.PROJECT_MANAGER,
+      UserRole.CEO,
+      UserRole.ADMIN,
+    ];
     if (!allowed.includes(user.role)) {
-      throw new ForbiddenException('Only PM can review tenant applications');
+      throw new ForbiddenException(
+        'Only Sales (agent), PM, CEO, or Admin can evaluate / decide tenant applications',
+      );
     }
   }
 }

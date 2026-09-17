@@ -96,11 +96,34 @@ type SettlementEntity = {
 };
 
 const CRITERIA = [
-  { key: 'c1' as const, label: 'Compatibility of tenant/use with property' },
-  { key: 'c2' as const, label: 'Ability to pay' },
-  { key: 'c3' as const, label: 'Reason for vacating previous property' },
-  { key: 'c4' as const, label: 'Guarantor character & reliability' },
+  {
+    key: 'c1' as const,
+    label: 'Compatibility of tenant/use with property',
+    help: 'Family size vs property size, intended use, suitability, pressure on facilities. Example: ~10 people for a 2-bed → low score.',
+  },
+  {
+    key: 'c2' as const,
+    label: 'Ability to pay',
+    help: 'Income, employment/business, and expenses vs rent. May use market knowledge; company may investigate.',
+  },
+  {
+    key: 'c3' as const,
+    label: 'Reason for vacating previous property',
+    help: 'Based on information obtained about why they left their last residence.',
+  },
+  {
+    key: 'c4' as const,
+    label: 'Guarantor',
+    help: 'Guarantor’s ability to attest character, reliability, care of property, and meeting obligations.',
+  },
 ];
+
+function bandLabel(avg: number) {
+  if (avg >= 7.5) return 'PREFERRED';
+  if (avg >= 6.0) return 'ACCEPTABLE';
+  if (avg >= 4.0) return 'BORDERLINE';
+  return 'UNSUITABLE';
+}
 
 export default function TenantApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -204,7 +227,10 @@ export default function TenantApplicationDetailPage() {
   }, [offerPropertyId]);
 
   const canReview =
-    user?.role === 'PROJECT_MANAGER' || user?.role === 'CEO' || user?.role === 'ADMIN';
+    user?.role === 'PROJECT_MANAGER' ||
+    user?.role === 'CEO' ||
+    user?.role === 'ADMIN' ||
+    user?.role === 'SALES';
 
   const canOffer =
     canReview || user?.role === 'FINANCE' || user?.role === 'SALES';
@@ -596,24 +622,58 @@ export default function TenantApplicationDetailPage() {
       {app.status === 'PENDING_REVIEW' && canReview && (
         <form
           onSubmit={saveEvaluation}
-          className="mt-4 rounded-lg border border-slate-200 bg-white p-4 space-y-3"
+          className="mt-4 rounded-lg border border-slate-200 bg-white p-4 space-y-4"
         >
-          <h2 className="font-semibold text-[#1a2744]">FM evaluation (4 × 0–10)</h2>
-          <p className="text-xs text-slate-500">Tenant does not self-score. Average preview: {avgPreview}</p>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <h2 className="font-semibold text-[#1a2744]">Tenant evaluation (staff only)</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              List the four parameters below and score each on a scale of{' '}
+              <strong>0–10</strong> (0 = lowest, 10 = highest). The applicant never self-scores.
+              Sales agents, FM/PM, CEO, or Admin may score. The system only averages your scores.
+            </p>
+          </div>
+          <div className="rounded-md border border-[#e87722]/30 bg-[#fff8f2] px-3 py-2 text-sm text-[#1a2744]">
+            Average preview: <strong>{avgPreview}</strong> · Guidance band:{' '}
+            <strong>{bandLabel(avgPreview)}</strong>
+            {app.evaluation && (
+              <span className="text-slate-600">
+                {' '}
+                (saved {app.evaluation.decision}
+                {app.evaluation.overrideUsed ? ', override on file' : ''})
+              </span>
+            )}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
             {CRITERIA.map((c) => (
-              <div key={c.key}>
+              <div key={c.key} className="rounded-md border border-slate-100 bg-slate-50/80 p-3">
                 <label className={LABEL}>{c.label}</label>
-                <input
-                  type="number"
-                  min={0}
-                  max={10}
-                  className={INPUT}
-                  value={scores[c.key]}
-                  onChange={(e) =>
-                    setScores({ ...scores, [c.key]: Math.min(10, Math.max(0, Number(e.target.value) || 0)) })
-                  }
-                />
+                <p className="mb-2 text-xs text-slate-500">{c.help}</p>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={0}
+                    max={10}
+                    step={1}
+                    className="w-full accent-[#e87722]"
+                    value={scores[c.key]}
+                    onChange={(e) =>
+                      setScores({ ...scores, [c.key]: Number(e.target.value) })
+                    }
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    max={10}
+                    className={`${INPUT} w-16 shrink-0 text-center`}
+                    value={scores[c.key]}
+                    onChange={(e) =>
+                      setScores({
+                        ...scores,
+                        [c.key]: Math.min(10, Math.max(0, Number(e.target.value) || 0)),
+                      })
+                    }
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -624,7 +684,16 @@ export default function TenantApplicationDetailPage() {
               rows={2}
               value={notesInternal}
               onChange={(e) => setNotesInternal(e.target.value)}
+              placeholder="Investigations, landlord preferences, observations…"
             />
+          </div>
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 space-y-1">
+            <p className="font-medium text-slate-800">Guidance bands (advisory — final decision is yours)</p>
+            <p>PREFERRED ≥ 7.5 · ACCEPTABLE 6.0–7.4 · BORDERLINE 4.0–5.9 · UNSUITABLE &lt; 4.0</p>
+            <p>
+              Approving a borderline or unsuitable average requires an override reason so the audit
+              trail is clear.
+            </p>
           </div>
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input
@@ -632,7 +701,7 @@ export default function TenantApplicationDetailPage() {
               checked={overrideUsed}
               onChange={(e) => setOverrideUsed(e.target.checked)}
             />
-            Override band decision (required for borderline &lt; 6.0)
+            Record override (required to approve when average &lt; 6.0)
           </label>
           {overrideUsed && (
             <div>
@@ -642,6 +711,7 @@ export default function TenantApplicationDetailPage() {
                 required
                 value={overrideReason}
                 onChange={(e) => setOverrideReason(e.target.value)}
+                placeholder="Why approve despite the guidance band?"
               />
             </div>
           )}
@@ -659,7 +729,7 @@ export default function TenantApplicationDetailPage() {
               onClick={approve}
               className="rounded-md bg-green-700 px-4 py-2 text-sm text-white hover:bg-green-800 disabled:opacity-50"
             >
-              Approve ? Terrier + Tenancy + PropertyAsset
+              Approve → Terrier + Tenancy
             </button>
             <button
               type="button"

@@ -30,12 +30,37 @@ export function calcEvaluationAverage(c1: number, c2: number, c3: number, c4: nu
   return Math.round(((c1 + c2 + c3 + c4) / 4) * 10) / 10;
 }
 
+/** Advisory guidance labels only — final accept/reject is a human decision (G.5.2 / G.5.3). */
 export function evaluationBand(average: number): 'PREFERRED' | 'ACCEPTABLE' | 'BORDERLINE' | 'UNSUITABLE' {
   if (average >= 7.5) return 'PREFERRED';
   if (average >= 6.0) return 'ACCEPTABLE';
   if (average >= 4.0) return 'BORDERLINE';
   return 'UNSUITABLE';
 }
+
+export const TENANT_EVALUATION_CRITERIA = [
+  {
+    key: 'c1' as const,
+    label: 'Compatibility of tenant/use with property',
+    help: 'Family size vs property size, intended use, suitability, pressure on facilities. Example: ~10 people for a 2-bed → low score.',
+  },
+  {
+    key: 'c2' as const,
+    label: 'Ability to pay',
+    help: 'Income, employment/business, and expenses vs rent. May use market knowledge; company may investigate. Example: low income vs ₦5m/year rent → low score.',
+  },
+  {
+    key: 'c3' as const,
+    label: 'Reason for vacating previous property',
+    help: 'Based on information obtained about why they left their last residence.',
+  },
+  {
+    key: 'c4' as const,
+    label: 'Guarantor',
+    help: 'Guarantor’s ability to attest character, reliability, care of property, and meeting obligations.',
+  },
+];
+
 
 export function calcNetRentalIncome(rentAmount: number, expenseAmount: number): number {
   return Math.round((rentAmount - expenseAmount) * 100) / 100;

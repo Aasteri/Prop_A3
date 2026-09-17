@@ -261,6 +261,12 @@ export const STAFF_NAV: NavGroup[] = [
     title: 'Platform',
     items: [
       {
+        href: '/user-guide',
+        label: 'User guide',
+        icon: 'file',
+        match: (p) => p.startsWith('/user-guide'),
+      },
+      {
         href: '/documents',
         label: 'Documents',
         icon: 'file',

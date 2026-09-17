@@ -128,6 +128,11 @@ type WeeklyReport = {
 
 const MODULE_HUBS = [
   {
+    href: '/user-guide',
+    label: 'User guide',
+    desc: 'How-to steps + glossary for every module',
+  },
+  {
     href: '/projects-hub',
     label: 'Projects',
     desc: 'Site logs, milestones, change control, inspections',
