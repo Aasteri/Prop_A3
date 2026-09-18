@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { publicApi } from '@/lib/api';
+import { useCallback, useEffect, useState } from 'react';
+import { clearToken, getToken, getUser, publicApi, type AuthUser } from '@/lib/api';
 
 type Company = {
   name: string;
@@ -15,10 +15,26 @@ type Company = {
 export function PublicShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [company, setCompany] = useState<Company | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authed, setAuthed] = useState(false);
+
+  const refreshAuth = useCallback(() => {
+    setUser(getUser<AuthUser>());
+    setAuthed(Boolean(getToken()));
+  }, []);
 
   useEffect(() => {
+    refreshAuth();
     publicApi<Company>('/public/company').then(setCompany).catch(console.error);
-  }, []);
+    const onFocus = () => refreshAuth();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [refreshAuth]);
+
+  function onSignOut() {
+    clearToken();
+    refreshAuth();
+  }
 
   const phone = company?.phone ?? '+234 800 000 0000';
   const wa = company?.whatsapp?.replace(/\D/g, '') ?? '2348000000000';
@@ -26,11 +42,11 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-full bg-white">
       <header className="border-b border-slate-200 bg-[#1a2744] text-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-          <Link href="/" className="text-xl font-semibold">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4">
+          <Link href="/" className="shrink-0 text-xl font-semibold">
             Propa<span className="text-[#e87722]">3</span>
           </Link>
-          <nav className="flex flex-wrap items-center justify-end gap-3 text-sm sm:gap-4">
+          <nav className="flex flex-wrap items-center justify-end gap-2 text-sm sm:gap-3">
             <NavLink href="/" active={pathname === '/'}>
               Home
             </NavLink>
@@ -46,12 +62,60 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
             <NavLink href="/marketplace" active={pathname.startsWith('/marketplace')}>
               Artisans
             </NavLink>
-            <Link
-              href="/login"
-              className="rounded-md bg-[#e87722] px-3 py-1.5 font-medium hover:bg-[#d06818]"
-            >
-              Log in
-            </Link>
+
+            {authed && user ? (
+              <>
+                <span className="hidden text-slate-300 lg:inline">
+                  {user.firstName} {user.lastName}
+                </span>
+                {user.role === 'CLIENT' && (
+                  <Link
+                    href="/portal"
+                    className="rounded-md bg-[#e87722] px-3 py-1.5 font-medium hover:bg-[#d06818]"
+                  >
+                    Client portal
+                  </Link>
+                )}
+                {(user.role === 'MARKETPLACE_SEEKER' || user.role === 'CLIENT') && (
+                  <Link
+                    href="/marketplace"
+                    className="rounded-md bg-white/10 px-3 py-1.5 hover:bg-white/20"
+                  >
+                    My requests
+                  </Link>
+                )}
+                {user.role === 'ARTISAN' && (
+                  <Link
+                    href="/artisan"
+                    className="rounded-md bg-[#e87722] px-3 py-1.5 font-medium hover:bg-[#d06818]"
+                  >
+                    Artisan jobs
+                  </Link>
+                )}
+                {!['CLIENT', 'MARKETPLACE_SEEKER', 'ARTISAN'].includes(user.role) && (
+                  <Link
+                    href="/dashboard"
+                    className="rounded-md bg-[#e87722] px-3 py-1.5 font-medium hover:bg-[#d06818]"
+                  >
+                    Dashboard
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  onClick={onSignOut}
+                  className="rounded-md bg-white/10 px-3 py-1.5 hover:bg-white/20"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="rounded-md bg-[#e87722] px-3 py-1.5 font-medium hover:bg-[#d06818]"
+              >
+                Log in
+              </Link>
+            )}
           </nav>
         </div>
       </header>
@@ -70,6 +134,9 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
             )}
           </div>
           <div className="flex flex-wrap gap-4">
+            <Link href="/marketplace" className="hover:text-[#e87722]">
+              Artisan marketplace
+            </Link>
             <Link href="/privacy" className="hover:text-[#e87722]">
               Privacy policy
             </Link>

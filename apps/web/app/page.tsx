@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { PublicShell } from '@/components/PublicShell';
-import { ApiError, publicApi, submitInquiry } from '@/lib/api';
+import { ApiError, getToken, getUser, publicApi, submitInquiry, type AuthUser } from '@/lib/api';
 import { INPUT_INLINE } from '@/lib/ui';
 
 type Company = {
@@ -34,6 +34,8 @@ export default function HomePage() {
   const [company, setCompany] = useState<Company | null>(null);
   const [featured, setFeatured] = useState<Listing[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authed, setAuthed] = useState(false);
   const [inquirySent, setInquirySent] = useState(false);
   const [inquiryError, setInquiryError] = useState('');
   const [inquiryForm, setInquiryForm] = useState({
@@ -45,6 +47,8 @@ export default function HomePage() {
   });
 
   useEffect(() => {
+    setUser(getUser<AuthUser>());
+    setAuthed(Boolean(getToken()));
     publicApi<Company>('/public/company').then(setCompany).catch(console.error);
     publicApi<Listing[]>('/public/listings').then((list) => setFeatured(list.slice(0, 6)));
     publicApi<Stats>('/public/stats').then(setStats).catch(console.error);
@@ -237,16 +241,59 @@ export default function HomePage() {
 
       <section className="border-t border-slate-200 px-4 py-12">
         <div className="mx-auto max-w-6xl text-center">
-          <h2 className="text-2xl font-semibold text-[#1a2744]">Already a client?</h2>
-          <p className="mt-2 text-slate-600">
-            Track construction progress, view invoices, and approved change orders in your portal.
-          </p>
-          <Link
-            href="/login"
-            className="mt-4 inline-block rounded-lg bg-[#1a2744] px-6 py-3 text-sm font-medium text-white hover:bg-[#253660]"
-          >
-            Sign in to client portal
-          </Link>
+          {authed && user?.role === 'CLIENT' ? (
+            <>
+              <h2 className="text-2xl font-semibold text-[#1a2744]">
+                Welcome back, {user.firstName}
+              </h2>
+              <p className="mt-2 text-slate-600">
+                Open your client portal for progress, invoices, and change orders — or request an
+                artisan from the marketplace.
+              </p>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                <Link
+                  href="/portal"
+                  className="inline-block rounded-lg bg-[#1a2744] px-6 py-3 text-sm font-medium text-white hover:bg-[#253660]"
+                >
+                  Open client portal
+                </Link>
+                <Link
+                  href="/marketplace"
+                  className="inline-block rounded-lg border border-slate-300 px-6 py-3 text-sm font-medium text-[#1a2744] hover:bg-slate-50"
+                >
+                  Artisan marketplace
+                </Link>
+              </div>
+            </>
+          ) : authed && user?.role === 'MARKETPLACE_SEEKER' ? (
+            <>
+              <h2 className="text-2xl font-semibold text-[#1a2744]">You’re signed in</h2>
+              <p className="mt-2 text-slate-600">
+                Continue your artisan requests. If you buy a Triple A property later, this same
+                account becomes your client portal — no second signup.
+              </p>
+              <Link
+                href="/marketplace"
+                className="mt-4 inline-block rounded-lg bg-[#1a2744] px-6 py-3 text-sm font-medium text-white hover:bg-[#253660]"
+              >
+                Back to marketplace
+              </Link>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-semibold text-[#1a2744]">Already a client?</h2>
+              <p className="mt-2 text-slate-600">
+                Track construction progress, view invoices, and approved change orders in your
+                portal. The same login also works for artisan requests.
+              </p>
+              <Link
+                href="/login"
+                className="mt-4 inline-block rounded-lg bg-[#1a2744] px-6 py-3 text-sm font-medium text-white hover:bg-[#253660]"
+              >
+                Sign in
+              </Link>
+            </>
+          )}
         </div>
       </section>
     </PublicShell>
