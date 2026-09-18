@@ -3,6 +3,7 @@ import { UserRole, WorkOrderStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { ServiceChargesService } from '../service-charges/service-charges.service';
+import { CompanySettingsService } from '../company-settings/company-settings.service';
 import {
   CreateMaintenanceDto,
   CreateWorkOrderDto,
@@ -26,9 +27,9 @@ const include = {
   workOrders: { orderBy: { createdAt: 'desc' as const } },
 };
 
-/** Services fee: 2.5% of labour only (materials excluded) — Master BRD. */
-export function calcServicesPlatformFee(labourAmount: number): number {
-  return Math.round(labourAmount * 0.025 * 100) / 100;
+/** Services fee: % of labour only (materials excluded) — Master BRD / company settings. */
+export function calcServicesPlatformFee(labourAmount: number, pct = 2.5): number {
+  return Math.round(labourAmount * (pct / 100) * 100) / 100;
 }
 
 @Injectable()
@@ -36,6 +37,7 @@ export class MaintenanceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly serviceCharges: ServiceChargesService,
+    private readonly companySettings: CompanySettingsService,
   ) {}
 
   findAll(user: AuthUser, query: ListMaintenanceQueryDto) {
@@ -121,7 +123,9 @@ export class MaintenanceService {
     const number = await this.nextNumber('WO');
     const labour = dto.labourAmount ?? 0;
     const materials = dto.materialsAmount ?? 0;
-    const platformFee = dto.platformFee ?? calcServicesPlatformFee(labour);
+    const companyFees = await this.companySettings.getFeeSchedule();
+    const platformFee =
+      dto.platformFee ?? calcServicesPlatformFee(labour, companyFees.servicesPlatformFeePct);
     const scSpend = labour + materials; // materials+labour recovered from SC when within SC
     const available = await this.serviceCharges.getAvailableBalance(request.propertyId);
 

@@ -3,36 +3,34 @@
 **Live login:** https://propa3.com/login  
 **Domain:** all accounts use **`@propa3.com`** (aligned with Namecheap mailboxes).
 
+Full reference (roles, what to test, company settings): **[docs/TEST_USERS.md](./docs/TEST_USERS.md)**.
+
 Create each mailbox on shared hosting with the **same password** as below.  
 **App SMTP (system mail only):** `info@propa3.com` — password lives in server `.env` only (`SMTP_*`), not in this file.
 
 | Email | Password | Role | What they can test |
 |---|---|---|---|
-| `ceo@propa3.com` | `RwrsW9r8xz&noJv3tept` | CEO | Full access — all sites, dashboards, log approvals, change orders, invoices, CRM, listings, milestones, Estate Terrier |
+| `ceo@propa3.com` | `RwrsW9r8xz&noJv3tept` | CEO | Full access — all sites, dashboards, company settings (edit), log approvals, change orders, invoices, CRM, listings, milestones, Estate Terrier |
+| `admin@propa3.com` | `Admin@Propa3!` | Admin | Company settings (edit), system admin, audit — mirrors CEO admin surfaces |
 | `pm.jkw@propa3.com` | `Bar4QMujSv$gu8fdb32J` | Project Manager | Jikwoyi site — approve daily logs, milestones, material requests, change log, tenant application approval |
 | `foreman.jkw@propa3.com` | `D$RVW&@k^z*#zuhFN#3j` | Foreman | Jikwoyi — submit daily site logs (incl. offline PWA), photos, material requests |
 | `foreman.gz2@propa3.com` | `pjBgSiH&$LVyd*@^gwNF` | Foreman | Guzape II — submit daily site logs, photos, material requests |
-| `store.jkw@propa3.com` | `7LhYmpTBgq3X*p3a#$5D` | Store Manager | Jikwoyi — fulfil/issue materials from approved requests |
 | `engineer@propa3.com` | `Fq4CBjsU5Dgrhmb436ix` | Engineer | Certify milestone progress, FCDA gate on Foundation |
-| `finance@propa3.com` | `QNp5miQQr@oaQwWD$UPB` | Finance | Invoices, payment proof review, Estate Terrier |
+| `architect@propa3.com` | `Architect@Propa3!` | Architect | Design / planning document workflows |
+| `store.jkw@propa3.com` | `7LhYmpTBgq3X*p3a#$5D` | Store Manager | Jikwoyi — fulfil/issue materials from approved requests |
+| `finance@propa3.com` | `QNp5miQQr@oaQwWD$UPB` | Finance | Invoices, payment proof review, Estate Terrier, payouts; company settings (view) |
 | `sales@propa3.com` | `!dAscG#7$NhGnhdC7rH#` | Sales | CRM pipeline, listings admin, tenant applications |
 | `client@propa3.com` | `MMBRg6fJHC^SStcPv$MP` | Client | Client portal at `/portal` — Guzape II duplex, payments, changes |
 
-## Settlement bank (invoices)
+## Company settings & settlement bank
 
-Default settlement entity on invoices: **Triple A Realty Projects Ltd.** — GTBank `0123456789` (placeholder until corporate account is confirmed). Laucarie sample entity kept as non-default legacy reference.
+- **Company settings:** `/settings` — CEO/ADMIN edit fees & bank; FINANCE view-only. New calculations only (existing invoices unchanged unless edited).
+- **Default settlement:** Triple A Realty Projects Ltd — Tajbank `0013925425` (from Company settings → `seed-triplea`).
 
 | Mailbox | Used for |
 |---|---|
 | `info@propa3.com` | **SMTP only** — Propa3 notifications / password reset (already created) |
 | `ceo@propa3.com` … `client@propa3.com` | Staff/client login + email (same passwords as table) |
-
-## Not seeded (roles exist, no demo account yet)
-
-| Role | Notes |
-|---|---|
-| `ARCHITECT` | Add when design-review workflows are built |
-| `ADMIN` | CEO covers most admin-style access for MVP UAT |
 
 ## Apply password/email changes on production DB
 

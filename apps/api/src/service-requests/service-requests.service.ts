@@ -13,6 +13,7 @@ import {
   CreateServiceRequestDto,
   EstimateServiceRequestDto,
 } from './dto/service-request.dto';
+import { CompanySettingsService } from '../company-settings/company-settings.service';
 
 const include = {
   artisan: {
@@ -20,14 +21,17 @@ const include = {
   },
 };
 
-/** Services fee: 2.5% of labour only (materials excluded). */
-export function calcServicesFee(labour: number): number {
-  return Math.round(labour * 0.025 * 100) / 100;
+/** Services fee: % of labour only (materials excluded). */
+export function calcServicesFee(labour: number, pct = 2.5): number {
+  return Math.round(labour * (pct / 100) * 100) / 100;
 }
 
 @Injectable()
 export class ServiceRequestsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly companySettings: CompanySettingsService,
+  ) {}
 
   findAll(user: AuthUser) {
     this.assertCanView(user);
@@ -93,7 +97,8 @@ export class ServiceRequestsService {
     if (!existing.artisanId) {
       throw new BadRequestException('Assign an artisan before estimate');
     }
-    const platformFee = calcServicesFee(dto.labourAmount);
+    const companyFees = await this.companySettings.getFeeSchedule();
+    const platformFee = calcServicesFee(dto.labourAmount, companyFees.servicesPlatformFeePct);
     return this.prisma.serviceRequest.update({
       where: { id },
       data: {

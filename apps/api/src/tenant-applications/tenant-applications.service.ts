@@ -30,6 +30,7 @@ import {
 } from './tenant-applications.utils';
 import { generateInvoiceNumber } from '../invoices/invoices.utils';
 import { PmEngagementsService } from '../pm-engagements/pm-engagements.service';
+import { CompanySettingsService } from '../company-settings/company-settings.service';
 
 const include = {
   estate: true,
@@ -47,6 +48,7 @@ export class TenantApplicationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly engagements: PmEngagementsService,
+    private readonly companySettings: CompanySettingsService,
   ) {}
 
   async getClauses(user: AuthUser, propertyId?: string) {
@@ -100,8 +102,11 @@ export class TenantApplicationsService {
     }
 
     const schedule = await this.engagements.resolveSchedule(user, dto.propertyId);
+    const companyFees = await this.companySettings.getFeeSchedule();
     const agencyFeePct =
-      dto.applicationAgencyLegalPct ?? schedule.applicationAgencyLegalPct ?? 20;
+      dto.applicationAgencyLegalPct ??
+      schedule.applicationAgencyLegalPct ??
+      companyFees.applicationAgencyLegalPct;
     const agencyFeeAmount = calcAgencyFee(dto.rentAccepted, agencyFeePct);
 
     return this.prisma.$transaction(async (tx) => {
@@ -162,8 +167,11 @@ export class TenantApplicationsService {
     }
 
     const schedule = await this.engagements.resolveSchedule(user, dto.propertyId);
+    const companyFees = await this.companySettings.getFeeSchedule();
     const agencyFeePct =
-      dto.applicationAgencyLegalPct ?? schedule.applicationAgencyLegalPct ?? 20;
+      dto.applicationAgencyLegalPct ??
+      schedule.applicationAgencyLegalPct ??
+      companyFees.applicationAgencyLegalPct;
 
     return this.prisma.tenantApplication.update({
       where: { id },

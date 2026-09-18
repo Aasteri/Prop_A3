@@ -3,6 +3,7 @@ import { UserRole, WorksContractStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { CreateWorksContractDto, UpdateWorksStatusDto } from './dto/works.dto';
+import { CompanySettingsService } from '../company-settings/company-settings.service';
 
 const include = {
   project: { select: { id: true, name: true, location: true, site: { select: { code: true } } } },
@@ -10,7 +11,10 @@ const include = {
 
 @Injectable()
 export class WorksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly companySettings: CompanySettingsService,
+  ) {}
 
   findAll(user: AuthUser) {
     this.assertCanView(user);
@@ -25,7 +29,8 @@ export class WorksService {
     const project = await this.prisma.project.findUnique({ where: { id: dto.projectId } });
     if (!project) throw new NotFoundException('Project not found');
 
-    const feePct = dto.platformFeePct ?? 10;
+    const companyFees = await this.companySettings.getFeeSchedule();
+    const feePct = dto.platformFeePct ?? companyFees.worksPlatformFeePct;
     const platformFeeAmount = Math.round(dto.contractSum * (feePct / 100) * 100) / 100;
     const year = new Date().getFullYear();
     const stamp = Date.now().toString(36).toUpperCase().slice(-5);
@@ -39,7 +44,7 @@ export class WorksService {
         scopeSummary: dto.scopeSummary,
         contractSum: dto.contractSum,
         mobilisationPct: dto.mobilisationPct,
-        retentionPct: dto.retentionPct ?? 5,
+        retentionPct: dto.retentionPct ?? companyFees.worksRetentionPct,
         platformFeePct: feePct,
         platformFeeAmount,
         startDate: dto.startDate ? new Date(dto.startDate) : undefined,

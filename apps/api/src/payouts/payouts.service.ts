@@ -16,6 +16,11 @@ import { AuthUser } from '../common/decorators/current-user.decorator';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreatePayoutDto, PreviewPayoutDto } from './dto/payout.dto';
 import type { PayoutCalcStep } from './payout.pdf';
+import {
+  CompanySettingsService,
+  FeeSchedule,
+  HARDCODED_FEE_FALLBACK,
+} from '../company-settings/company-settings.service';
 
 type AggregationKey = string;
 
@@ -57,21 +62,44 @@ export type CalculationResult = {
   attributionCount: number;
 };
 
-const FEE_DEFAULTS = {
-  agencyLettingPct: 10,
-  legalPct: 5,
-  managementPct: 5,
-  applicationAgencyLegalPct: 20,
-  worksPlatformPct: 10,
-  servicesArtisanLabourPct: 2.5,
-  externalAgentOfAgencyPct: 50,
+const FEE_DEFAULTS_FALLBACK = {
+  agencyLettingPct: HARDCODED_FEE_FALLBACK.agencyFeePct,
+  legalPct: HARDCODED_FEE_FALLBACK.legalFeePct,
+  managementPct: HARDCODED_FEE_FALLBACK.managementFeePct,
+  applicationAgencyLegalPct: HARDCODED_FEE_FALLBACK.applicationAgencyLegalPct,
+  worksPlatformPct: HARDCODED_FEE_FALLBACK.worksPlatformFeePct,
+  servicesArtisanLabourPct: HARDCODED_FEE_FALLBACK.servicesPlatformFeePct,
+  externalAgentOfAgencyPct: HARDCODED_FEE_FALLBACK.externalAgentCommissionOfAgencyPct,
 } as const;
+
+type FeeDefaults = {
+  agencyLettingPct: number;
+  legalPct: number;
+  managementPct: number;
+  applicationAgencyLegalPct: number;
+  worksPlatformPct: number;
+  servicesArtisanLabourPct: number;
+  externalAgentOfAgencyPct: number;
+};
+
+function feeDefaultsFromSchedule(fees: FeeSchedule): FeeDefaults {
+  return {
+    agencyLettingPct: fees.agencyFeePct,
+    legalPct: fees.legalFeePct,
+    managementPct: fees.managementFeePct,
+    applicationAgencyLegalPct: fees.applicationAgencyLegalPct,
+    worksPlatformPct: fees.worksPlatformFeePct,
+    servicesArtisanLabourPct: fees.servicesPlatformFeePct,
+    externalAgentOfAgencyPct: fees.externalAgentCommissionOfAgencyPct,
+  };
+}
 
 @Injectable()
 export class PayoutsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly companySettings: CompanySettingsService,
   ) {}
 
   findAll(user: AuthUser) {
@@ -301,6 +329,9 @@ export class PayoutsService {
     const endInclusive = new Date(end);
     endInclusive.setHours(23, 59, 59, 999);
 
+    const companyFees = await this.companySettings.getFeeSchedule();
+    const FEE_DEFAULTS = feeDefaultsFromSchedule(companyFees);
+
     const inflows = await this.prisma.moneyInflow.findMany({
       where: {
         receivedAt: { gte: start, lte: endInclusive },
@@ -410,7 +441,7 @@ export class PayoutsService {
           `Roll-up of ${b.inflowRefs.length} attribution(s) for ${b.earnerType}${b.category ? ` / ${b.category}` : ''}.`,
           `Share of period gross: ${sharePct.toFixed(4)}% of NGN ${grossInflows.toLocaleString('en-NG', { minimumFractionDigits: 2 })}.`,
           `Inflows: ${inflowList || '—'}.`,
-          this.categoryRuleNote(b.category, b.earnerType),
+          this.categoryRuleNote(b.category, b.earnerType, FEE_DEFAULTS),
         ]
           .filter(Boolean)
           .join(' ');
@@ -523,28 +554,32 @@ export class PayoutsService {
     };
   }
 
-  private categoryRuleNote(category: string | null, earnerType: EarnerType): string {
+  private categoryRuleNote(
+    category: string | null,
+    earnerType: EarnerType,
+    fees: FeeDefaults = FEE_DEFAULTS_FALLBACK,
+  ): string {
     switch (category) {
       case 'AGENCY_FEE':
-        return `Rule: agency/letting from PM engagement or ${FEE_DEFAULTS.agencyLettingPct}%.`;
+        return `Rule: agency/letting from PM engagement or ${fees.agencyLettingPct}%.`;
       case 'MANAGEMENT_FEE':
-        return `Rule: management fee default ${FEE_DEFAULTS.managementPct}%.`;
+        return `Rule: management fee default ${fees.managementPct}%.`;
       case 'WORKS_FEE':
       case 'PLATFORM_FEE_10':
-        return `Rule: works platform ${FEE_DEFAULTS.worksPlatformPct}% of works contract.`;
+        return `Rule: works platform ${fees.worksPlatformPct}% of works contract.`;
       case 'PLATFORM_FEE_2_5':
       case 'ARTISAN_FEE':
-        return `Rule: services/artisan platform ${FEE_DEFAULTS.servicesArtisanLabourPct}% of labour only.`;
+        return `Rule: services/artisan platform ${fees.servicesArtisanLabourPct}% of labour only.`;
       case 'COMMISSION':
-        return `Rule: external agent commission — stored COMMISSION preferred over ${FEE_DEFAULTS.externalAgentOfAgencyPct}% of agency fee.`;
+        return `Rule: external agent commission — stored COMMISSION preferred over ${fees.externalAgentOfAgencyPct}% of agency fee.`;
       case 'RENT_TO_LANDLORD':
         return 'Rule: rent remitted to landlord (not company retain).';
       default:
         if (earnerType === EarnerType.EXTERNAL_AGENT) {
-          return `Rule: external agent — prefer COMMISSION attribution; else ${FEE_DEFAULTS.externalAgentOfAgencyPct}% of company agency fee on the deal.`;
+          return `Rule: external agent — prefer COMMISSION attribution; else ${fees.externalAgentOfAgencyPct}% of company agency fee on the deal.`;
         }
         if (category === 'OTHER' && earnerType === EarnerType.COMPANY) {
-          return `Rule: legal fee default ${FEE_DEFAULTS.legalPct}%; application Agency+Legal ${FEE_DEFAULTS.applicationAgencyLegalPct}% where applicable.`;
+          return `Rule: legal fee default ${fees.legalPct}%; application Agency+Legal ${fees.applicationAgencyLegalPct}% where applicable.`;
         }
         return '';
     }

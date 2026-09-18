@@ -21,13 +21,17 @@ import {
   PmEngagementsService,
 } from '../pm-engagements/pm-engagements.service';
 import { LegalTemplatesService } from '../legal-templates/legal-templates.service';
+import {
+  CompanySettingsService,
+  HARDCODED_FEE_FALLBACK,
+} from '../company-settings/company-settings.service';
 
 /** Doc 10 defaults — separate from Doc 12 application 20% Agency+Legal clause. */
 export function calcOfferFeeLines(
   rent: number,
-  agencyPct = 10,
-  legalPct = 5,
-  mgmtPct = 5,
+  agencyPct = HARDCODED_FEE_FALLBACK.agencyFeePct,
+  legalPct = HARDCODED_FEE_FALLBACK.legalFeePct,
+  mgmtPct = HARDCODED_FEE_FALLBACK.managementFeePct,
 ) {
   return {
     agencyFeeAmount: Math.round(rent * (agencyPct / 100) * 100) / 100,
@@ -70,6 +74,7 @@ export class OffersService {
     private readonly notifications: NotificationsService,
     private readonly engagements: PmEngagementsService,
     private readonly legalTemplates: LegalTemplatesService,
+    private readonly companySettings: CompanySettingsService,
   ) {}
 
   findByApplication(applicationId: string, user: AuthUser) {
@@ -94,19 +99,34 @@ export class OffersService {
     }
 
     const rent = dto.rentAnnual ?? Number(app.rentAccepted);
+    const companyFees = await this.companySettings.getFeeSchedule();
     const schedule = await this.engagements.resolveSchedule(user, dto.propertyId);
-    const agencyPct = dto.agencyFeePct ?? schedule.agencyFeePct ?? DEFAULT_FEE_SCHEDULE.agencyFeePct;
-    const legalPct = dto.legalFeePct ?? schedule.legalFeePct ?? DEFAULT_FEE_SCHEDULE.legalFeePct;
+    const agencyPct =
+      dto.agencyFeePct ??
+      schedule.agencyFeePct ??
+      companyFees.agencyFeePct ??
+      DEFAULT_FEE_SCHEDULE.agencyFeePct;
+    const legalPct =
+      dto.legalFeePct ??
+      schedule.legalFeePct ??
+      companyFees.legalFeePct ??
+      DEFAULT_FEE_SCHEDULE.legalFeePct;
     const mgmtPct =
-      dto.managementFeePct ?? schedule.managementFeePct ?? DEFAULT_FEE_SCHEDULE.managementFeePct;
+      dto.managementFeePct ??
+      schedule.managementFeePct ??
+      companyFees.managementFeePct ??
+      DEFAULT_FEE_SCHEDULE.managementFeePct;
     const fees = calcOfferFeeLines(rent, agencyPct, legalPct, mgmtPct);
+    const cautionPct = companyFees.cautionDepositPct;
     const year = new Date().getFullYear();
     const stamp = Date.now().toString(36).toUpperCase().slice(-5);
 
     const scheduleNote =
       schedule.source === 'engagement'
         ? `Fee schedule from PM engagement ${schedule.engagementId} (${'ownerName' in schedule ? schedule.ownerName : 'owner'})`
-        : 'Fee schedule: Doc 10/11/12 production defaults';
+        : schedule.source === 'company_settings'
+          ? 'Fee schedule: company settings'
+          : 'Fee schedule: Doc 10/11/12 production defaults';
 
     const landlordEntity = dto.landlordSettlementEntityId
       ? await this.requireSettlement(dto.landlordSettlementEntityId)
@@ -123,7 +143,8 @@ export class OffersService {
         number: `OFF-${year}-${stamp}`,
         applicationId: dto.applicationId,
         rentAnnual: rent,
-        cautionAmount: dto.cautionAmount ?? Math.round(rent * 0.1 * 100) / 100,
+        cautionAmount:
+          dto.cautionAmount ?? Math.round(rent * (cautionPct / 100) * 100) / 100,
         agencyFeePct: agencyPct,
         legalFeePct: legalPct,
         managementFeePct: mgmtPct,

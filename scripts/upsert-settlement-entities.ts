@@ -1,5 +1,6 @@
 /**
  * Idempotent upsert of CONFIRMED Triple A settlement bank details.
+ * Prefers CompanySettings bank fields when the singleton exists.
  * Called from deploy after prisma seed (seed already upserts; this is a
  * belt-and-braces helper if seed is skipped or partially fails).
  */
@@ -8,21 +9,28 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
+  const settings = await prisma.companySettings.findUnique({ where: { id: 'default' } });
+
+  const name = settings?.companyLegalName ?? 'TRIPLE A REALTY PROJECTS LTD';
+  const bankName = settings?.bankName ?? 'Tajbank';
+  const accountName = settings?.bankAccountName ?? 'TRIPLE A REALTY PROJECTS LTD';
+  const accountNumber = settings?.bankAccountNumber ?? '0013925425';
+
   await prisma.settlementEntity.upsert({
     where: { id: 'seed-triplea' },
     update: {
-      name: 'Triple A Realty Projects Ltd',
-      bankName: 'Tajbank',
-      accountName: 'TRIPLE A REALTY PROJECTS LTD',
-      accountNumber: '0013925425',
+      name,
+      bankName,
+      accountName,
+      accountNumber,
       isDefault: true,
     },
     create: {
       id: 'seed-triplea',
-      name: 'Triple A Realty Projects Ltd',
-      bankName: 'Tajbank',
-      accountName: 'TRIPLE A REALTY PROJECTS LTD',
-      accountNumber: '0013925425',
+      name,
+      bankName,
+      accountName,
+      accountNumber,
       isDefault: true,
     },
   });
@@ -45,7 +53,7 @@ async function main() {
     data: { isDefault: false },
   });
 
-  console.log('Settlement entities upserted (Triple A default Tajbank 0013925425).');
+  console.log(`Settlement entities upserted (${bankName} ${accountNumber}).`);
 }
 
 main()

@@ -148,21 +148,45 @@ async function main() {
   }
 
   // CONFIRMED Triple A corporate bank (default settlement / invoice payee)
+  // Prefer CompanySettings bank fields when present; otherwise seed confirmed Tajbank details.
+  const companySettings = await prisma.companySettings.upsert({
+    where: { id: 'default' },
+    update: {},
+    create: {
+      id: 'default',
+      lettingFeePct: 10,
+      agencyFeePct: 10,
+      legalFeePct: 5,
+      managementFeePct: 5,
+      applicationAgencyLegalPct: 20,
+      worksPlatformFeePct: 10,
+      worksRetentionPct: 5,
+      servicesPlatformFeePct: 2.5,
+      cautionDepositPct: 10,
+      externalAgentCommissionOfAgencyPct: 50,
+      companyLegalName: 'TRIPLE A REALTY PROJECTS LTD',
+      bankName: 'Tajbank',
+      bankAccountName: 'TRIPLE A REALTY PROJECTS LTD',
+      bankAccountNumber: '0013925425',
+      defaultCurrency: 'NGN',
+    },
+  });
+
   await prisma.settlementEntity.upsert({
     where: { id: 'seed-triplea' },
     update: {
-      name: 'Triple A Realty Projects Ltd',
-      bankName: 'Tajbank',
-      accountName: 'TRIPLE A REALTY PROJECTS LTD',
-      accountNumber: '0013925425',
+      name: companySettings.companyLegalName,
+      bankName: companySettings.bankName,
+      accountName: companySettings.bankAccountName,
+      accountNumber: companySettings.bankAccountNumber,
       isDefault: true,
     },
     create: {
       id: 'seed-triplea',
-      name: 'Triple A Realty Projects Ltd',
-      bankName: 'Tajbank',
-      accountName: 'TRIPLE A REALTY PROJECTS LTD',
-      accountNumber: '0013925425',
+      name: companySettings.companyLegalName,
+      bankName: companySettings.bankName,
+      accountName: companySettings.bankAccountName,
+      accountNumber: companySettings.bankAccountNumber,
       isDefault: true,
     },
   });

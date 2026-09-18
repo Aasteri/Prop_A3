@@ -2455,3 +2455,34 @@ model PayoutLine {
   @@index([earnerType])
   @@map("payout_lines")
 }
+
+/// Singleton company-wide fee standards + bank identity (id = "default").
+model CompanySettings {
+  id String @id @default("default")
+
+  // Fees %
+  lettingFeePct                      Decimal @default(10) @map("letting_fee_pct") @db.Decimal(5, 2)
+  agencyFeePct                       Decimal @default(10) @map("agency_fee_pct") @db.Decimal(5, 2)
+  legalFeePct                        Decimal @default(5) @map("legal_fee_pct") @db.Decimal(5, 2)
+  managementFeePct                   Decimal @default(5) @map("management_fee_pct") @db.Decimal(5, 2)
+  applicationAgencyLegalPct          Decimal @default(20) @map("application_agency_legal_pct") @db.Decimal(5, 2)
+  worksPlatformFeePct                Decimal @default(10) @map("works_platform_fee_pct") @db.Decimal(5, 2)
+  worksRetentionPct                  Decimal @default(5) @map("works_retention_pct") @db.Decimal(5, 2)
+  servicesPlatformFeePct             Decimal @default(2.5) @map("services_platform_fee_pct") @db.Decimal(5, 2)
+  cautionDepositPct                  Decimal @default(10) @map("caution_deposit_pct") @db.Decimal(5, 2)
+  externalAgentCommissionOfAgencyPct Decimal @default(50) @map("external_agent_commission_of_agency_pct") @db.Decimal(5, 2)
+
+  // Company identity / bank (standards)
+  companyLegalName  String @default("TRIPLE A REALTY PROJECTS LTD") @map("company_legal_name")
+  bankName          String @default("Tajbank") @map("bank_name")
+  bankAccountName   String @default("TRIPLE A REALTY PROJECTS LTD") @map("bank_account_name")
+  bankAccountNumber String @default("0013925425") @map("bank_account_number")
+
+  // Standards text
+  defaultCurrency String   @default("NGN") @map("default_currency")
+  notes           String?  @db.Text
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  updatedBy       String?  @map("updated_by")
+
+  @@map("company_settings")
+}

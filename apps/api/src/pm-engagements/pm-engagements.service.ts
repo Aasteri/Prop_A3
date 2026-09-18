@@ -11,14 +11,18 @@ import {
   CreatePmEngagementDto,
   UpdatePmEngagementDto,
 } from './dto/pm-engagement.dto';
+import {
+  CompanySettingsService,
+  HARDCODED_FEE_FALLBACK,
+} from '../company-settings/company-settings.service';
 
-/** Production defaults (Doc 10 / 11 / 12) — overridable per engagement. */
+/** Production defaults (Doc 10 / 11 / 12) — overridable per engagement / company settings. */
 export const DEFAULT_FEE_SCHEDULE = {
-  lettingFeePct: 10,
-  agencyFeePct: 10,
-  legalFeePct: 5,
-  managementFeePct: 5,
-  applicationAgencyLegalPct: 20,
+  lettingFeePct: HARDCODED_FEE_FALLBACK.lettingFeePct,
+  agencyFeePct: HARDCODED_FEE_FALLBACK.agencyFeePct,
+  legalFeePct: HARDCODED_FEE_FALLBACK.legalFeePct,
+  managementFeePct: HARDCODED_FEE_FALLBACK.managementFeePct,
+  applicationAgencyLegalPct: HARDCODED_FEE_FALLBACK.applicationAgencyLegalPct,
   source: 'defaults' as const,
 };
 
@@ -34,7 +38,10 @@ const include = {
 
 @Injectable()
 export class PmEngagementsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly companySettings: CompanySettingsService,
+  ) {}
 
   findAll(user: AuthUser) {
     this.assertCanView(user);
@@ -51,12 +58,22 @@ export class PmEngagementsService {
   }
 
   /**
-   * Resolve fee schedule for a property (active engagement) or return Doc defaults.
+   * Resolve fee schedule for a property (active engagement) or company settings / Doc defaults.
    */
   async resolveSchedule(user: AuthUser, propertyId?: string) {
     this.assertCanView(user);
+    const companyFees = await this.companySettings.getFeeSchedule();
+    const companyDefaults = {
+      lettingFeePct: companyFees.lettingFeePct,
+      agencyFeePct: companyFees.agencyFeePct,
+      legalFeePct: companyFees.legalFeePct,
+      managementFeePct: companyFees.managementFeePct,
+      applicationAgencyLegalPct: companyFees.applicationAgencyLegalPct,
+      source: 'company_settings' as const,
+    };
+
     if (!propertyId) {
-      return { ...DEFAULT_FEE_SCHEDULE, propertyId: null, engagementId: null };
+      return { ...companyDefaults, propertyId: null, engagementId: null };
     }
     const link = await this.prisma.pmEngagementProperty.findFirst({
       where: {
@@ -67,10 +84,10 @@ export class PmEngagementsService {
     });
     if (!link) {
       return {
-        ...DEFAULT_FEE_SCHEDULE,
+        ...companyDefaults,
         propertyId,
         engagementId: null,
-        note: 'No active PM engagement for this property — using Doc 10/11/12 defaults',
+        note: 'No active PM engagement for this property — using company fee standards',
       };
     }
     const e = link.engagement;
@@ -78,12 +95,12 @@ export class PmEngagementsService {
       propertyId,
       engagementId: e.id,
       ownerName: e.ownerName,
-      lettingFeePct: Number(e.lettingFeePct ?? DEFAULT_FEE_SCHEDULE.lettingFeePct),
-      agencyFeePct: Number(e.agencyFeePct ?? DEFAULT_FEE_SCHEDULE.agencyFeePct),
-      legalFeePct: Number(e.legalFeePct ?? DEFAULT_FEE_SCHEDULE.legalFeePct),
-      managementFeePct: Number(e.managementFeePct ?? DEFAULT_FEE_SCHEDULE.managementFeePct),
+      lettingFeePct: Number(e.lettingFeePct ?? companyDefaults.lettingFeePct),
+      agencyFeePct: Number(e.agencyFeePct ?? companyDefaults.agencyFeePct),
+      legalFeePct: Number(e.legalFeePct ?? companyDefaults.legalFeePct),
+      managementFeePct: Number(e.managementFeePct ?? companyDefaults.managementFeePct),
       applicationAgencyLegalPct: Number(
-        e.applicationAgencyLegalPct ?? DEFAULT_FEE_SCHEDULE.applicationAgencyLegalPct,
+        e.applicationAgencyLegalPct ?? companyDefaults.applicationAgencyLegalPct,
       ),
       source: 'engagement' as const,
     };
@@ -92,16 +109,17 @@ export class PmEngagementsService {
   async create(dto: CreatePmEngagementDto, user: AuthUser) {
     this.assertCanManage(user);
     await this.assertProperties(dto.propertyIds);
+    const fees = await this.companySettings.getFeeSchedule();
     const row = await this.prisma.pmEngagement.create({
       data: {
         ownerName: dto.ownerName,
         ownerPhone: dto.ownerPhone,
-        lettingFeePct: dto.lettingFeePct ?? DEFAULT_FEE_SCHEDULE.lettingFeePct,
-        agencyFeePct: dto.agencyFeePct ?? DEFAULT_FEE_SCHEDULE.agencyFeePct,
-        legalFeePct: dto.legalFeePct ?? DEFAULT_FEE_SCHEDULE.legalFeePct,
-        managementFeePct: dto.managementFeePct ?? DEFAULT_FEE_SCHEDULE.managementFeePct,
+        lettingFeePct: dto.lettingFeePct ?? fees.lettingFeePct,
+        agencyFeePct: dto.agencyFeePct ?? fees.agencyFeePct,
+        legalFeePct: dto.legalFeePct ?? fees.legalFeePct,
+        managementFeePct: dto.managementFeePct ?? fees.managementFeePct,
         applicationAgencyLegalPct:
-          dto.applicationAgencyLegalPct ?? DEFAULT_FEE_SCHEDULE.applicationAgencyLegalPct,
+          dto.applicationAgencyLegalPct ?? fees.applicationAgencyLegalPct,
         startDate: dto.startDate ? new Date(dto.startDate) : undefined,
         endDate: dto.endDate ? new Date(dto.endDate) : undefined,
         status: dto.status ?? 'active',

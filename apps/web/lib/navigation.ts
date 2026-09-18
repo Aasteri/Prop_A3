@@ -300,6 +300,13 @@ export const STAFF_NAV: NavGroup[] = [
         roles: ['CEO', 'FINANCE', 'ADMIN'],
       },
       {
+        href: '/settings',
+        label: 'Company settings',
+        icon: 'settings',
+        match: (p) => p === '/settings' || p.startsWith('/settings/'),
+        roles: ['CEO', 'ADMIN', 'FINANCE'],
+      },
+      {
         href: '/admin',
         label: 'System admin',
         icon: 'settings',

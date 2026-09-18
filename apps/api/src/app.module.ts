@@ -54,6 +54,7 @@ import { LegalTemplatesModule } from './legal-templates/legal-templates.module';
 import { MoneyInflowsModule } from './money-inflows/money-inflows.module';
 import { PayoutsModule } from './payouts/payouts.module';
 import { PaystackModule } from './paystack/paystack.module';
+import { CompanySettingsModule } from './company-settings/company-settings.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -64,6 +65,7 @@ import { ScheduleModule } from '@nestjs/schedule';
       envFilePath: ['../../.env', '.env'],
     }),
     PrismaModule,
+    CompanySettingsModule,
     HealthModule,
     AuthModule,
     SitesModule,

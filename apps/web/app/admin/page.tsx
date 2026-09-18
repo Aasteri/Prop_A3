@@ -81,6 +81,19 @@ export default function AdminPage() {
         </div>
 
         <section className={`${CARD} p-6`}>
+          <h2 className={SECTION_TITLE}>Company settings</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Global fee standards and Triple A bank identity. Changes apply to new calculations only.
+          </p>
+          <a
+            href="/settings"
+            className="mt-4 inline-flex rounded-lg bg-[#1a2744] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#243a5e]"
+          >
+            Open company settings
+          </a>
+        </section>
+
+        <section className={`${CARD} p-6`}>
           <h2 className={SECTION_TITLE}>Clear demo data</h2>
           <p className="mt-2 text-sm text-slate-600">
             Removes all sample and operational records so you can start fresh with real Triple A data.
