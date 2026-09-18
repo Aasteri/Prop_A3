@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { api, ApiError, getToken } from '@/lib/api';
@@ -106,16 +107,30 @@ export default function MoneyInflowsPage() {
 
   return (
     <AppShell>
-      <div className={PAGE_HEADER}>
-        <div>
-          <p className="text-sm text-slate-500">Finance · Money inflows</p>
-          <h1 className="text-2xl font-semibold text-[#1a2744]">Money attribution</h1>
-          <p className="mt-1 max-w-2xl text-sm text-slate-600">
-            All receipts enter the system (bank transfer or Paystack). The system attributes who
-            earned each portion — company fees, landlord rent, agents, artisans, etc. Finance can
-            adjust splits.
+      <div className="mb-6 space-y-6">
+        <header className={PAGE_HEADER}>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#e87722]">
+            Finance · Money inflows
           </p>
-        </div>
+          <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                Money attribution
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm text-slate-200/90">
+                All receipts enter the system (bank transfer or Paystack). The system attributes who
+                earned each portion — company fees, landlord rent, agents, artisans, etc. Finance can
+                adjust splits.
+              </p>
+            </div>
+            <Link
+              href="/payouts"
+              className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white"
+            >
+              Build payout for period
+            </Link>
+          </div>
+        </header>
       </div>
 
       {error && (

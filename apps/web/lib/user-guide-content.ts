@@ -350,11 +350,15 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         body: 'Raise invoices against settlement entities (default: Triple A Tajbank 0013925425). Clients/staff upload payment proof; Finance verifies. Verified payments create money inflows with auto attribution. Paystack webhook is stubbed until keys arrive.',
       },
       {
+        title: 'Period payouts',
+        body: 'Finance → Payouts: pick a period, preview the full calculation worksheet (fee defaults + attribution roll-ups), save a draft, then approve Finance → CEO/Admin → mark paid. Next approver is shown on each batch.',
+      },
+      {
         title: 'Dashboard KPIs',
         body: 'Use the staff dashboard for arrears, remittances, and project health signals.',
       },
     ],
-    related: ['/invoices', '/money-inflows', '/dashboard'],
+    related: ['/invoices', '/money-inflows', '/payouts', '/dashboard'],
   },
   {
     id: 'platform',
@@ -747,6 +751,11 @@ export const ROLE_GUIDES: RoleGuide[] = [
         title: 'Review money attributions',
         href: '/money-inflows',
         body: 'See who earned each receipt (company, landlord, agents, artisans). Adjust splits when needed.',
+      },
+      {
+        title: 'Build period payouts',
+        href: '/payouts',
+        body: 'Auto-calculate shares from attributions, review the worksheet, then Finance → CEO/Admin approval before marking paid.',
       },
       {
         title: 'Process remittances',

@@ -1,0 +1,147 @@
+import PDFDocument from '../common/pdfkit';
+import { PassThrough } from 'stream';
+
+export type PayoutCalcStep = {
+  step: string;
+  formula: string;
+  inputs: string;
+  result: string;
+  notes?: string;
+};
+
+export type PayoutLinePdf = {
+  earnerType: string;
+  earnerName: string;
+  category: string | null;
+  calcDetail: string;
+  sharePct: number | null;
+  amount: number;
+};
+
+export type PayoutPdfData = {
+  number: string;
+  status: string;
+  periodStart: Date;
+  periodEnd: Date;
+  nextApproverLabel: string;
+  grossInflows: number;
+  totalAttributions: number;
+  companyRetain: number;
+  totalPayable: number;
+  notes: string | null;
+  preparedBy: string | null;
+  financeReviewedBy: string | null;
+  financeReviewedAt: Date | null;
+  execApprovedBy: string | null;
+  execApprovedAt: Date | null;
+  paidBy: string | null;
+  paidAt: Date | null;
+  calculationSteps: PayoutCalcStep[];
+  lines: PayoutLinePdf[];
+  issuedAt: Date;
+};
+
+export function buildPayoutPdf(data: PayoutPdfData): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 48 });
+    const stream = new PassThrough();
+    const chunks: Buffer[] = [];
+
+    stream.on('data', (chunk: Buffer) => chunks.push(chunk));
+    stream.on('end', () => resolve(Buffer.concat(chunks)));
+    stream.on('error', reject);
+
+    doc.pipe(stream);
+
+    const money = (n: number) =>
+      `NGN ${n.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+    const d = (v: Date) => v.toLocaleDateString('en-NG');
+
+    doc.fontSize(18).fillColor('#1a2744').text('Payout Batch Worksheet', { align: 'center' });
+    doc.fontSize(10).fillColor('#666').text('Triple A Realty / A. A Laucarie Consulting', {
+      align: 'center',
+    });
+    doc.moveDown();
+    doc.fontSize(10).fillColor('#333');
+    doc.text(`Batch: ${data.number}`);
+    doc.text(`Status: ${data.status}`);
+    doc.text(`Next approver: ${data.nextApproverLabel}`);
+    doc.text(`Period: ${d(data.periodStart)} to ${d(data.periodEnd)}`);
+    doc.text(`Prepared: ${d(data.issuedAt)}${data.preparedBy ? ` by ${data.preparedBy}` : ''}`);
+    if (data.notes) doc.text(`Notes: ${data.notes}`);
+    doc.moveDown();
+
+    doc.fontSize(12).fillColor('#1a2744').text('Totals', { underline: true });
+    doc.moveDown(0.4);
+    doc.fontSize(10).fillColor('#333');
+    doc.text(`Gross inflows: ${money(data.grossInflows)}`);
+    doc.text(`Total attributions: ${money(data.totalAttributions)}`);
+    doc.text(`Company retain: ${money(data.companyRetain)}`);
+    doc.fontSize(11).fillColor('#1a2744').text(`Total payable (external): ${money(data.totalPayable)}`);
+    doc.moveDown();
+
+    doc.fontSize(12).fillColor('#1a2744').text('Calculation worksheet', { underline: true });
+    doc.moveDown(0.4);
+    for (const step of data.calculationSteps) {
+      doc.fontSize(10).fillColor('#1a2744').text(step.step);
+      doc.fontSize(9).fillColor('#333');
+      doc.text(`Formula: ${step.formula}`);
+      doc.text(`Inputs: ${step.inputs}`);
+      doc.text(`Result: ${step.result}`);
+      if (step.notes) doc.text(`Notes: ${step.notes}`);
+      doc.moveDown(0.5);
+      if (doc.y > 700) doc.addPage();
+    }
+
+    if (doc.y > 620) doc.addPage();
+    doc.fontSize(12).fillColor('#1a2744').text('Payout lines', { underline: true });
+    doc.moveDown(0.4);
+    for (const line of data.lines) {
+      doc.fontSize(10).fillColor('#1a2744').text(`${line.earnerName} (${line.earnerType})`);
+      doc.fontSize(9).fillColor('#333');
+      doc.text(
+        `Category: ${line.category ?? '—'} · Share: ${
+          line.sharePct != null ? `${line.sharePct.toFixed(4)}%` : '—'
+        } · Amount: ${money(line.amount)}`,
+      );
+      doc.text(line.calcDetail, { width: 500 });
+      doc.moveDown(0.45);
+      if (doc.y > 700) doc.addPage();
+    }
+
+    if (doc.y > 640) doc.addPage();
+    doc.moveDown();
+    doc.fontSize(12).fillColor('#1a2744').text('Approver trail', { underline: true });
+    doc.moveDown(0.5);
+    doc.fontSize(10).fillColor('#333');
+    doc.text(
+      `Finance review: ${data.financeReviewedBy ?? '______________'}  ${
+        data.financeReviewedAt ? d(data.financeReviewedAt) : '____/____/________'
+      }`,
+    );
+    doc.moveDown(0.8);
+    doc.text(
+      `CEO / Admin approval: ${data.execApprovedBy ?? '______________'}  ${
+        data.execApprovedAt ? d(data.execApprovedAt) : '____/____/________'
+      }`,
+    );
+    doc.moveDown(0.8);
+    doc.text(
+      `Marked paid: ${data.paidBy ?? '______________'}  ${
+        data.paidAt ? d(data.paidAt) : '____/____/________'
+      }`,
+    );
+
+    doc.moveDown(2);
+    doc
+      .fontSize(8)
+      .fillColor('#666')
+      .text(
+        'Payout lines aggregate ALLOCATED/RECEIVED money attributions in the period. Fee defaults (agency/legal/management/platform) are documented in the worksheet; stored attribution amounts are the source of truth.',
+      );
+    doc.moveDown();
+    doc.text('Generated by Propa3', { align: 'center' });
+
+    doc.end();
+  });
+}

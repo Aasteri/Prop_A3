@@ -363,6 +363,7 @@ enum NotificationType {
   PROJECT_IVC
   PROGRESS_REPORT
   PLANNING_CYCLE
+  PAYOUT_BATCH
 }
 
 model Notification {
@@ -2387,4 +2388,70 @@ model MoneyAttribution {
   @@index([inflowId])
   @@index([earnerType])
   @@map("money_attributions")
+}
+
+enum PayoutBatchStatus {
+  DRAFT
+  PENDING_FINANCE
+  PENDING_EXEC
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+model PayoutBatch {
+  id                 String            @id @default(cuid())
+  number             String            @unique
+  periodStart        DateTime          @map("period_start") @db.Date
+  periodEnd          DateTime          @map("period_end") @db.Date
+  status             PayoutBatchStatus @default(DRAFT)
+  /// Full worksheet: [{ step, formula, inputs, result, notes }]
+  calculationJson    Json              @map("calculation_json")
+  grossInflows       Decimal           @map("gross_inflows") @db.Decimal(14, 2)
+  totalAttributions  Decimal           @map("total_attributions") @db.Decimal(14, 2)
+  totalPayable       Decimal           @map("total_payable") @db.Decimal(14, 2)
+  companyRetain      Decimal           @map("company_retain") @db.Decimal(14, 2)
+  preparedBy         String?           @map("prepared_by")
+  financeReviewedBy  String?           @map("finance_reviewed_by")
+  financeReviewedAt  DateTime?         @map("finance_reviewed_at")
+  execApprovedBy     String?           @map("exec_approved_by")
+  execApprovedAt     DateTime?         @map("exec_approved_at")
+  paidAt             DateTime?         @map("paid_at")
+  paidBy             String?           @map("paid_by")
+  /// Who must act next: FINANCE | CEO_OR_ADMIN | DONE
+  nextApproverRole   String?           @map("next_approver_role")
+  notes              String?           @db.Text
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+
+  lines PayoutLine[]
+
+  @@index([status])
+  @@index([periodStart, periodEnd])
+  @@map("payout_batches")
+}
+
+model PayoutLine {
+  id                   String     @id @default(cuid())
+  batchId              String     @map("batch_id")
+  earnerType           EarnerType
+  earnerName           String     @map("earner_name")
+  earnerUserId         String?    @map("earner_user_id")
+  earnerRef            String?    @map("earner_ref")
+  category             String?
+  /// e.g. "10% of rent NGN X" or "2.5% of labour NGN Y"
+  calcDetail           String     @map("calc_detail") @db.Text
+  sharePct             Decimal?   @map("share_pct") @db.Decimal(7, 4)
+  grossBase            Decimal?   @map("gross_base") @db.Decimal(14, 2)
+  amount               Decimal    @db.Decimal(14, 2)
+  moneyAttributionIds  Json?      @map("money_attribution_ids") // string[]
+  sortOrder            Int        @default(0) @map("sort_order")
+  createdAt            DateTime   @default(now()) @map("created_at")
+  updatedAt            DateTime   @updatedAt @map("updated_at")
+
+  batch PayoutBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([batchId])
+  @@index([earnerType])
+  @@map("payout_lines")
 }

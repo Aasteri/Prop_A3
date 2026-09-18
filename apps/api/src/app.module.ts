@@ -52,6 +52,7 @@ import { PlanningCyclesModule } from './planning-cycles/planning-cycles.module';
 import { EthicsModule } from './ethics/ethics.module';
 import { LegalTemplatesModule } from './legal-templates/legal-templates.module';
 import { MoneyInflowsModule } from './money-inflows/money-inflows.module';
+import { PayoutsModule } from './payouts/payouts.module';
 import { PaystackModule } from './paystack/paystack.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
@@ -112,6 +113,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     EthicsModule,
     LegalTemplatesModule,
     MoneyInflowsModule,
+    PayoutsModule,
     PaystackModule,
     MailModule,
   ],
