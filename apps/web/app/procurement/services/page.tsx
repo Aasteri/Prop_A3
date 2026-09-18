@@ -105,7 +105,7 @@ export default function ServicesProcurementPage() {
   async function approveArtisan(id: string) {
     await api(`/artisans/${id}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status: 'approved' }),
+      body: JSON.stringify({ status: 'APPROVED' }),
     });
     load();
   }
@@ -132,7 +132,7 @@ export default function ServicesProcurementPage() {
   }
 
   async function assign(req: ServiceReq) {
-    const approved = artisans.filter((a) => a.status === 'approved' || a.status === 'active');
+    const approved = artisans.filter((a) => a.status === 'APPROVED');
     if (!approved.length) {
       alert('Approve an artisan first');
       return;
@@ -322,7 +322,7 @@ export default function ServicesProcurementPage() {
                     {a.avgRating != null ? ` · ★ ${Number(a.avgRating).toFixed(1)}` : ''}
                   </p>
                 </div>
-                {a.status === 'pending_review' && (
+                {a.status === 'PENDING_REVIEW' && (
                   <button type="button" onClick={() => approveArtisan(a.id)} className="rounded-md bg-green-700 px-3 py-1.5 text-xs text-white">
                     Approve
                   </button>

@@ -78,7 +78,7 @@ export class ServiceRequestsService {
     await this.findOne(id, user);
     const artisan = await this.prisma.artisanProfile.findUnique({ where: { id: dto.artisanId } });
     if (!artisan) throw new NotFoundException('Artisan not found');
-    if (artisan.status !== 'approved' && artisan.status !== 'active') {
+    if (artisan.status !== 'APPROVED') {
       throw new BadRequestException('Artisan must be approved before assignment');
     }
     return this.prisma.serviceRequest.update({

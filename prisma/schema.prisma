@@ -23,6 +23,8 @@ enum UserRole {
   SALES
   CLIENT
   ADMIN
+  ARTISAN
+  MARKETPLACE_SEEKER
 }
 
 model User {
@@ -67,6 +69,11 @@ model User {
   passwordResetTokens PasswordResetToken[]
   ethicsAcknowledgements EthicsAcknowledgement[]
   moneyAttributions    MoneyAttribution[] @relation("MoneyAttributionEarner")
+  artisanProfile       ArtisanProfile?
+  marketplaceJobs      MarketplaceJob[]          @relation("MarketplaceJobSeeker")
+  marketplaceQuotes    MarketplaceQuote[]        @relation("MarketplaceQuoteArtisanUser")
+  chatMessages         ChatMessage[]             @relation("ChatMessageSender")
+  marketplacePayments  MarketplaceEscrowPayment[] @relation("MarketplacePaymentPayer")
 
   @@map("users")
 }
@@ -1910,34 +1917,254 @@ model Supplier {
   @@map("suppliers")
 }
 
-model ArtisanProfile {
-  id              String   @id @default(cuid())
-  fullName        String   @map("full_name")
-  businessName    String?  @map("business_name")
-  phone           String
-  nin             String?
-  cacNumber       String?  @map("cac_number")
-  address         String?  @db.Text
-  businessAddress String?  @map("business_address") @db.Text
-  guarantorName   String?  @map("guarantor_name")
-  guarantorPhone  String?  @map("guarantor_phone")
-  guarantorAddress String? @map("guarantor_address") @db.Text
-  email           String?
-  altPhone        String?  @map("alt_phone")
-  bankName        String?  @map("bank_name")
-  bankAccountName String?  @map("bank_account_name")
-  bankAccountNumber String? @map("bank_account_number")
-  trades          Json?
-  status          String   @default("pending_review")
-  avgRating       Decimal? @map("avg_rating") @db.Decimal(3, 2)
-  jobsCompleted   Int      @default(0) @map("jobs_completed")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+enum ArtisanSource {
+  EXTERNAL
+  INTERNAL
+}
 
+enum ArtisanApprovalStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+model ArtisanProfile {
+  id                String                @id @default(cuid())
+  userId            String?               @unique @map("user_id")
+  fullName          String                @map("full_name")
+  businessName      String?               @map("business_name")
+  phone             String
+  nin               String?
+  cacNumber         String?               @map("cac_number")
+  address           String?               @db.Text
+  businessAddress   String?               @map("business_address") @db.Text
+  guarantorName     String?               @map("guarantor_name")
+  guarantorPhone    String?               @map("guarantor_phone")
+  guarantorAddress  String?               @map("guarantor_address") @db.Text
+  email             String?
+  altPhone          String?               @map("alt_phone")
+  bankName          String?               @map("bank_name")
+  bankAccountName   String?               @map("bank_account_name")
+  bankAccountNumber String?               @map("bank_account_number")
+  trades            Json?
+  bio               String?               @db.Text
+  serviceAreas      String?               @map("service_areas") @db.Text
+  source            ArtisanSource         @default(EXTERNAL)
+  status            ArtisanApprovalStatus @default(PENDING_REVIEW)
+  avgRating         Decimal?              @map("avg_rating") @db.Decimal(3, 2)
+  jobsCompleted     Int                   @default(0) @map("jobs_completed")
+  approvedAt        DateTime?             @map("approved_at")
+  approvedById      String?               @map("approved_by_id")
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+
+  user            User?                      @relation(fields: [userId], references: [id])
   serviceRequests ServiceRequest[]
+  assignments     MarketplaceJobAssignment[]
+  quotes          MarketplaceQuote[]
 
   @@index([phone])
+  @@index([status])
+  @@index([source])
   @@map("artisan_profiles")
+}
+
+/// Searchable catalog of every job / need type seekers can select.
+model MarketplaceCatalogItem {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  category    String
+  label       String
+  description String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  formHints   Json?    @map("form_hints")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  jobs MarketplaceJob[]
+
+  @@index([category])
+  @@index([isActive])
+  @@map("marketplace_catalog_items")
+}
+
+enum MarketplaceJobStatus {
+  SUBMITTED
+  ASSIGNED
+  QUOTED
+  SELECTED
+  AWAITING_PAYMENT
+  IN_PROGRESS
+  AWAITING_CONFIRM
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+model MarketplaceJob {
+  id              String               @id @default(cuid())
+  publicId        String               @unique @map("public_id")
+  catalogItemId   String               @map("catalog_item_id")
+  seekerUserId    String               @map("seeker_user_id")
+  title           String
+  description     String               @db.Text
+  /// General location / area / landmark — allowed in chat anytime.
+  locationText    String?              @map("location_text") @db.Text
+  /// Full street address — only shareable in chat after escrow payment.
+  addressText     String?              @map("address_text") @db.Text
+  photoUrls       Json?                @map("photo_urls")
+  formPayload     Json?                @map("form_payload")
+  status          MarketplaceJobStatus @default(SUBMITTED)
+  selectedQuoteId String?              @unique @map("selected_quote_id")
+  workmanshipAmount Decimal?           @map("workmanship_amount") @db.Decimal(14, 2)
+  materialsNote   String?              @map("materials_note") @db.Text
+  platformFeePctSnapshot Decimal?      @map("platform_fee_pct_snapshot") @db.Decimal(5, 2)
+  platformFeeAmount      Decimal?      @map("platform_fee_amount") @db.Decimal(14, 2)
+  escrowPaidAt    DateTime?            @map("escrow_paid_at")
+  completedAt     DateTime?            @map("completed_at")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  catalogItem MarketplaceCatalogItem @relation(fields: [catalogItemId], references: [id])
+  seeker      User                   @relation("MarketplaceJobSeeker", fields: [seekerUserId], references: [id])
+  selectedQuote MarketplaceQuote?    @relation("JobSelectedQuote", fields: [selectedQuoteId], references: [id])
+  assignments MarketplaceJobAssignment[]
+  quotes      MarketplaceQuote[]     @relation("JobQuotes")
+  chatThread  ChatThread?
+  payments    MarketplaceEscrowPayment[]
+
+  @@index([status])
+  @@index([seekerUserId])
+  @@index([catalogItemId])
+  @@map("marketplace_jobs")
+}
+
+model MarketplaceJobAssignment {
+  id        String   @id @default(cuid())
+  jobId     String   @map("job_id")
+  artisanId String   @map("artisan_id")
+  assignedById String? @map("assigned_by_id")
+  note      String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  job     MarketplaceJob  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  artisan ArtisanProfile  @relation(fields: [artisanId], references: [id])
+
+  @@unique([jobId, artisanId])
+  @@index([artisanId])
+  @@map("marketplace_job_assignments")
+}
+
+enum MarketplaceQuoteStatus {
+  SUBMITTED
+  WITHDRAWN
+  ACCEPTED
+  REJECTED
+}
+
+model MarketplaceQuote {
+  id                 String                 @id @default(cuid())
+  jobId              String                 @map("job_id")
+  artisanId          String                 @map("artisan_id")
+  artisanUserId      String?                @map("artisan_user_id")
+  workmanshipAmount  Decimal                @map("workmanship_amount") @db.Decimal(14, 2)
+  /// Informational only — materials paid directly to worker outside Propa3.
+  materialsEstimate  Decimal?               @map("materials_estimate") @db.Decimal(14, 2)
+  materialsNote      String?                @map("materials_note") @db.Text
+  depositAmount      Decimal?               @map("deposit_amount") @db.Decimal(14, 2)
+  message            String?                @db.Text
+  status             MarketplaceQuoteStatus @default(SUBMITTED)
+  createdAt          DateTime               @default(now()) @map("created_at")
+  updatedAt          DateTime               @updatedAt @map("updated_at")
+
+  job         MarketplaceJob  @relation("JobQuotes", fields: [jobId], references: [id], onDelete: Cascade)
+  artisan     ArtisanProfile  @relation(fields: [artisanId], references: [id])
+  artisanUser User?           @relation("MarketplaceQuoteArtisanUser", fields: [artisanUserId], references: [id])
+  selectedFor MarketplaceJob? @relation("JobSelectedQuote")
+
+  @@unique([jobId, artisanId])
+  @@index([artisanId])
+  @@map("marketplace_quotes")
+}
+
+model ChatThread {
+  id                String   @id @default(cuid())
+  jobId             String   @unique @map("job_id")
+  /// When true, full addresses may appear in messages (phones still always blocked).
+  addressUnlocked   Boolean  @default(false) @map("address_unlocked")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  job      MarketplaceJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@map("chat_threads")
+}
+
+enum ChatModerationStatus {
+  OK
+  BLOCKED
+  REDACTED
+}
+
+model ChatMessage {
+  id           String               @id @default(cuid())
+  threadId     String               @map("thread_id")
+  senderId     String               @map("sender_id")
+  body         String               @db.Text
+  moderation   ChatModerationStatus @default(OK)
+  blockedReason String?             @map("blocked_reason")
+  createdAt    DateTime             @default(now()) @map("created_at")
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User       @relation("ChatMessageSender", fields: [senderId], references: [id])
+
+  @@index([threadId, createdAt])
+  @@map("chat_messages")
+}
+
+enum MarketplacePaymentMethod {
+  BANK_TRANSFER_PROOF
+  PAYSTACK
+}
+
+enum MarketplacePaymentStatus {
+  PENDING_PROOF
+  PENDING_VERIFICATION
+  HELD
+  RELEASED
+  REFUNDED
+  FAILED
+}
+
+model MarketplaceEscrowPayment {
+  id              String                    @id @default(cuid())
+  jobId           String                    @map("job_id")
+  payerUserId     String                    @map("payer_user_id")
+  method          MarketplacePaymentMethod
+  status          MarketplacePaymentStatus  @default(PENDING_PROOF)
+  /// Workmanship amount paid into escrow (not materials).
+  amount          Decimal                   @db.Decimal(14, 2)
+  isDeposit       Boolean                   @default(false) @map("is_deposit")
+  platformFeePct  Decimal                   @map("platform_fee_pct") @db.Decimal(5, 2)
+  platformFeeAmount Decimal                 @map("platform_fee_amount") @db.Decimal(14, 2)
+  proofUrl        String?                   @map("proof_url")
+  paystackRef     String?                   @map("paystack_ref")
+  verifiedAt      DateTime?                 @map("verified_at")
+  verifiedById    String?                   @map("verified_by_id")
+  releasedAt      DateTime?                 @map("released_at")
+  moneyInflowId   String?                   @map("money_inflow_id")
+  createdAt       DateTime                  @default(now()) @map("created_at")
+  updatedAt       DateTime                  @updatedAt @map("updated_at")
+
+  job   MarketplaceJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  payer User           @relation("MarketplacePaymentPayer", fields: [payerUserId], references: [id])
+
+  @@index([jobId])
+  @@index([status])
+  @@map("marketplace_escrow_payments")
 }
 
 enum ServiceRequestStatus {
@@ -2469,6 +2696,8 @@ model CompanySettings {
   worksPlatformFeePct                Decimal @default(10) @map("works_platform_fee_pct") @db.Decimal(5, 2)
   worksRetentionPct                  Decimal @default(5) @map("works_retention_pct") @db.Decimal(5, 2)
   servicesPlatformFeePct             Decimal @default(2.5) @map("services_platform_fee_pct") @db.Decimal(5, 2)
+  /// Marketplace workmanship fee cut (same for internal & external artisans). Editable in /settings.
+  marketplacePlatformFeePct          Decimal @default(2.5) @map("marketplace_platform_fee_pct") @db.Decimal(5, 2)
   cautionDepositPct                  Decimal @default(10) @map("caution_deposit_pct") @db.Decimal(5, 2)
   externalAgentCommissionOfAgencyPct Decimal @default(50) @map("external_agent_commission_of_agency_pct") @db.Decimal(5, 2)
 

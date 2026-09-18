@@ -18,7 +18,10 @@ export default function LoginPage() {
     try {
       const data = await login(email, password);
       const role = (data.user as AuthUser).role;
-      router.push(role === 'CLIENT' ? '/portal' : '/dashboard');
+      if (role === 'CLIENT') router.push('/portal');
+      else if (role === 'ARTISAN') router.push('/artisan');
+      else if (role === 'MARKETPLACE_SEEKER') router.push('/marketplace');
+      else router.push('/dashboard');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Login failed');
     } finally {

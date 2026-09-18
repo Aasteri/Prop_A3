@@ -55,6 +55,7 @@ import { MoneyInflowsModule } from './money-inflows/money-inflows.module';
 import { PayoutsModule } from './payouts/payouts.module';
 import { PaystackModule } from './paystack/paystack.module';
 import { CompanySettingsModule } from './company-settings/company-settings.module';
+import { MarketplaceModule } from './marketplace/marketplace.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -117,6 +118,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     MoneyInflowsModule,
     PayoutsModule,
     PaystackModule,
+    MarketplaceModule,
     MailModule,
   ],
   controllers: [AppController],

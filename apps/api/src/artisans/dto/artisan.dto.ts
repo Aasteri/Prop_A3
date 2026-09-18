@@ -1,10 +1,13 @@
 import {
   IsArray,
-  IsNumber,
+  IsBoolean,
+  IsEmail,
+  IsEnum,
   IsOptional,
   IsString,
-  Min,
+  MinLength,
 } from 'class-validator';
+import { ArtisanApprovalStatus, ArtisanSource } from '@prisma/client';
 
 export class CreateArtisanDto {
   @IsString()
@@ -18,7 +21,7 @@ export class CreateArtisanDto {
   businessName?: string;
 
   @IsOptional()
-  @IsString()
+  @IsEmail()
   email?: string;
 
   @IsOptional()
@@ -41,11 +44,13 @@ export class CreateArtisanDto {
   @IsString()
   cacNumber?: string;
 
+  @IsOptional()
   @IsString()
-  guarantorName!: string;
+  guarantorName?: string;
 
+  @IsOptional()
   @IsString()
-  guarantorPhone!: string;
+  guarantorPhone?: string;
 
   @IsOptional()
   @IsString()
@@ -67,11 +72,86 @@ export class CreateArtisanDto {
   @IsArray()
   @IsString({ each: true })
   trades?: string[];
+
+  @IsOptional()
+  @IsString()
+  bio?: string;
+
+  @IsOptional()
+  @IsString()
+  serviceAreas?: string;
+
+  @IsOptional()
+  @IsEnum(ArtisanSource)
+  source?: ArtisanSource;
+
+  /** When true (admin add), create login + APPROVED immediately. */
+  @IsOptional()
+  @IsBoolean()
+  createLogin?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  password?: string;
+
+  @IsOptional()
+  @IsEnum(ArtisanApprovalStatus)
+  status?: ArtisanApprovalStatus;
+}
+
+/** Public artisan signup — always EXTERNAL + PENDING_REVIEW. */
+export class PublicArtisanApplyDto {
+  @IsString()
+  fullName!: string;
+
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @MinLength(8)
+  password!: string;
+
+  @IsString()
+  phone!: string;
+
+  @IsOptional()
+  @IsString()
+  businessName?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  trades?: string[];
+
+  @IsOptional()
+  @IsString()
+  serviceAreas?: string;
+
+  @IsOptional()
+  @IsString()
+  bio?: string;
+
+  @IsOptional()
+  @IsString()
+  nin?: string;
+
+  @IsOptional()
+  @IsString()
+  bankName?: string;
+
+  @IsOptional()
+  @IsString()
+  bankAccountName?: string;
+
+  @IsOptional()
+  @IsString()
+  bankAccountNumber?: string;
 }
 
 export class UpdateArtisanStatusDto {
-  @IsString()
-  status!: string;
+  @IsEnum(ArtisanApprovalStatus)
+  status!: ArtisanApprovalStatus;
 }
 
 export class ListArtisansQueryDto {
@@ -80,10 +160,14 @@ export class ListArtisansQueryDto {
   search?: string;
 
   @IsOptional()
-  @IsString()
-  status?: string;
+  @IsEnum(ArtisanApprovalStatus)
+  status?: ArtisanApprovalStatus;
 
   @IsOptional()
   @IsString()
   trade?: string;
+
+  @IsOptional()
+  @IsEnum(ArtisanSource)
+  source?: ArtisanSource;
 }

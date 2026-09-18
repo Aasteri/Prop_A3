@@ -200,6 +200,69 @@ export class MoneyInflowsService {
     });
   }
 
+  /**
+   * Marketplace escrow verified — workmanship only.
+   * Split: platform fee → COMPANY, remainder → ARTISAN.
+   */
+  async createFromMarketplaceEscrow(opts: {
+    escrowPaymentId: string;
+    amount: number;
+    platformFeeAmount: number;
+    platformFeePct: number;
+    payerName: string;
+    jobPublicId: string;
+    artisanName: string;
+    artisanUserId?: string | null;
+    channel?: MoneyChannel;
+    notes?: string;
+  }) {
+    const existing = await this.prisma.moneyInflow.findFirst({
+      where: { payerReference: `marketplace-escrow:${opts.escrowPaymentId}` },
+    });
+    if (existing) return existing;
+
+    const fee = Math.min(opts.platformFeeAmount, opts.amount);
+    const artisanNet = Math.round((opts.amount - fee) * 100) / 100;
+    const number = await this.generateInflowNumber(this.prisma);
+
+    return this.prisma.moneyInflow.create({
+      data: {
+        number,
+        channel: opts.channel ?? MoneyChannel.BANK_TRANSFER,
+        grossAmount: opts.amount,
+        receivedAt: new Date(),
+        payerName: opts.payerName,
+        payerReference: `marketplace-escrow:${opts.escrowPaymentId}`,
+        status: MoneyInflowStatus.ALLOCATED,
+        notes:
+          opts.notes ??
+          `Marketplace workmanship escrow ${opts.jobPublicId} — materials not included`,
+        attributions: {
+          create: [
+            {
+              earnerType: EarnerType.COMPANY,
+              earnerName: 'Triple A Realty Projects Ltd',
+              sharePct: opts.platformFeePct,
+              amount: fee,
+              category: 'PLATFORM_FEE_MARKETPLACE',
+              notes: `${opts.platformFeePct}% of workmanship`,
+            },
+            {
+              earnerType: EarnerType.ARTISAN,
+              earnerName: opts.artisanName,
+              earnerUserId: opts.artisanUserId ?? undefined,
+              earnerRef: opts.jobPublicId,
+              amount: artisanNet,
+              category: 'ARTISAN_WORKMANSHIP',
+              notes: 'Net workmanship after platform fee (materials paid outside)',
+            },
+          ],
+        },
+      },
+      include: { attributions: true },
+    });
+  }
+
   private async buildAutoAttributions(
     tx: Prisma.TransactionClient,
     opts: {

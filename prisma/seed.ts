@@ -162,6 +162,7 @@ async function main() {
       worksPlatformFeePct: 10,
       worksRetentionPct: 5,
       servicesPlatformFeePct: 2.5,
+      marketplacePlatformFeePct: 2.5,
       cautionDepositPct: 10,
       externalAgentCommissionOfAgencyPct: 50,
       companyLegalName: 'TRIPLE A REALTY PROJECTS LTD',
@@ -450,7 +451,36 @@ async function main() {
     });
   }
 
+  const { MARKETPLACE_CATALOG } = await import('./marketplace-catalog');
+  for (const c of MARKETPLACE_CATALOG) {
+    await prisma.marketplaceCatalogItem.upsert({
+      where: { code: c.code },
+      update: {
+        category: c.category,
+        label: c.label,
+        description: c.description,
+        sortOrder: c.sortOrder,
+        isActive: true,
+      },
+      create: {
+        code: c.code,
+        category: c.category,
+        label: c.label,
+        description: c.description,
+        sortOrder: c.sortOrder,
+        isActive: true,
+      },
+    });
+  }
+
+  // Ensure marketplace fee exists on settings row
+  await prisma.companySettings.update({
+    where: { id: 'default' },
+    data: { marketplacePlatformFeePct: 2.5 },
+  }).catch(() => undefined);
+
   console.log('Seeded sites, users (@propa3.com), projects, listings, client portal, Dawaki Terrier');
+  console.log(`Marketplace catalog: ${MARKETPLACE_CATALOG.length} job types`);
   console.log('Login accounts — see demo-users-list.md (unique passwords per user)');
 }
 

@@ -53,6 +53,12 @@ export class UpdateCompanySettingsDto {
   @IsNumber()
   @Min(0)
   @Max(100)
+  marketplacePlatformFeePct?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
   cautionDepositPct?: number;
 
   @IsOptional()

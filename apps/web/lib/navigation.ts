@@ -307,6 +307,13 @@ export const STAFF_NAV: NavGroup[] = [
         roles: ['CEO', 'ADMIN', 'FINANCE'],
       },
       {
+        href: '/marketplace-admin',
+        label: 'Artisan marketplace',
+        icon: 'users',
+        match: (p) => p.startsWith('/marketplace-admin'),
+        roles: ['CEO', 'ADMIN', 'FINANCE', 'PROJECT_MANAGER'],
+      },
+      {
         href: '/admin',
         label: 'System admin',
         icon: 'settings',

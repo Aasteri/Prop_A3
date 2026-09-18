@@ -13,6 +13,7 @@ export type FeeSchedule = {
   worksPlatformFeePct: number;
   worksRetentionPct: number;
   servicesPlatformFeePct: number;
+  marketplacePlatformFeePct: number;
   cautionDepositPct: number;
   externalAgentCommissionOfAgencyPct: number;
 };
@@ -27,6 +28,7 @@ export const HARDCODED_FEE_FALLBACK: FeeSchedule = {
   worksPlatformFeePct: 10,
   worksRetentionPct: 5,
   servicesPlatformFeePct: 2.5,
+  marketplacePlatformFeePct: 2.5,
   cautionDepositPct: 10,
   externalAgentCommissionOfAgencyPct: 50,
 };
@@ -84,6 +86,7 @@ export class CompanySettingsService {
         worksPlatformFeePct: s.worksPlatformFeePct,
         worksRetentionPct: s.worksRetentionPct,
         servicesPlatformFeePct: s.servicesPlatformFeePct,
+        marketplacePlatformFeePct: s.marketplacePlatformFeePct,
         cautionDepositPct: s.cautionDepositPct,
         externalAgentCommissionOfAgencyPct: s.externalAgentCommissionOfAgencyPct,
       };
@@ -111,6 +114,7 @@ export class CompanySettingsService {
       'worksPlatformFeePct',
       'worksRetentionPct',
       'servicesPlatformFeePct',
+      'marketplacePlatformFeePct',
       'cautionDepositPct',
       'externalAgentCommissionOfAgencyPct',
       'companyLegalName',
@@ -178,6 +182,7 @@ export class CompanySettingsService {
     worksPlatformFeePct: unknown;
     worksRetentionPct: unknown;
     servicesPlatformFeePct: unknown;
+    marketplacePlatformFeePct: unknown;
     cautionDepositPct: unknown;
     externalAgentCommissionOfAgencyPct: unknown;
     companyLegalName: string;
@@ -199,6 +204,7 @@ export class CompanySettingsService {
       worksPlatformFeePct: Number(row.worksPlatformFeePct),
       worksRetentionPct: Number(row.worksRetentionPct),
       servicesPlatformFeePct: Number(row.servicesPlatformFeePct),
+      marketplacePlatformFeePct: Number(row.marketplacePlatformFeePct),
       cautionDepositPct: Number(row.cautionDepositPct),
       externalAgentCommissionOfAgencyPct: Number(row.externalAgentCommissionOfAgencyPct),
       companyLegalName: row.companyLegalName,

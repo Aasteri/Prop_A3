@@ -16,6 +16,7 @@ type CompanySettings = {
   worksPlatformFeePct: number;
   worksRetentionPct: number;
   servicesPlatformFeePct: number;
+  marketplacePlatformFeePct: number;
   cautionDepositPct: number;
   externalAgentCommissionOfAgencyPct: number;
   companyLegalName: string;
@@ -37,6 +38,7 @@ type FormState = {
   worksPlatformFeePct: string;
   worksRetentionPct: string;
   servicesPlatformFeePct: string;
+  marketplacePlatformFeePct: string;
   cautionDepositPct: string;
   externalAgentCommissionOfAgencyPct: string;
   companyLegalName: string;
@@ -57,6 +59,7 @@ function toForm(s: CompanySettings): FormState {
     worksPlatformFeePct: String(s.worksPlatformFeePct),
     worksRetentionPct: String(s.worksRetentionPct),
     servicesPlatformFeePct: String(s.servicesPlatformFeePct),
+    marketplacePlatformFeePct: String(s.marketplacePlatformFeePct),
     cautionDepositPct: String(s.cautionDepositPct),
     externalAgentCommissionOfAgencyPct: String(s.externalAgentCommissionOfAgencyPct),
     companyLegalName: s.companyLegalName,
@@ -83,7 +86,12 @@ const FEE_FIELDS: { key: keyof FormState; label: string; hint: string }[] = [
   {
     key: 'servicesPlatformFeePct',
     label: 'Services platform fee %',
-    hint: 'Labour only (maintenance / artisans)',
+    hint: 'Labour only (maintenance / internal service requests)',
+  },
+  {
+    key: 'marketplacePlatformFeePct',
+    label: 'Marketplace workmanship fee %',
+    hint: 'Cut on artisan job fee only (same for internal & external)',
   },
   { key: 'cautionDepositPct', label: 'Caution deposit %', hint: 'Of annual rent' },
   {
