@@ -93,10 +93,10 @@ export default function HomePage() {
               View our projects
             </Link>
             <Link
-              href="/estates"
+              href="/marketplace"
               className="rounded-lg border border-white/30 px-6 py-3 font-medium hover:bg-white/10"
             >
-              Site map
+              Need a tradesperson?
             </Link>
           </div>
           {company && (

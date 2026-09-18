@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { MarketplaceShell } from '@/components/MarketplaceShell';
 import { api, getToken, getUser, type AuthUser } from '@/lib/api';
 import { getApiBaseUrl } from '@/lib/api-base';
 import { CARD, INPUT, LABEL } from '@/lib/ui';
@@ -204,9 +205,11 @@ export default function MarketplaceJobPage() {
 
   if (!job) {
     return (
-      <div className="mx-auto max-w-3xl p-6">
-        <p className="text-sm text-slate-500">{error || 'Loading…'}</p>
-      </div>
+      <MarketplaceShell>
+        <div className="mx-auto max-w-3xl p-6">
+          <p className="text-sm text-slate-500">{error || 'Loading…'}</p>
+        </div>
+      </MarketplaceShell>
     );
   }
 
@@ -216,8 +219,8 @@ export default function MarketplaceJobPage() {
   const isStaff = ['CEO', 'ADMIN', 'FINANCE', 'PROJECT_MANAGER'].includes(user?.role || '');
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900">
-      <div className="mx-auto max-w-3xl space-y-6">
+    <MarketplaceShell>
+      <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
         <div className="flex items-center justify-between gap-3">
           <Link href={isStaff ? '/marketplace-admin' : '/marketplace'} className="text-sm text-[#e87722]">
             ← Back
@@ -432,6 +435,6 @@ export default function MarketplaceJobPage() {
           </button>
         )}
       </div>
-    </div>
+    </MarketplaceShell>
   );
 }

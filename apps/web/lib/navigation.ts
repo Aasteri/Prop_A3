@@ -365,4 +365,10 @@ export const PORTAL_NAV: NavItem[] = [
     icon: 'file',
     match: (p) => p.startsWith('/portal/documents'),
   },
+  {
+    href: '/marketplace',
+    label: 'Artisan marketplace',
+    icon: 'hardhat',
+    match: (p) => p.startsWith('/marketplace'),
+  },
 ];

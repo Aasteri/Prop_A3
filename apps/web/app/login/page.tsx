@@ -42,7 +42,9 @@ function LoginForm() {
           <h1 className="text-2xl font-bold text-[#1a2744]">
             Propa<span className="text-[#e87722]">3</span>
           </h1>
-          <p className="mt-1 text-sm text-slate-500">Staff portal & client login</p>
+          <p className="mt-1 text-sm text-slate-500">
+            One login for staff, property clients, and marketplace seekers
+          </p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
@@ -83,8 +85,14 @@ function LoginForm() {
           </button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-slate-400">
-          Staff & client: use your @propa3.com mailbox (see demo-users-list.md)
+        <p className="mt-4 text-center text-xs text-slate-500">
+          Property clients can request artisans with the same account — no second signup.{' '}
+          <a href="/marketplace" className="text-[#e87722] hover:underline">
+            Artisan marketplace
+          </a>
+        </p>
+        <p className="mt-2 text-center text-xs text-slate-400">
+          Staff: use your @propa3.com mailbox (see demo-users-list.md)
         </p>
         <p className="mt-2 text-center text-xs">
           <a href="/" className="text-[#e87722] hover:underline">

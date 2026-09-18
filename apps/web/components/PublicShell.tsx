@@ -43,11 +43,14 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
             <NavLink href="/estates" active={pathname.startsWith('/estates')}>
               Site map
             </NavLink>
+            <NavLink href="/marketplace" active={pathname.startsWith('/marketplace')}>
+              Artisans
+            </NavLink>
             <Link
               href="/login"
               className="rounded-md bg-[#e87722] px-3 py-1.5 font-medium hover:bg-[#d06818]"
             >
-              Client login
+              Log in
             </Link>
           </nav>
         </div>

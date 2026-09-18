@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api, clearToken, getToken, getUser, type AuthUser } from '@/lib/api';
+import { MarketplaceShell } from '@/components/MarketplaceShell';
+import { api, getToken } from '@/lib/api';
 import {
   clearMarketplaceDraft,
   hasPendingMarketplaceDraft,
@@ -23,7 +23,6 @@ type CatalogItem = {
 
 export default function MarketplacePage() {
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(null);
   const [authed, setAuthed] = useState(false);
   const [draftPending, setDraftPending] = useState(false);
   const [q, setQ] = useState('');
@@ -39,7 +38,6 @@ export default function MarketplacePage() {
   const autoSubmitTried = useRef(false);
 
   const refreshAuth = useCallback(() => {
-    setUser(getUser<AuthUser>());
     setAuthed(Boolean(getToken()));
     setDraftPending(hasPendingMarketplaceDraft());
   }, []);
@@ -183,99 +181,20 @@ export default function MarketplacePage() {
     router.push('/login?next=/marketplace');
   }
 
-  function goRegister() {
-    persistDraft();
-    router.push('/marketplace/register?next=/marketplace');
-  }
-
-  function onSignOut() {
-    clearToken();
-    refreshAuth();
-  }
-
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-[#1a2744] text-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-5">
-          <div>
-            <p className="text-lg font-semibold tracking-tight">
-              Propa<span className="text-[#e87722]">3</span> Marketplace
-            </p>
-            <p className="text-sm text-slate-300">Find artisans · Get quotes · Pay workmanship in escrow</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            {!authed || user?.role === 'ARTISAN' ? (
-              <Link href="/marketplace/apply" className="rounded-lg bg-white/10 px-3 py-2 hover:bg-white/20">
-                Join as artisan
-              </Link>
-            ) : null}
-
-            {authed && user ? (
-              <>
-                <span className="hidden text-slate-300 sm:inline">
-                  {user.firstName} {user.lastName}
-                </span>
-                {(user.role === 'MARKETPLACE_SEEKER' ||
-                  user.role === 'CLIENT' ||
-                  user.role === 'CEO' ||
-                  user.role === 'ADMIN') && (
-                  <Link href="/marketplace" className="rounded-lg bg-white/10 px-3 py-2 hover:bg-white/20">
-                    My requests
-                  </Link>
-                )}
-                {user.role === 'ARTISAN' && (
-                  <Link href="/artisan" className="rounded-lg bg-white/10 px-3 py-2 hover:bg-white/20">
-                    Artisan jobs
-                  </Link>
-                )}
-                {(user.role === 'CEO' ||
-                  user.role === 'ADMIN' ||
-                  user.role === 'FINANCE' ||
-                  user.role === 'PROJECT_MANAGER') && (
-                  <Link
-                    href="/marketplace-admin"
-                    className="rounded-lg bg-white/10 px-3 py-2 hover:bg-white/20"
-                  >
-                    Admin
-                  </Link>
-                )}
-                <button
-                  type="button"
-                  onClick={onSignOut}
-                  className="rounded-lg bg-white/10 px-3 py-2 hover:bg-white/20"
-                >
-                  Sign out
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={goRegister}
-                  className="rounded-lg bg-[#e87722] px-3 py-2 font-medium text-white"
-                >
-                  Sign up to request
-                </button>
-                <button
-                  type="button"
-                  onClick={goLogin}
-                  className="rounded-lg bg-white/10 px-3 py-2 hover:bg-white/20"
-                >
-                  Log in
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-5xl space-y-8 px-4 py-8">
+    <MarketplaceShell
+      onBeforeRegister={persistDraft}
+      onBeforeLogin={persistDraft}
+      onAuthChange={refreshAuth}
+    >
+      <div className="mx-auto max-w-5xl space-y-8 px-4 py-8">
         <section>
           <h1 className={PAGE_HEADER}>What do you need done?</h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-600">
             Search every common job type, fill the form, and Triple A assigns approved artisans to quote.
             Only the <strong>workmanship / job fee</strong> is paid into Propa3 escrow (platform fee{' '}
-            typically 2.5%). Materials are paid directly to the worker.
+            typically 2.5%). Materials are paid directly to the worker. Property clients use the same
+            login — no second account.
           </p>
           {draftPending && !authed && (
             <p className="mt-2 text-sm text-amber-800">
@@ -390,7 +309,7 @@ export default function MarketplacePage() {
                 {!authed && (
                   <p className="text-xs text-slate-500">
                     Your form is saved on this device. After signup you’ll return here and we’ll submit
-                    it automatically. Already have an account?{' '}
+                    it automatically. Already have a Propa3 account (including property clients)?{' '}
                     <button type="button" className="text-[#e87722] underline" onClick={goLogin}>
                       Log in
                     </button>
@@ -400,7 +319,7 @@ export default function MarketplacePage() {
             )}
           </section>
         </div>
-      </main>
-    </div>
+      </div>
+    </MarketplaceShell>
   );
 }

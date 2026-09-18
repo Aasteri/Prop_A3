@@ -108,7 +108,16 @@ export class MarketplaceService {
   async registerSeeker(dto: PublicSeekerRegisterDto) {
     const email = dto.email.toLowerCase().trim();
     const existing = await this.prisma.user.findUnique({ where: { email } });
-    if (existing) throw new ConflictException('An account with this email already exists');
+    if (existing) {
+      if (existing.role === UserRole.ARTISAN) {
+        throw new ConflictException(
+          'This email is registered as an artisan. Log in at /login to open your artisan jobs.',
+        );
+      }
+      throw new ConflictException(
+        'An account with this email already exists. Log in with the same email to use the marketplace — property clients do not need a second signup.',
+      );
+    }
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = await this.prisma.user.create({
       data: {
@@ -124,7 +133,7 @@ export class MarketplaceService {
     });
     return {
       user,
-      message: 'Account created. Log in, then select a job type and submit your request.',
+      message: 'Account created. You can request artisans with this login.',
     };
   }
 
