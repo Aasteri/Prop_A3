@@ -1,9 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api, getToken, getUser, type AuthUser } from '@/lib/api';
+import { api, clearToken, getToken, getUser, type AuthUser } from '@/lib/api';
+import {
+  clearMarketplaceDraft,
+  hasPendingMarketplaceDraft,
+  loadMarketplaceDraft,
+  saveMarketplaceDraft,
+  type MarketplaceJobDraft,
+} from '@/lib/marketplace-draft';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type CatalogItem = {
@@ -17,6 +24,8 @@ type CatalogItem = {
 export default function MarketplacePage() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [authed, setAuthed] = useState(false);
+  const [draftPending, setDraftPending] = useState(false);
   const [q, setQ] = useState('');
   const [items, setItems] = useState<CatalogItem[]>([]);
   const [selected, setSelected] = useState<CatalogItem | null>(null);
@@ -27,13 +36,52 @@ export default function MarketplacePage() {
   const [error, setError] = useState('');
   const [ok, setOk] = useState('');
   const [loading, setLoading] = useState(false);
+  const autoSubmitTried = useRef(false);
+
+  const refreshAuth = useCallback(() => {
+    setUser(getUser<AuthUser>());
+    setAuthed(Boolean(getToken()));
+    setDraftPending(hasPendingMarketplaceDraft());
+  }, []);
 
   useEffect(() => {
-    setUser(getUser<AuthUser>());
+    refreshAuth();
+    const onFocus = () => refreshAuth();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [refreshAuth]);
+
+  useEffect(() => {
     api<CatalogItem[]>(`/marketplace/catalog${q ? `?q=${encodeURIComponent(q)}` : ''}`)
       .then(setItems)
       .catch(() => setItems([]));
   }, [q]);
+
+  // Restore draft after signup/login
+  useEffect(() => {
+    const draft = loadMarketplaceDraft();
+    if (!draft) return;
+    setDraftPending(true);
+    applyDraftToForm(draft, items);
+  }, [items]);
+
+  function applyDraftToForm(draft: MarketplaceJobDraft, catalog: CatalogItem[]) {
+    const match = catalog.find((i) => i.id === draft.catalogItemId);
+    if (match) setSelected(match);
+    else {
+      setSelected({
+        id: draft.catalogItemId,
+        code: '',
+        category: draft.catalogCategory,
+        label: draft.catalogLabel,
+        description: null,
+      });
+    }
+    setTitle(draft.title);
+    setDescription(draft.description);
+    setLocationText(draft.locationText);
+    setAddressText(draft.addressText);
+  }
 
   const grouped = useMemo(() => {
     const map = new Map<string, CatalogItem[]>();
@@ -45,37 +93,104 @@ export default function MarketplacePage() {
     return [...map.entries()];
   }, [items]);
 
-  async function submitJob(e: FormEvent) {
-    e.preventDefault();
-    setError('');
-    setOk('');
-    if (!getToken()) {
-      router.push('/marketplace/register');
-      return;
-    }
-    if (!selected) {
+  function persistDraft() {
+    if (!selected) return;
+    saveMarketplaceDraft({
+      catalogItemId: selected.id,
+      catalogLabel: selected.label,
+      catalogCategory: selected.category,
+      title: title || selected.label,
+      description,
+      locationText,
+      addressText,
+    });
+    setDraftPending(true);
+  }
+
+  async function createJobFromForm(override?: MarketplaceJobDraft) {
+    const catalogItemId = override?.catalogItemId ?? selected?.id;
+    const jobTitle = override?.title ?? (title || selected?.label);
+    const jobDescription = override?.description ?? description;
+    const jobLocation = override?.locationText ?? locationText;
+    const jobAddress = override?.addressText ?? addressText;
+
+    if (!catalogItemId) {
       setError('Select a job type from the catalog');
       return;
     }
+    if (!jobDescription?.trim()) {
+      setError('Please describe the work before submitting');
+      return;
+    }
     setLoading(true);
+    setError('');
+    setOk('');
     try {
       const job = await api<{ id: string; publicId: string }>('/marketplace/jobs', {
         method: 'POST',
         body: JSON.stringify({
-          catalogItemId: selected.id,
-          title: title || selected.label,
-          description,
-          locationText,
-          addressText,
+          catalogItemId,
+          title: jobTitle || 'Job request',
+          description: jobDescription,
+          locationText: jobLocation,
+          addressText: jobAddress,
         }),
       });
+      clearMarketplaceDraft();
+      setDraftPending(false);
       setOk(`Request submitted (${job.publicId}). Admin will assign artisans to quote.`);
       router.push(`/marketplace/jobs/${job.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not submit');
-    } finally {
       setLoading(false);
+      autoSubmitTried.current = false;
     }
+  }
+
+  // After return from signup/login with a draft → auto-submit once
+  useEffect(() => {
+    if (autoSubmitTried.current) return;
+    if (!authed) return;
+    if (!hasPendingMarketplaceDraft()) return;
+    const draft = loadMarketplaceDraft();
+    if (!draft?.description?.trim() || !draft.catalogItemId) return;
+    // Wait until form has been hydrated from draft (selected matches)
+    if (!selected || selected.id !== draft.catalogItemId) return;
+    autoSubmitTried.current = true;
+    setOk('Welcome back — submitting your saved request…');
+    void createJobFromForm(draft);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once when auth + draft ready
+  }, [authed, selected]);
+
+  async function submitJob(e: FormEvent) {
+    e.preventDefault();
+    setError('');
+    setOk('');
+    if (!selected) {
+      setError('Select a job type from the catalog');
+      return;
+    }
+    if (!getToken()) {
+      persistDraft();
+      router.push('/marketplace/register?next=/marketplace');
+      return;
+    }
+    await createJobFromForm();
+  }
+
+  function goLogin() {
+    persistDraft();
+    router.push('/login?next=/marketplace');
+  }
+
+  function goRegister() {
+    persistDraft();
+    router.push('/marketplace/register?next=/marketplace');
+  }
+
+  function onSignOut() {
+    clearToken();
+    refreshAuth();
   }
 
   return (
@@ -88,16 +203,68 @@ export default function MarketplacePage() {
             </p>
             <p className="text-sm text-slate-300">Find artisans · Get quotes · Pay workmanship in escrow</p>
           </div>
-          <div className="flex flex-wrap gap-2 text-sm">
-            <Link href="/marketplace/apply" className="rounded-lg bg-white/10 px-3 py-2 hover:bg-white/20">
-              Join as artisan
-            </Link>
-            <Link href="/marketplace/register" className="rounded-lg bg-[#e87722] px-3 py-2 font-medium text-white">
-              Sign up to request
-            </Link>
-            <Link href="/login" className="rounded-lg bg-white/10 px-3 py-2 hover:bg-white/20">
-              Log in
-            </Link>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {!authed || user?.role === 'ARTISAN' ? (
+              <Link href="/marketplace/apply" className="rounded-lg bg-white/10 px-3 py-2 hover:bg-white/20">
+                Join as artisan
+              </Link>
+            ) : null}
+
+            {authed && user ? (
+              <>
+                <span className="hidden text-slate-300 sm:inline">
+                  {user.firstName} {user.lastName}
+                </span>
+                {(user.role === 'MARKETPLACE_SEEKER' ||
+                  user.role === 'CLIENT' ||
+                  user.role === 'CEO' ||
+                  user.role === 'ADMIN') && (
+                  <Link href="/marketplace" className="rounded-lg bg-white/10 px-3 py-2 hover:bg-white/20">
+                    My requests
+                  </Link>
+                )}
+                {user.role === 'ARTISAN' && (
+                  <Link href="/artisan" className="rounded-lg bg-white/10 px-3 py-2 hover:bg-white/20">
+                    Artisan jobs
+                  </Link>
+                )}
+                {(user.role === 'CEO' ||
+                  user.role === 'ADMIN' ||
+                  user.role === 'FINANCE' ||
+                  user.role === 'PROJECT_MANAGER') && (
+                  <Link
+                    href="/marketplace-admin"
+                    className="rounded-lg bg-white/10 px-3 py-2 hover:bg-white/20"
+                  >
+                    Admin
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  onClick={onSignOut}
+                  className="rounded-lg bg-white/10 px-3 py-2 hover:bg-white/20"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={goRegister}
+                  className="rounded-lg bg-[#e87722] px-3 py-2 font-medium text-white"
+                >
+                  Sign up to request
+                </button>
+                <button
+                  type="button"
+                  onClick={goLogin}
+                  className="rounded-lg bg-white/10 px-3 py-2 hover:bg-white/20"
+                >
+                  Log in
+                </button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -108,8 +275,13 @@ export default function MarketplacePage() {
           <p className="mt-2 max-w-2xl text-sm text-slate-600">
             Search every common job type, fill the form, and Triple A assigns approved artisans to quote.
             Only the <strong>workmanship / job fee</strong> is paid into Propa3 escrow (platform fee{' '}
-            {user ? 'per company settings' : 'typically 2.5%'}). Materials are paid directly to the worker.
+            typically 2.5%). Materials are paid directly to the worker.
           </p>
+          {draftPending && !authed && (
+            <p className="mt-2 text-sm text-amber-800">
+              Your request draft is saved. Sign up or log in and we’ll submit it for you.
+            </p>
+          )}
           <input
             className={`${INPUT} mt-4 max-w-md`}
             placeholder="Search plumbing, AC, tiling, solar…"
@@ -167,7 +339,12 @@ export default function MarketplacePage() {
                 </div>
                 <div>
                   <label className={LABEL}>Title</label>
-                  <input className={INPUT} value={title} onChange={(e) => setTitle(e.target.value)} required />
+                  <input
+                    className={INPUT}
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    required
+                  />
                 </div>
                 <div>
                   <label className={LABEL}>Describe the work</label>
@@ -204,8 +381,21 @@ export default function MarketplacePage() {
                   disabled={loading}
                   className="rounded-lg bg-[#e87722] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
                 >
-                  {loading ? 'Submitting…' : getToken() ? 'Submit request' : 'Sign up / log in to submit'}
+                  {loading
+                    ? 'Submitting…'
+                    : authed
+                      ? 'Submit request'
+                      : 'Save & sign up to submit'}
                 </button>
+                {!authed && (
+                  <p className="text-xs text-slate-500">
+                    Your form is saved on this device. After signup you’ll return here and we’ll submit
+                    it automatically. Already have an account?{' '}
+                    <button type="button" className="text-[#e87722] underline" onClick={goLogin}>
+                      Log in
+                    </button>
+                  </p>
+                )}
               </form>
             )}
           </section>

@@ -1,13 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ApiError, api, login } from '@/lib/api';
+import { FormEvent, Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ApiError, login, publicApi } from '@/lib/api';
+import { hasPendingMarketplaceDraft } from '@/lib/marketplace-draft';
 import { CARD, INPUT, LABEL } from '@/lib/ui';
 
-export default function SeekerRegisterPage() {
+function SeekerRegisterForm() {
   const router = useRouter();
+  const search = useSearchParams();
+  const next = search.get('next') || '/marketplace';
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -17,18 +20,23 @@ export default function SeekerRegisterPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [hasDraft, setHasDraft] = useState(false);
+
+  useEffect(() => {
+    setHasDraft(hasPendingMarketplaceDraft());
+  }, []);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await api('/marketplace/seekers/register', {
+      await publicApi('/marketplace/seekers/register', {
         method: 'POST',
         body: JSON.stringify(form),
       });
       await login(form.email, form.password);
-      router.push('/marketplace');
+      router.replace(next);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Registration failed');
     } finally {
@@ -44,8 +52,9 @@ export default function SeekerRegisterPage() {
         </Link>
         <h1 className="mt-3 text-xl font-semibold text-[#1a2744]">Create seeker account</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Public signup to request artisans. After Admin assigns workers and you pick a quote, you chat
-          and pay the workmanship fee into escrow.
+          {hasDraft
+            ? 'Your job request is saved. Create an account and we’ll take you back to submit it.'
+            : 'Public signup to request artisans. After Admin assigns workers and you pick a quote, you chat and pay the workmanship fee into escrow.'}
         </p>
         <form onSubmit={onSubmit} className="mt-5 space-y-3">
           {(
@@ -74,10 +83,27 @@ export default function SeekerRegisterPage() {
             disabled={loading}
             className="w-full rounded-lg bg-[#e87722] py-2.5 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {loading ? 'Creating…' : 'Create account'}
+            {loading ? 'Creating…' : hasDraft ? 'Create account & continue' : 'Create account'}
           </button>
+          <p className="text-center text-xs text-slate-500">
+            Already registered?{' '}
+            <Link
+              href={`/login?next=${encodeURIComponent(next)}`}
+              className="text-[#e87722] underline"
+            >
+              Log in
+            </Link>
+          </p>
         </form>
       </div>
     </div>
+  );
+}
+
+export default function SeekerRegisterPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-sm text-slate-500">Loading…</div>}>
+      <SeekerRegisterForm />
+    </Suspense>
   );
 }

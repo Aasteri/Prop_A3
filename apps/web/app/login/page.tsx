@@ -1,11 +1,13 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ApiError, login, getUser, type AuthUser } from '@/lib/api';
+import { FormEvent, Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ApiError, login, type AuthUser } from '@/lib/api';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const search = useSearchParams();
+  const next = search.get('next');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,6 +20,10 @@ export default function LoginPage() {
     try {
       const data = await login(email, password);
       const role = (data.user as AuthUser).role;
+      if (next) {
+        router.replace(next);
+        return;
+      }
       if (role === 'CLIENT') router.push('/portal');
       else if (role === 'ARTISAN') router.push('/artisan');
       else if (role === 'MARKETPLACE_SEEKER') router.push('/marketplace');
@@ -47,7 +53,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className={`w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-500 focus:border-[#e87722] focus:outline-none focus:ring-1 focus:ring-[#e87722]`}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-500 focus:border-[#e87722] focus:outline-none focus:ring-1 focus:ring-[#e87722]"
             />
           </div>
           <div>
@@ -62,7 +68,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className={`w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-500 focus:border-[#e87722] focus:outline-none focus:ring-1 focus:ring-[#e87722]`}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-500 focus:border-[#e87722] focus:outline-none focus:ring-1 focus:ring-[#e87722]"
             />
           </div>
           {error && (
@@ -77,15 +83,29 @@ export default function LoginPage() {
           </button>
         </form>
 
-          <p className="mt-1 text-center text-xs text-slate-400">
-            Staff & client: use your @propa3.com mailbox (see demo-users-list.md)
-          </p>
-          <p className="mt-2 text-center text-xs">
-            <a href="/" className="text-[#e87722] hover:underline">
-              ← Back to propa3.com
-            </a>
-          </p>
+        <p className="mt-4 text-center text-xs text-slate-400">
+          Staff & client: use your @propa3.com mailbox (see demo-users-list.md)
+        </p>
+        <p className="mt-2 text-center text-xs">
+          <a href="/" className="text-[#e87722] hover:underline">
+            ← Back to propa3.com
+          </a>
+        </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-full items-center justify-center bg-[#1a2744] text-white">
+          Loading…
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }
