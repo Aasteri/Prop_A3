@@ -87,7 +87,12 @@ export default function MarketplaceJobPage() {
       return;
     }
     setUser(getUser<AuthUser>());
-    api('/marketplace/payment-methods').then(setPayMethods).catch(() => null);
+    api<{
+      paystack: { available: boolean; label: string };
+      bankTransferProof: { available: boolean; label: string };
+    }>('/marketplace/payment-methods')
+      .then(setPayMethods)
+      .catch(() => null);
     load().catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'));
   }, [load, router]);
 
