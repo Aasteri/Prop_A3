@@ -21,7 +21,9 @@ echo "==> Generating Prisma client..."
 npm run db:generate
 
 echo "==> Syncing database schema..."
-npm run db:push
+# Production may need --accept-data-loss for enum/column reshapes (e.g. tenant stars).
+# Without it, prisma db push aborts and PM2 keeps serving the previous build forever.
+npx prisma db push --accept-data-loss
 
 echo "==> Seeding demo users (idempotent)..."
 npx --yes tsx prisma/seed.ts

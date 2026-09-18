@@ -26,16 +26,24 @@ jobs:
             -H "Content-Type: application/json" \
             -d "$BODY"
 
-      - name: Wait for deploy (t3.micro build is slow)
-        run: sleep 180
-
-      - name: Health check
+      - name: Wait for deploy + verify new routes (t3.micro is slow)
         run: |
-          for i in 1 2 3 4 5 6 7 8 9 10; do
-            if curl -sf https://propa3.com/api/health; then
+          # Health alone is not enough: an old PM2 process stays healthy while
+          # deploy.sh fails (e.g. prisma db push). Probe a post-BRD route:
+          # 401 = mounted (auth required), 404 = stale build still running.
+          for i in $(seq 1 30); do
+            if ! curl -sf https://propa3.com/api/health >/dev/null; then
+              echo "Health down, waiting... attempt $i"
+              sleep 30
+              continue
+            fi
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' https://propa3.com/api/charters || true)
+            echo "attempt $i: /api/charters -> $CODE"
+            if [ "$CODE" = "401" ] || [ "$CODE" = "200" ]; then
+              echo "Deploy verified: new routes are live"
               exit 0
             fi
-            echo "Waiting for app... attempt $i"
             sleep 30
           done
+          echo "Deploy did not expose /api/charters within ~15m — check /var/log/propa3-deploy.log on EC2"
           exit 1
