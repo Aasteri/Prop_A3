@@ -38,6 +38,12 @@ else
   echo "WARN: NEXT_PUBLIC_API_URL missing in .env — web may default to same-origin /api"
 fi
 
+echo "==> Stopping PM2 before build (t3.micro/small needs the RAM)..."
+pm2 stop all || true
+# Give Node time to release heap before nest/next build
+sleep 3
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=768}"
+
 echo "==> Building API + Web..."
 npm run build
 
@@ -46,7 +52,7 @@ mkdir -p uploads/{site-logs,payments,fcda,documents}
 
 echo "==> Starting / reloading PM2..."
 if pm2 describe propa3-api >/dev/null 2>&1; then
-  pm2 reload deploy/ecosystem.config.cjs --update-env
+  pm2 restart deploy/ecosystem.config.cjs --update-env
 else
   pm2 start deploy/ecosystem.config.cjs
 fi
