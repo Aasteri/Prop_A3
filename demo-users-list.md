@@ -3,47 +3,46 @@
 **Live login:** https://propa3.com/login  
 **Domain:** all accounts use **`@propa3.com`** (aligned with Namecheap mailboxes).
 
-Full reference (roles, what to test, company settings): **[docs/TEST_USERS.md](./docs/TEST_USERS.md)**.
+**Full reference (roles, marketplace, company settings):** **[docs/TEST_USERS.md](./docs/TEST_USERS.md)**  
+**Seed source:** [`prisma/demo-users.ts`](./prisma/demo-users.ts)
 
 Create each mailbox on shared hosting with the **same password** as below.  
 **App SMTP (system mail only):** `info@propa3.com` — password lives in server `.env` only (`SMTP_*`), not in this file.
 
 | Email | Password | Role | What they can test |
 |---|---|---|---|
-| `ceo@propa3.com` | `RwrsW9r8xz&noJv3tept` | CEO | Full access — all sites, dashboards, company settings (edit), log approvals, change orders, invoices, CRM, listings, milestones, Estate Terrier |
-| `admin@propa3.com` | `Admin@Propa3!` | Admin | Company settings (edit), system admin, audit — mirrors CEO admin surfaces |
-| `pm.jkw@propa3.com` | `Bar4QMujSv$gu8fdb32J` | Project Manager | Jikwoyi site — approve daily logs, milestones, material requests, change log, tenant application approval |
-| `foreman.jkw@propa3.com` | `D$RVW&@k^z*#zuhFN#3j` | Foreman | Jikwoyi — submit daily site logs (incl. offline PWA), photos, material requests |
-| `foreman.gz2@propa3.com` | `pjBgSiH&$LVyd*@^gwNF` | Foreman | Guzape II — submit daily site logs, photos, material requests |
+| `ceo@propa3.com` | `RwrsW9r8xz&noJv3tept` | CEO | Full access — all sites, dashboards, company settings, marketplace admin |
+| `admin@propa3.com` | `Admin@Propa3!` | Admin | Company settings, system admin, audit |
+| `pm.jkw@propa3.com` | `Bar4QMujSv$gu8fdb32J` | Project Manager | Jikwoyi site — approve daily logs, milestones, materials, change log |
+| `foreman.jkw@propa3.com` | `D$RVW&@k^z*#zuhFN#3j` | Foreman | Jikwoyi — daily site logs (PWA), photos, material requests |
+| `foreman.gz2@propa3.com` | `pjBgSiH&$LVyd*@^gwNF` | Foreman | Guzape II — daily site logs, photos, material requests |
 | `engineer@propa3.com` | `Fq4CBjsU5Dgrhmb436ix` | Engineer | Certify milestone progress, FCDA gate on Foundation |
 | `architect@propa3.com` | `Architect@Propa3!` | Architect | Design / planning document workflows |
-| `store.jkw@propa3.com` | `7LhYmpTBgq3X*p3a#$5D` | Store Manager | Jikwoyi — fulfil/issue materials from approved requests |
-| `finance@propa3.com` | `QNp5miQQr@oaQwWD$UPB` | Finance | Invoices, payment proof review, Estate Terrier, payouts; company settings (view) |
-| `sales@propa3.com` | `!dAscG#7$NhGnhdC7rH#` | Sales | CRM pipeline, listings admin, tenant applications |
-| `client@propa3.com` | `MMBRg6fJHC^SStcPv$MP` | Client | Client portal at `/portal` — Guzape II duplex, payments, changes |
+| `store.jkw@propa3.com` | `7LhYmpTBgq3X*p3a#$5D` | Store Manager | Jikwoyi — fulfil/issue materials |
+| `finance@propa3.com` | `QNp5miQQr@oaQwWD$UPB` | Finance | Invoices, payouts, money inflows; company settings (view) |
+| `sales@propa3.com` | `!dAscG#7$NhGnhdC7rH#` | Sales | CRM, listings, tenant applications |
+| `client@propa3.com` | `MMBRg6fJHC^SStcPv$MP` | Client | Portal `/portal` **and** marketplace `/marketplace` (one account) |
+| `seeker@propa3.com` | `Seeker@Propa3!` | Marketplace seeker | Artisan requests at `/marketplace` |
+| `artisan@propa3.com` | `Artisan@Propa3!` | Artisan | Approved tradesperson — `/artisan` |
 
 ## Company settings & settlement bank
 
-- **Company settings:** `/settings` — CEO/ADMIN edit fees & bank; FINANCE view-only. New calculations only (existing invoices unchanged unless edited).
-- **Default settlement:** Triple A Realty Projects Ltd — Tajbank `0013925425` (from Company settings → `seed-triplea`).
+- **Company settings:** `/settings` — CEO/ADMIN edit fees & bank; FINANCE view-only.
+- **Default settlement:** Triple A Realty Projects Ltd — Tajbank `0013925425`.
 
 | Mailbox | Used for |
 |---|---|
-| `info@propa3.com` | **SMTP only** — Propa3 notifications / password reset (already created) |
-| `ceo@propa3.com` … `client@propa3.com` | Staff/client login + email (same passwords as table) |
+| `info@propa3.com` | **SMTP only** — Propa3 notifications / password reset |
+| `ceo@propa3.com` … `artisan@propa3.com` | Staff / client / marketplace login |
 
 ## Apply password/email changes on production DB
-
-After deploy, on the server:
 
 ```bash
 cd /var/www/propa3 && npm run db:seed
 ```
 
-This migrates legacy `@triplea.ng` rows to `@propa3.com` and updates password hashes.
-
 ## Security
 
-- Treat this file as **confidential** (passwords for UAT / initial mail setup).
-- Rotate any password that was pasted in chat or committed to a public repo.
+- Treat this file as **confidential** (UAT / initial mail setup).
+- Rotate any password pasted in chat or committed to a public repo.
 - Do not store `info@` SMTP password in git — use `/var/www/propa3/.env` on EC2.
