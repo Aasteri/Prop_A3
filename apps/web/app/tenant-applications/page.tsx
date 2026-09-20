@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 
 type Application = {
   id: string;
@@ -25,6 +27,8 @@ const STATUS_COLORS: Record<string, string> = {
   REJECTED: 'bg-red-100 text-red-800',
 };
 
+const APP_STATUSES = ['DRAFT', 'PENDING_REVIEW', 'APPROVED', 'REJECTED'] as const;
+
 export default function TenantApplicationsPage() {
   const router = useRouter();
   const [apps, setApps] = useState<Application[]>([]);
@@ -36,6 +40,41 @@ export default function TenantApplicationsPage() {
     }
     api<Application[]>('/tenant-applications').then(setApps).catch(console.error);
   }, [router]);
+
+  const statusFilter: FilterDef = useMemo(
+    () => ({
+      key: 'status',
+      label: 'Status',
+      options: APP_STATUSES.map((s) => ({ value: s, label: s.replace(/_/g, ' ') })),
+      getValue: (item) => (item as Application).status,
+    }),
+    [],
+  );
+
+  const {
+    query,
+    setQuery,
+    filterValues,
+    setFilter,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+  } = useFilteredList<Application>({
+    items: apps,
+    searchKeys: [
+      'applicationRef',
+      'surname',
+      'otherNames',
+      'status',
+      'estate.code',
+      'estate.name',
+      (a) => (a.terrierRow ? String(a.terrierRow.serialNo) : ''),
+      (a) => a.terrierRow?.propertyType ?? '',
+    ],
+    filters: [statusFilter],
+  });
 
   return (
     <AppShell>
@@ -52,6 +91,15 @@ export default function TenantApplicationsPage() {
         </Link>
       </div>
 
+      <ListToolbar
+        query={query}
+        onQueryChange={setQuery}
+        searchPlaceholder="Search applications…"
+        filters={[statusFilter]}
+        filterValues={filterValues}
+        onFilterChange={setFilter}
+      />
+
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-left text-slate-600">
@@ -65,7 +113,7 @@ export default function TenantApplicationsPage() {
             </tr>
           </thead>
           <tbody>
-            {apps.map((a) => (
+            {pageItems.map((a) => (
               <tr key={a.id} className="border-b border-slate-100 hover:bg-slate-50">
                 <td className="px-4 py-3">
                   <Link href={`/tenant-applications/${a.id}`} className="font-medium text-[#e87722] hover:underline">
@@ -88,16 +136,23 @@ export default function TenantApplicationsPage() {
                 </td>
               </tr>
             ))}
-            {!apps.length && (
+            {!filteredCount && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
-                  No applications yet.
+                  {apps.length === 0 ? 'No applications yet.' : 'No matching applications.'}
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+      <PaginationBar
+        page={page}
+        pageCount={pageCount}
+        pageSize={20}
+        filteredCount={filteredCount}
+        onPageChange={setPage}
+      />
     </AppShell>
   );
 }

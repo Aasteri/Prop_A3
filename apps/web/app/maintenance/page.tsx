@@ -1,10 +1,13 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type PropertyOption = { id: string; name: string };
@@ -50,6 +53,55 @@ export default function MaintenancePage() {
     component: '',
     description: '',
     urgency: 'MEDIUM',
+  });
+
+  const propertyOptions = useMemo(
+    () => [
+      { value: '', label: 'Select…' },
+      ...properties.map((p) => ({ value: p.id, label: p.name, keywords: p.name })),
+    ],
+    [properties],
+  );
+
+  const urgencyOptions = useMemo(
+    () =>
+      optionsFromValues(['LOW', 'MEDIUM', 'HIGH', 'EMERGENCY'], (v) =>
+        v.charAt(0) + v.slice(1).toLowerCase(),
+      ),
+    [],
+  );
+
+  const statusFilterOptions = useMemo(
+    () => [
+      { value: '', label: 'All statuses' },
+      ...optionsFromValues(
+        ['SUBMITTED', 'TRIAGING', 'ASSIGNED', 'IN_PROGRESS', 'CLOSED'],
+        (v) => v.replace(/_/g, ' '),
+      ),
+    ],
+    [],
+  );
+
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<MaintenanceRow>({
+    items: rows,
+    searchKeys: [
+      'number',
+      'description',
+      'category',
+      'tenantName',
+      'unitLabel',
+      'property.name',
+      'status',
+    ],
   });
 
   const load = () => {
@@ -168,32 +220,25 @@ export default function MaintenancePage() {
           <form onSubmit={onSubmit} className={`${CARD} grid gap-4 p-6 sm:grid-cols-2`}>
             <div>
               <label className={LABEL}>Property</label>
-              <select
+              <SearchableSelect
                 className={INPUT}
                 required
+                options={propertyOptions}
                 value={form.propertyId}
-                onChange={(e) => setForm({ ...form, propertyId: e.target.value })}
-              >
-                <option value="">Select…</option>
-                {properties.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setForm({ ...form, propertyId: v })}
+                emptyLabel="Select…"
+                placeholder="Search properties…"
+              />
             </div>
             <div>
               <label className={LABEL}>Urgency</label>
-              <select
+              <SearchableSelect
                 className={INPUT}
+                options={urgencyOptions}
                 value={form.urgency}
-                onChange={(e) => setForm({ ...form, urgency: e.target.value })}
-              >
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-                <option value="EMERGENCY">Emergency</option>
-              </select>
+                onChange={(v) => setForm({ ...form, urgency: v })}
+                placeholder="Urgency…"
+              />
             </div>
             <div>
               <label className={LABEL}>Category</label>
@@ -249,26 +294,31 @@ export default function MaintenancePage() {
           </form>
         )}
 
-        <div className="flex flex-wrap gap-3">
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-          >
-            <option value="">All statuses</option>
-            <option value="SUBMITTED">Submitted</option>
-            <option value="TRIAGING">Triaging</option>
-            <option value="ASSIGNED">Assigned</option>
-            <option value="IN_PROGRESS">In progress</option>
-            <option value="CLOSED">Closed</option>
-          </select>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="w-full min-w-[160px] sm:w-56">
+            <SearchableSelect
+              options={statusFilterOptions}
+              value={status}
+              onChange={setStatus}
+              emptyLabel="All statuses"
+              placeholder="Filter status…"
+            />
+          </div>
           <Link href="/properties-hub" className="self-center text-sm font-medium text-[#e87722] hover:underline">
             ← Properties hub
           </Link>
         </div>
 
+        {rows.length > 0 && (
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search maintenance…"
+          />
+        )}
+
         <div className="space-y-3">
-          {rows.map((r) => (
+          {pageItems.map((r) => (
             <div key={r.id} className={`${CARD} p-4`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -356,6 +406,15 @@ export default function MaintenancePage() {
             </div>
           )}
         </div>
+        {rows.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </AppShell>
   );

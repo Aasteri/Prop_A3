@@ -4,7 +4,10 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, getToken, getUser, type AuthUser } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Kind = 'DAILY' | 'WEEKLY' | 'MONTHLY';
@@ -70,7 +73,29 @@ export default function PlanningCyclesPage() {
     [templates, tab],
   );
 
-  const filtered = rows.filter((r) => r.kind === tab);
+  const filtered = useMemo(() => rows.filter((r) => r.kind === tab), [rows, tab]);
+
+  const projectOptions = useMemo(
+    () => [
+      { value: '', label: 'Select…' },
+      ...projects.map((p) => ({ value: p.id, label: p.name, keywords: p.name })),
+    ],
+    [projects],
+  );
+
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<PlanningCycle>({
+    items: filtered,
+    searchKeys: ['number', 'status', 'targets', 'preparedBy', 'project.name'],
+  });
 
   const load = () => {
     api<PlanningCycle[]>('/planning-cycles')
@@ -209,19 +234,15 @@ export default function PlanningCyclesPage() {
           <form onSubmit={create} className={`${CARD} grid gap-3 p-6 sm:grid-cols-2`}>
             <div>
               <label className={LABEL}>Project</label>
-              <select
+              <SearchableSelect
                 className={INPUT}
                 required
+                options={projectOptions}
                 value={form.projectId}
-                onChange={(e) => setForm({ ...form, projectId: e.target.value })}
-              >
-                <option value="">Select…</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setForm({ ...form, projectId: v })}
+                emptyLabel="Select…"
+                placeholder="Search projects…"
+              />
             </div>
             <div>
               <label className={LABEL}>Period start</label>
@@ -320,8 +341,16 @@ export default function PlanningCyclesPage() {
           </form>
         )}
 
+        {filtered.length > 0 && (
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search planning cycles…"
+          />
+        )}
+
         <div className="space-y-3">
-          {filtered.map((r) => {
+          {pageItems.map((r) => {
             const doneCount = r.checklistJson.filter((c) => c.done).length;
             return (
               <div key={r.id} className={`${CARD} p-4`}>
@@ -369,6 +398,15 @@ export default function PlanningCyclesPage() {
             </div>
           )}
         </div>
+        {filtered.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </AppShell>
   );

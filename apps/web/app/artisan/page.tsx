@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, getToken, getUser, type AuthUser } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, PAGE_HEADER } from '@/lib/ui';
 
 type Job = {
@@ -31,6 +33,20 @@ export default function ArtisanHomePage() {
     api<Job[]>('/marketplace/jobs').then(setJobs).catch(console.error);
   }, [router]);
 
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<Job>({
+    items: jobs,
+    searchKeys: ['publicId', 'title', 'status', (j) => j.catalogItem?.label ?? ''],
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-8">
       <div className="mx-auto max-w-3xl">
@@ -38,8 +54,15 @@ export default function ArtisanHomePage() {
         <p className="mt-1 text-sm text-slate-600">
           Jobs Admin assigned to you. Submit workmanship quotes; materials stay outside escrow.
         </p>
+        {jobs.length > 0 && (
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search assigned jobs…"
+          />
+        )}
         <ul className="mt-6 space-y-3">
-          {jobs.map((j) => (
+          {pageItems.map((j) => (
             <li key={j.id} className={`${CARD} p-4`}>
               <Link href={`/marketplace/jobs/${j.id}`} className="block hover:opacity-90">
                 <p className="text-xs text-slate-500">{j.publicId}</p>
@@ -52,6 +75,15 @@ export default function ArtisanHomePage() {
           ))}
           {!jobs.length && <p className="text-sm text-slate-500">No assignments yet.</p>}
         </ul>
+        {jobs.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </div>
   );

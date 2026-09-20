@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, downloadCsv, getToken, getUser, type AuthUser } from '@/lib/api';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 
 type ChangeEntry = {
   id: string;
@@ -75,6 +77,35 @@ export default function ChangeLogListPage() {
 
   const projectIds = [...new Set(entries.map((e) => e.project.id))];
 
+  const filters: FilterDef[] = useMemo(
+    () => [
+      {
+        key: 'status',
+        label: 'Status',
+        options: Object.keys(STATUS_COLORS).map((v) => ({
+          value: v,
+          label: v.replace(/_/g, ' '),
+        })),
+        getValue: (item) => (item as ChangeEntry).status,
+      },
+    ],
+    [],
+  );
+
+  const list = useFilteredList({
+    items: entries,
+    searchKeys: [
+      'changeId',
+      'description',
+      'originatorName',
+      'impactLevel',
+      'status',
+      'project.name',
+      'site.code',
+    ],
+    filters,
+  });
+
   return (
     <AppShell>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -115,69 +146,86 @@ export default function ChangeLogListPage() {
           </Link>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full min-w-[720px] text-sm">
-            <thead className="border-b bg-slate-50 text-left text-slate-600">
-              <tr>
-                <th className="px-3 py-2">Change ID</th>
-                <th className="px-3 py-2">Date</th>
-                <th className="px-3 py-2">Originator</th>
-                <th className="px-3 py-2">Description</th>
-                <th className="px-3 py-2">Impact</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((e) => (
-                <tr key={e.id} className="border-b last:border-0">
-                  <td className="px-3 py-2 font-mono text-xs">{e.changeId}</td>
-                  <td className="px-3 py-2">
-                    {new Date(e.revisionDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-3 py-2">{e.originatorName}</td>
-                  <td className="max-w-xs truncate px-3 py-2">{e.description}</td>
-                  <td className="px-3 py-2">{e.impactLevel}</td>
-                  <td className="px-3 py-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs ${STATUS_COLORS[e.status] ?? ''}`}
-                    >
-                      {e.status.replace(/_/g, ' ')}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex gap-1">
-                      <Link
-                        href={`/change-log/${e.id}`}
-                        className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50"
-                      >
-                        View
-                      </Link>
-                      {canReview && e.status === 'IN_REVIEW' && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => approve(e.id)}
-                            className="rounded bg-green-600 px-2 py-1 text-xs text-white"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => reject(e.id)}
-                            className="rounded bg-red-600 px-2 py-1 text-xs text-white"
-                          >
-                            Reject
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
+        <>
+          <ListToolbar
+            query={list.query}
+            onQueryChange={list.setQuery}
+            searchPlaceholder="Search change ID, description…"
+            filters={filters}
+            filterValues={list.filterValues}
+            onFilterChange={list.setFilter}
+          />
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead className="border-b bg-slate-50 text-left text-slate-600">
+                <tr>
+                  <th className="px-3 py-2">Change ID</th>
+                  <th className="px-3 py-2">Date</th>
+                  <th className="px-3 py-2">Originator</th>
+                  <th className="px-3 py-2">Description</th>
+                  <th className="px-3 py-2">Impact</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {list.pageItems.map((e) => (
+                  <tr key={e.id} className="border-b last:border-0">
+                    <td className="px-3 py-2 font-mono text-xs">{e.changeId}</td>
+                    <td className="px-3 py-2">
+                      {new Date(e.revisionDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-3 py-2">{e.originatorName}</td>
+                    <td className="max-w-xs truncate px-3 py-2">{e.description}</td>
+                    <td className="px-3 py-2">{e.impactLevel}</td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs ${STATUS_COLORS[e.status] ?? ''}`}
+                      >
+                        {e.status.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex gap-1">
+                        <Link
+                          href={`/change-log/${e.id}`}
+                          className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50"
+                        >
+                          View
+                        </Link>
+                        {canReview && e.status === 'IN_REVIEW' && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => approve(e.id)}
+                              className="rounded bg-green-600 px-2 py-1 text-xs text-white"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => reject(e.id)}
+                              className="rounded bg-red-600 px-2 py-1 text-xs text-white"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <PaginationBar
+            page={list.page}
+            pageCount={list.pageCount}
+            pageSize={list.pageSize}
+            filteredCount={list.filteredCount}
+            onPageChange={list.setPage}
+          />
+        </>
       )}
     </AppShell>
   );

@@ -1,10 +1,13 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Line = {
@@ -54,6 +57,46 @@ export default function InstalmentsPage() {
     clientId: '',
     projectId: '',
     startDate: '',
+  });
+
+  const clientOptions = useMemo(
+    () => [
+      { value: '', label: 'Optional…' },
+      ...clients.map((c) => ({
+        value: c.id,
+        label: `${c.clientRef} · ${c.firstName} ${c.lastName}`,
+        keywords: `${c.clientRef} ${c.firstName} ${c.lastName}`,
+      })),
+    ],
+    [clients],
+  );
+
+  const projectOptions = useMemo(
+    () => [
+      { value: '', label: 'Optional…' },
+      ...projects.map((p) => ({ value: p.id, label: p.name, keywords: p.name })),
+    ],
+    [projects],
+  );
+
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<Plan>({
+    items: rows,
+    searchKeys: [
+      'number',
+      'purchaserName',
+      'unitPlotNo',
+      'status',
+      'project.name',
+    ],
   });
 
   const load = () => {
@@ -226,33 +269,25 @@ export default function InstalmentsPage() {
             </div>
             <div>
               <label className={LABEL}>CRM client (portal link)</label>
-              <select
+              <SearchableSelect
                 className={INPUT}
+                options={clientOptions}
                 value={form.clientId}
-                onChange={(e) => setForm({ ...form, clientId: e.target.value })}
-              >
-                <option value="">Optional…</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.clientRef} · {c.firstName} {c.lastName}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setForm({ ...form, clientId: v })}
+                emptyLabel="Optional…"
+                placeholder="Search clients…"
+              />
             </div>
             <div>
               <label className={LABEL}>Project</label>
-              <select
+              <SearchableSelect
                 className={INPUT}
+                options={projectOptions}
                 value={form.projectId}
-                onChange={(e) => setForm({ ...form, projectId: e.target.value })}
-              >
-                <option value="">Optional…</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setForm({ ...form, projectId: v })}
+                emptyLabel="Optional…"
+                placeholder="Search projects…"
+              />
             </div>
             <p className="sm:col-span-2 text-xs text-slate-500">
               Default schedule %: {(summary?.defaultSchedulePcts ?? [20, 15, 15, 15, 15, 20]).join(' / ')}
@@ -273,8 +308,16 @@ export default function InstalmentsPage() {
           ← Invoices
         </Link>
 
+        {rows.length > 0 && (
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search instalment plans…"
+          />
+        )}
+
         <div className="space-y-3">
-          {rows.map((r) => (
+          {pageItems.map((r) => (
             <div key={r.id} className={`${CARD} p-4 space-y-3`}>
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
@@ -337,6 +380,15 @@ export default function InstalmentsPage() {
             </div>
           )}
         </div>
+        {rows.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </AppShell>
   );

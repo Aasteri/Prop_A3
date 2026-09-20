@@ -1,10 +1,13 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type TenancyOption = {
@@ -101,6 +104,65 @@ export default function InventoriesPage() {
     load();
   }
 
+  const tenancyOptions = useMemo(
+    () =>
+      tenancies.map((t) => ({
+        value: t.id,
+        label: `${t.tenantName} · ${t.property.name}${t.unit ? ` · ${t.unit.unitCode}` : ''}`,
+      })),
+    [tenancies],
+  );
+
+  const kindOptions = optionsFromValues(['MOVE_IN', 'MOVE_OUT'], (v) =>
+    v === 'MOVE_IN' ? 'Move-in' : 'Move-out',
+  );
+
+  const statusFilter: FilterDef = useMemo(() => {
+    const statuses = [...new Set(rows.map((r) => r.status))].sort();
+    return {
+      key: 'status',
+      label: 'Status',
+      options: statuses.map((s) => ({ value: s, label: s })),
+      getValue: (item) => (item as Inventory).status,
+    };
+  }, [rows]);
+
+  const kindFilter: FilterDef = useMemo(
+    () => ({
+      key: 'kind',
+      label: 'Kind',
+      options: [
+        { value: 'MOVE_IN', label: 'Move-in' },
+        { value: 'MOVE_OUT', label: 'Move-out' },
+      ],
+      getValue: (item) => (item as Inventory).kind,
+    }),
+    [],
+  );
+
+  const {
+    query,
+    setQuery,
+    filterValues,
+    setFilter,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+  } = useFilteredList<Inventory>({
+    items: rows,
+    searchKeys: [
+      'number',
+      'kind',
+      'status',
+      'tenancy.tenantName',
+      'tenancy.property.name',
+      (r) => r.tenancy.unit?.unitCode ?? '',
+    ],
+    filters: [kindFilter, ...(statusFilter.options.length ? [statusFilter] : [])],
+  });
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -132,31 +194,23 @@ export default function InventoriesPage() {
           <form onSubmit={onSubmit} className={`${CARD} grid gap-4 p-6 sm:grid-cols-2`}>
             <div>
               <label className={LABEL}>Tenancy</label>
-              <select
-                className={INPUT}
+              <SearchableSelect
                 required
+                options={tenancyOptions}
                 value={form.tenancyId}
-                onChange={(e) => setForm({ ...form, tenancyId: e.target.value })}
-              >
-                <option value="">Select…</option>
-                {tenancies.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.tenantName} · {t.property.name}
-                    {t.unit ? ` · ${t.unit.unitCode}` : ''}
-                  </option>
-                ))}
-              </select>
+                emptyLabel="Select…"
+                placeholder="Search tenancy…"
+                onChange={(v) => setForm({ ...form, tenancyId: v })}
+              />
             </div>
             <div>
               <label className={LABEL}>Kind</label>
-              <select
-                className={INPUT}
+              <SearchableSelect
+                options={kindOptions}
                 value={form.kind}
-                onChange={(e) => setForm({ ...form, kind: e.target.value })}
-              >
-                <option value="MOVE_IN">Move-in</option>
-                <option value="MOVE_OUT">Move-out</option>
-              </select>
+                onChange={(v) => setForm({ ...form, kind: v })}
+                placeholder="Kind…"
+              />
             </div>
             <div>
               <label className={LABEL}>Inspected at</label>
@@ -238,8 +292,17 @@ export default function InventoriesPage() {
           </Link>
         </div>
 
+        <ListToolbar
+          query={query}
+          onQueryChange={setQuery}
+          searchPlaceholder="Search inventories…"
+          filters={[kindFilter, ...(statusFilter.options.length ? [statusFilter] : [])]}
+          filterValues={filterValues}
+          onFilterChange={setFilter}
+        />
+
         <div className="space-y-3">
-          {rows.map((r) => (
+          {pageItems.map((r) => (
             <div key={r.id} className={`${CARD} p-4`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -284,12 +347,19 @@ export default function InventoriesPage() {
               </div>
             </div>
           ))}
-          {rows.length === 0 && (
+          {!filteredCount && (
             <div className={`${CARD} p-8 text-center text-sm text-slate-500`}>
-              No inventories yet.
+              {rows.length === 0 ? 'No inventories yet.' : 'No matching inventories.'}
             </div>
           )}
         </div>
+        <PaginationBar
+          page={page}
+          pageCount={pageCount}
+          pageSize={20}
+          filteredCount={filteredCount}
+          onPageChange={setPage}
+        />
       </div>
     </AppShell>
   );

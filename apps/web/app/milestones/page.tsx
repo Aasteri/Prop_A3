@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 
 type Project = {
   id: string;
@@ -17,6 +19,20 @@ type Project = {
 export default function MilestonesIndexPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
+
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<Project>({
+    items: projects,
+    searchKeys: ['name', 'site.code'],
+  });
 
   useEffect(() => {
     if (!getToken()) {
@@ -36,8 +52,16 @@ export default function MilestonesIndexPage() {
           </p>
         </div>
 
+        {projects.length > 0 && (
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search projects…"
+          />
+        )}
+
         <div className="space-y-3">
-          {projects.map((p) => {
+          {pageItems.map((p) => {
             const foundation = p.milestones.find((m) => m.stage === 'FOUNDATION');
             const foundationPct = Number(foundation?.progressPct ?? 0);
             const needsFcda = foundationPct >= 99 && !p.fcdaPermitUrl;
@@ -78,6 +102,15 @@ export default function MilestonesIndexPage() {
             <p className="text-sm text-slate-500">No projects available.</p>
           )}
         </div>
+        {projects.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </AppShell>
   );

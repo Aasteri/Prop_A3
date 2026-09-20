@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar } from '@/components/ListToolbar';
 import { api, getToken } from '@/lib/api';
 
 type Lead = {
@@ -26,6 +27,27 @@ export default function CrmPipelinePage() {
   const router = useRouter();
   const [pipeline, setPipeline] = useState<Pipeline | null>(null);
   const [clients, setClients] = useState<{ id: string; clientRef: string; firstName: string; lastName: string }[]>([]);
+  const [query, setQuery] = useState('');
+
+  const leadMatches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return (lead: Lead) => {
+      if (!q) return true;
+      const hay = [
+        lead.firstName,
+        lead.lastName,
+        lead.leadRef,
+        lead.phone,
+        lead.source,
+        lead.listing?.location,
+        lead.listing?.listingRef,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
+    };
+  }, [query]);
 
   useEffect(() => {
     if (!getToken()) {
@@ -55,17 +77,27 @@ export default function CrmPipelinePage() {
       {!pipeline ? (
         <p className="text-slate-500">Loading…</p>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <>
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search leads in pipeline…"
+          />
+          <div className="flex gap-4 overflow-x-auto pb-4">
           {pipeline.stages
             .filter((s) => s.stage !== 'WON' && s.stage !== 'LOST')
-            .map((col) => (
+            .map((col) => {
+              const visibleLeads = col.leads.filter(leadMatches);
+              return (
               <div key={col.stage} className="min-w-[240px] flex-shrink-0 rounded-lg border border-slate-200 bg-slate-50">
                 <div className="border-b border-slate-200 px-3 py-2">
                   <p className="font-semibold text-[#1a2744]">{col.label}</p>
-                  <p className="text-xs text-slate-500">{col.count} leads</p>
+                  <p className="text-xs text-slate-500">
+                    {query.trim() ? `${visibleLeads.length} / ${col.count}` : col.count} leads
+                  </p>
                 </div>
                 <div className="space-y-2 p-2">
-                  {col.leads.map((lead) => (
+                  {visibleLeads.map((lead) => (
                     <Link
                       key={lead.id}
                       href={`/crm/leads/${lead.id}`}
@@ -80,8 +112,10 @@ export default function CrmPipelinePage() {
                   ))}
                 </div>
               </div>
-            ))}
+            );
+            })}
         </div>
+        </>
       )}
 
       <section className="mt-8">

@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 
 type Listing = {
   id: string;
@@ -19,6 +21,8 @@ type Listing = {
   price12mNgn: string | number | null;
 };
 
+const LISTING_STATUSES = ['AVAILABLE', 'RESERVED', 'SOLD', 'ARCHIVED'] as const;
+
 function displayPrice(l: Listing): string {
   const outright = l.priceOutrightNgn ?? l.priceNgn;
   if (outright != null) return `₦${Number(outright).toLocaleString()}`;
@@ -29,19 +33,40 @@ function displayPrice(l: Listing): string {
 export default function ListingsPage() {
   const router = useRouter();
   const [listings, setListings] = useState<Listing[]>([]);
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
 
   useEffect(() => {
     if (!getToken()) {
       router.replace('/login');
       return;
     }
-    const q = new URLSearchParams();
-    if (search) q.set('search', search);
-    if (status) q.set('status', status);
-    api<Listing[]>(`/listings?${q}`).then(setListings).catch(console.error);
-  }, [router, search, status]);
+    api<Listing[]>('/listings').then(setListings).catch(console.error);
+  }, [router]);
+
+  const statusFilter: FilterDef = useMemo(
+    () => ({
+      key: 'status',
+      label: 'Status',
+      options: LISTING_STATUSES.map((s) => ({ value: s, label: s })),
+      getValue: (item) => (item as Listing).status,
+    }),
+    [],
+  );
+
+  const {
+    query,
+    setQuery,
+    filterValues,
+    setFilter,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+  } = useFilteredList<Listing>({
+    items: listings,
+    searchKeys: ['listingRef', 'location', 'propertyType', 'finish', 'status', 'paymentPlan'],
+    filters: [statusFilter],
+  });
 
   return (
     <AppShell>
@@ -58,24 +83,14 @@ export default function ListingsPage() {
         </Link>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-3">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search location or type…"
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        />
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-        >
-          <option value="">All statuses</option>
-          <option value="AVAILABLE">Available</option>
-          <option value="RESERVED">Reserved</option>
-          <option value="SOLD">Sold</option>
-        </select>
-      </div>
+      <ListToolbar
+        query={query}
+        onQueryChange={setQuery}
+        searchPlaceholder="Search location or type…"
+        filters={[statusFilter]}
+        filterValues={filterValues}
+        onFilterChange={setFilter}
+      />
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
@@ -90,7 +105,7 @@ export default function ListingsPage() {
             </tr>
           </thead>
           <tbody>
-            {listings.map((l) => (
+            {pageItems.map((l) => (
               <tr key={l.id} className="border-b hover:bg-slate-50">
                 <td className="px-4 py-3">
                   <Link href={`/listings/${l.id}`} className="font-medium text-[#e87722] hover:underline">
@@ -106,9 +121,23 @@ export default function ListingsPage() {
                 <td className="px-4 py-3">{l.status}</td>
               </tr>
             ))}
+            {!filteredCount && (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                  {listings.length === 0 ? 'No listings yet.' : 'No matching listings.'}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
+      <PaginationBar
+        page={page}
+        pageCount={pageCount}
+        pageSize={20}
+        filteredCount={filteredCount}
+        onPageChange={setPage}
+      />
     </AppShell>
   );
 }

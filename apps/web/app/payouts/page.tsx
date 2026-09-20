@@ -1,9 +1,11 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, ApiError, downloadPdf, getToken, getUser, type AuthUser } from '@/lib/api';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type CalcStep = {
@@ -196,6 +198,32 @@ export default function PayoutsPage() {
   const steps = selected?.calculation ?? selected?.calculationJson ?? [];
   const previewSteps = preview?.calculationJson ?? [];
 
+  const statusFilter: FilterDef = useMemo(() => {
+    const statuses = [...new Set(rows.map((r) => r.status))].sort();
+    return {
+      key: 'status',
+      label: 'Status',
+      options: statuses.map((s) => ({ value: s, label: s.replace(/_/g, ' ') })),
+      getValue: (item) => (item as PayoutBatch).status,
+    };
+  }, [rows]);
+
+  const {
+    query,
+    setQuery,
+    filterValues,
+    setFilter,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+  } = useFilteredList<PayoutBatch>({
+    items: rows,
+    searchKeys: ['number', 'status', 'preparedBy', 'notes', 'periodStart', 'periodEnd'],
+    filters: statusFilter.options.length ? [statusFilter] : [],
+  });
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -351,7 +379,15 @@ export default function PayoutsPage() {
 
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-3">
-            {rows.map((r) => (
+            <ListToolbar
+              query={query}
+              onQueryChange={setQuery}
+              searchPlaceholder="Search payout batches…"
+              filters={statusFilter.options.length ? [statusFilter] : []}
+              filterValues={filterValues}
+              onFilterChange={setFilter}
+            />
+            {pageItems.map((r) => (
               <button
                 key={r.id}
                 type="button"
@@ -381,11 +417,20 @@ export default function PayoutsPage() {
                 )}
               </button>
             ))}
-            {!rows.length && (
+            {!filteredCount && (
               <div className={`${CARD} p-8 text-center text-sm text-slate-500`}>
-                No payout batches yet. Preview a period to create one.
+                {rows.length === 0
+                  ? 'No payout batches yet. Preview a period to create one.'
+                  : 'No matching payout batches.'}
               </div>
             )}
+            <PaginationBar
+              page={page}
+              pageCount={pageCount}
+              pageSize={20}
+              filteredCount={filteredCount}
+              onPageChange={setPage}
+            />
           </div>
 
           <div className={`${CARD} p-5`}>

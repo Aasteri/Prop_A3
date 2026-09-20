@@ -4,7 +4,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, ApiError, getToken, getUser, type AuthUser } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 
 type TerrierRow = {
   id: string;
@@ -113,6 +116,29 @@ export default function EstateTerrierRegisterPage() {
     await load();
   }
 
+  const terrierRows = data?.rows ?? [];
+
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<TerrierRow>({
+    items: terrierRows,
+    searchKeys: [
+      'propertyType',
+      'location',
+      'tenantName',
+      'tenantPhone',
+      'paymentMode',
+      'rentPaidFixed',
+    ],
+  });
+
   if (!data) {
     return (
       <AppShell>
@@ -150,6 +176,16 @@ export default function EstateTerrierRegisterPage() {
         </div>
       )}
 
+      {terrierRows.length > 0 && (
+        <div className="mt-6">
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search terrier rows…"
+          />
+        </div>
+      )}
+
       <div className="mt-6 overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-[1400px] text-xs">
           <thead className="border-b border-slate-200 bg-[#1a2744] text-left text-white">
@@ -174,7 +210,7 @@ export default function EstateTerrierRegisterPage() {
             </tr>
           </thead>
           <tbody>
-            {data.rows.map((row) => {
+            {pageItems.map((row) => {
               const editing = editId === row.id;
               return (
                 <tr key={row.id} className="border-b border-slate-100 align-top">
@@ -185,11 +221,16 @@ export default function EstateTerrierRegisterPage() {
                   <td className="px-2 py-2">{editing ? <input className={INPUT} value={draft.tenantPhone ?? ''} onChange={(e) => setDraft((d) => ({ ...d, tenantPhone: e.target.value }))} /> : (row.tenantPhone ?? '—')}</td>
                   <td className="px-2 py-2">
                     {editing ? (
-                      <select className={INPUT} value={draft.rentPaidFixed ?? ''} onChange={(e) => setDraft((d) => ({ ...d, rentPaidFixed: e.target.value }))}>
-                        <option value="">—</option>
-                        <option value="PAID">Paid</option>
-                        <option value="FIXED">Fixed</option>
-                      </select>
+                      <SearchableSelect
+                        className="min-w-[7rem]"
+                        value={draft.rentPaidFixed ?? ''}
+                        onChange={(v) => setDraft((d) => ({ ...d, rentPaidFixed: v }))}
+                        emptyLabel="—"
+                        options={[
+                          { value: 'PAID', label: 'Paid' },
+                          { value: 'FIXED', label: 'Fixed' },
+                        ]}
+                      />
                     ) : (
                       row.rentPaidFixed ?? '—'
                     )}
@@ -231,6 +272,15 @@ export default function EstateTerrierRegisterPage() {
           </tbody>
         </table>
       </div>
+      {terrierRows.length > 0 && (
+        <PaginationBar
+          page={page}
+          pageCount={pageCount}
+          pageSize={pageSize}
+          filteredCount={filteredCount}
+          onPageChange={setPage}
+        />
+      )}
     </AppShell>
   );
 }

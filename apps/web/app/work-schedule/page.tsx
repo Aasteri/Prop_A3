@@ -4,7 +4,10 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, getToken, getUser, type AuthUser } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Project = { id: string; name: string; location: string | null; site?: { code: string } };
@@ -83,6 +86,38 @@ export default function WorkSchedulePage() {
     () => projects.find((p) => p.id === projectId),
     [projects, projectId],
   );
+
+  const projectOptions = useMemo(
+    () => [
+      { value: '', label: 'Select…' },
+      ...projects.map((p) => ({
+        value: p.id,
+        label: `${p.site?.code ? `${p.site.code} · ` : ''}${p.name}`,
+        keywords: p.name,
+      })),
+    ],
+    [projects],
+  );
+
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<WorkTask>({
+    items: tasks,
+    searchKeys: [
+      'wbsNumber',
+      'taskTitle',
+      'taskOwner',
+      'phaseLabel',
+      'project.name',
+    ],
+  });
 
   async function onCreate(e: FormEvent) {
     e.preventDefault();
@@ -169,22 +204,17 @@ export default function WorkSchedulePage() {
 
         <div className={`${CARD} p-4 sm:p-5`}>
           <label className={LABEL}>Project</label>
-          <select
+          <SearchableSelect
             className={INPUT}
+            options={projectOptions}
             value={projectId}
-            onChange={(e) => {
-              setProjectId(e.target.value);
-              load(e.target.value);
+            onChange={(v) => {
+              setProjectId(v);
+              load(v);
             }}
-          >
-            <option value="">Select…</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.site?.code ? `${p.site.code} · ` : ''}
-                {p.name}
-              </option>
-            ))}
-          </select>
+            emptyLabel="Select…"
+            placeholder="Search projects…"
+          />
           {selectedProject && (
             <p className="mt-2 text-sm text-slate-500">
               {selectedProject.location ?? 'No location set'}
@@ -304,6 +334,14 @@ export default function WorkSchedulePage() {
           </form>
         )}
 
+        {tasks.length > 0 && (
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search WBS tasks…"
+          />
+        )}
+
         <div className={`${CARD} overflow-x-auto`}>
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
@@ -318,7 +356,7 @@ export default function WorkSchedulePage() {
               </tr>
             </thead>
             <tbody>
-              {tasks.map((t) => (
+              {pageItems.map((t) => (
                 <tr key={t.id} className="border-b border-slate-100 last:border-0">
                   <td className="px-4 py-3 font-medium text-[#1a2744]">{t.wbsNumber}</td>
                   <td className="px-4 py-3">
@@ -394,6 +432,15 @@ export default function WorkSchedulePage() {
             </tbody>
           </table>
         </div>
+        {tasks.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </AppShell>
   );

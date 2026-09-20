@@ -1,10 +1,13 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, downloadPdf, getToken, getUser, type AuthUser } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Project = { id: string; name: string; status: string };
@@ -71,6 +74,24 @@ export default function ChartersPage() {
 
   const canManage =
     user?.role === 'PROJECT_MANAGER' || user?.role === 'CEO' || user?.role === 'ADMIN';
+
+  const projectOptions = useMemo(
+    () => [
+      { value: '', label: 'Select…' },
+      ...projects.map((p) => ({ value: p.id, label: p.name, keywords: p.name })),
+    ],
+    [projects],
+  );
+
+  const charterList = useFilteredList<Charter>({
+    items: charters,
+    searchKeys: ['number', 'title', 'status', 'project.name', 'executiveSummary'],
+  });
+
+  const kickoffList = useFilteredList<Kickoff>({
+    items: kickoffs,
+    searchKeys: ['number', 'status', 'location', 'project.name'],
+  });
 
   const load = () => {
     api<Charter[]>('/charters').then(setCharters).catch(console.error);
@@ -212,19 +233,15 @@ export default function ChartersPage() {
               <form onSubmit={createCharter} className={`${CARD} grid gap-3 p-6 sm:grid-cols-2`}>
                 <div className="sm:col-span-2">
                   <label className={LABEL}>Project</label>
-                  <select
+                  <SearchableSelect
                     className={INPUT}
                     required
+                    options={projectOptions}
                     value={charterForm.projectId}
-                    onChange={(e) => setCharterForm({ ...charterForm, projectId: e.target.value })}
-                  >
-                    <option value="">Select…</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => setCharterForm({ ...charterForm, projectId: v })}
+                    emptyLabel="Select…"
+                    placeholder="Search projects…"
+                  />
                 </div>
                 <div className="sm:col-span-2">
                   <label className={LABEL}>Title</label>
@@ -297,8 +314,15 @@ export default function ChartersPage() {
                 </div>
               </form>
             )}
+            {charters.length > 0 && (
+              <ListToolbar
+                query={charterList.query}
+                onQueryChange={charterList.setQuery}
+                searchPlaceholder="Search charters…"
+              />
+            )}
             <div className="space-y-3">
-              {charters.map((c) => (
+              {charterList.pageItems.map((c) => (
                 <div key={c.id} className={`${CARD} p-4`}>
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
@@ -376,6 +400,15 @@ export default function ChartersPage() {
                 </div>
               )}
             </div>
+            {charters.length > 0 && (
+              <PaginationBar
+                page={charterList.page}
+                pageCount={charterList.pageCount}
+                pageSize={charterList.pageSize}
+                filteredCount={charterList.filteredCount}
+                onPageChange={charterList.setPage}
+              />
+            )}
           </>
         )}
 
@@ -394,19 +427,15 @@ export default function ChartersPage() {
               <form onSubmit={createKickoff} className={`${CARD} grid gap-3 p-6 sm:grid-cols-2`}>
                 <div>
                   <label className={LABEL}>Project</label>
-                  <select
+                  <SearchableSelect
                     className={INPUT}
                     required
+                    options={projectOptions}
                     value={kickoffForm.projectId}
-                    onChange={(e) => setKickoffForm({ ...kickoffForm, projectId: e.target.value })}
-                  >
-                    <option value="">Select…</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => setKickoffForm({ ...kickoffForm, projectId: v })}
+                    emptyLabel="Select…"
+                    placeholder="Search projects…"
+                  />
                 </div>
                 <div>
                   <label className={LABEL}>Meeting datetime</label>
@@ -461,8 +490,15 @@ export default function ChartersPage() {
                 </div>
               </form>
             )}
+            {kickoffs.length > 0 && (
+              <ListToolbar
+                query={kickoffList.query}
+                onQueryChange={kickoffList.setQuery}
+                searchPlaceholder="Search kick-offs…"
+              />
+            )}
             <div className="space-y-3">
-              {kickoffs.map((k) => (
+              {kickoffList.pageItems.map((k) => (
                 <div key={k.id} className={`${CARD} p-4`}>
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
@@ -508,6 +544,15 @@ export default function ChartersPage() {
                 </div>
               )}
             </div>
+            {kickoffs.length > 0 && (
+              <PaginationBar
+                page={kickoffList.page}
+                pageCount={kickoffList.pageCount}
+                pageSize={kickoffList.pageSize}
+                filteredCount={kickoffList.filteredCount}
+                onPageChange={kickoffList.setPage}
+              />
+            )}
           </>
         )}
       </div>

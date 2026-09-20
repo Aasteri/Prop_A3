@@ -1,11 +1,27 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
 import { api, ApiError, getToken } from '@/lib/api';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
+
+const EARNER_TYPES = [
+  'COMPANY',
+  'INTERNAL_STAFF',
+  'EXTERNAL_AGENT',
+  'ARTISAN',
+  'PROFESSIONAL',
+  'SUBCONTRACTOR',
+  'LANDLORD',
+  'OTHER',
+] as const;
+
+const earnerTypeOptions = optionsFromValues([...EARNER_TYPES]);
 
 type Attribution = {
   id: string;
@@ -63,6 +79,40 @@ export default function MoneyInflowsPage() {
     }
     load();
   }, [router]);
+
+  const statusFilter: FilterDef = useMemo(() => {
+    const statuses = [...new Set(rows.map((r) => r.status))].sort();
+    return {
+      key: 'status',
+      label: 'Status',
+      options: statuses.map((s) => ({ value: s, label: s })),
+      getValue: (item) => (item as Inflow).status,
+    };
+  }, [rows]);
+
+  const {
+    query,
+    setQuery,
+    filterValues,
+    setFilter,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+  } = useFilteredList<Inflow>({
+    items: rows,
+    searchKeys: [
+      'number',
+      'channel',
+      'status',
+      'payerName',
+      'payerReference',
+      'paystackRef',
+      (r) => r.invoice?.invoiceNumber ?? '',
+    ],
+    filters: statusFilter.options.length ? [statusFilter] : [],
+  });
 
   function openRow(row: Inflow) {
     setSelected(row);
@@ -141,6 +191,14 @@ export default function MoneyInflowsPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className={`${CARD} overflow-x-auto`}>
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search inflows…"
+            filters={statusFilter.options.length ? [statusFilter] : []}
+            filterValues={filterValues}
+            onFilterChange={setFilter}
+          />
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
               <tr>
@@ -152,7 +210,7 @@ export default function MoneyInflowsPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {pageItems.map((r) => (
                 <tr
                   key={r.id}
                   className={`cursor-pointer border-b border-slate-100 hover:bg-slate-50 ${
@@ -167,15 +225,24 @@ export default function MoneyInflowsPage() {
                   <td className="px-3 py-2">{r.invoice?.invoiceNumber ?? '—'}</td>
                 </tr>
               ))}
-              {!rows.length && (
+              {!filteredCount && (
                 <tr>
                   <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
-                    No inflows yet. Verify a payment to create one.
+                    {rows.length === 0
+                      ? 'No inflows yet. Verify a payment to create one.'
+                      : 'No matching inflows.'}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={20}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
         </div>
 
         <div className={CARD}>
@@ -195,30 +262,16 @@ export default function MoneyInflowsPage() {
                 <div key={idx} className="grid gap-2 rounded-md border border-slate-100 bg-slate-50 p-3 sm:grid-cols-2">
                   <div>
                     <label className={LABEL}>Earner type</label>
-                    <select
-                      className={INPUT}
+                    <SearchableSelect
+                      options={earnerTypeOptions}
                       value={line.earnerType}
-                      onChange={(e) => {
+                      onChange={(v) => {
                         const next = [...editLines];
-                        next[idx] = { ...line, earnerType: e.target.value };
+                        next[idx] = { ...line, earnerType: v };
                         setEditLines(next);
                       }}
-                    >
-                      {[
-                        'COMPANY',
-                        'INTERNAL_STAFF',
-                        'EXTERNAL_AGENT',
-                        'ARTISAN',
-                        'PROFESSIONAL',
-                        'SUBCONTRACTOR',
-                        'LANDLORD',
-                        'OTHER',
-                      ].map((t) => (
-                        <option key={t} value={t}>
-                          {t}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="Earner type…"
+                    />
                   </div>
                   <div>
                     <label className={LABEL}>Name</label>

@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PortalShell } from '@/components/PortalShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 
 type Change = {
   id: string;
@@ -20,6 +22,20 @@ export default function PortalChangesPage() {
   const router = useRouter();
   const [changes, setChanges] = useState<Change[]>([]);
 
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<Change>({
+    items: changes,
+    searchKeys: ['changeId', 'description', 'justification', 'impactLevel', 'project.name'],
+  });
+
   useEffect(() => {
     if (!getToken()) {
       router.replace('/login');
@@ -33,8 +49,16 @@ export default function PortalChangesPage() {
       <h1 className="text-2xl font-semibold text-[#1a2744]">Approved change orders</h1>
       <p className="text-slate-600">Open-book visibility — Agile contract variations</p>
 
+      {changes.length > 0 && (
+        <ListToolbar
+          query={query}
+          onQueryChange={setQuery}
+          searchPlaceholder="Search change orders…"
+        />
+      )}
+
       <div className="mt-6 space-y-4">
-        {changes.map((c) => (
+        {pageItems.map((c) => (
           <div key={c.id} className="rounded-xl border border-slate-200 bg-white p-5">
             <div className="flex flex-wrap justify-between gap-2">
               <p className="font-semibold text-[#1a2744]">{c.changeId}</p>
@@ -56,6 +80,16 @@ export default function PortalChangesPage() {
           <p className="text-sm text-slate-500">No approved change orders for your projects.</p>
         )}
       </div>
+
+      {changes.length > 0 && (
+        <PaginationBar
+          page={page}
+          pageCount={pageCount}
+          pageSize={pageSize}
+          filteredCount={filteredCount}
+          onPageChange={setPage}
+        />
+      )}
 
       <Link href="/portal" className="mt-6 inline-block text-sm text-[#e87722] hover:underline">
         ← Back to dashboard

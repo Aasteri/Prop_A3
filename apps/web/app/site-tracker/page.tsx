@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { OfflineBanner } from '@/components/OfflineBanner';
-import { api, getToken, getUser, type AuthUser, downloadPdf } from '@/lib/api';
+import { api, getToken, getUser, type AuthUser } from '@/lib/api';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 
 type DailyLog = {
   id: string;
@@ -65,6 +67,32 @@ export default function SiteTrackerListPage() {
     );
   }
 
+  const filters: FilterDef[] = useMemo(
+    () => [
+      {
+        key: 'status',
+        label: 'Status',
+        options: Object.keys(STATUS_COLORS).map((v) => ({ value: v, label: v })),
+        getValue: (item) => (item as DailyLog).status,
+      },
+    ],
+    [],
+  );
+
+  const list = useFilteredList({
+    items: logs,
+    searchKeys: [
+      'refCode',
+      'projectName',
+      'status',
+      'site.code',
+      'site.name',
+      (l) =>
+        l.submittedBy ? `${l.submittedBy.firstName} ${l.submittedBy.lastName}` : '',
+    ],
+    filters,
+  });
+
   return (
     <AppShell>
       <OfflineBanner />
@@ -88,58 +116,75 @@ export default function SiteTrackerListPage() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-3">
-          {logs.map((log) => (
-            <div
-              key={log.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 transition-colors hover:border-[#e87722]/40"
-            >
-              <Link href={`/site-tracker/${log.id}`} className="min-w-0 flex-1">
-                <p className="font-medium text-[#1a2744]">{log.projectName}</p>
-                <p className="text-sm text-slate-500">
-                  {log.refCode} · {log.site.code} ·{' '}
-                  {new Date(log.date).toLocaleDateString()}
-                </p>
-                {log.submittedBy && (
-                  <p className="text-xs text-slate-400">
-                    By {log.submittedBy.firstName} {log.submittedBy.lastName}
+        <>
+          <ListToolbar
+            query={list.query}
+            onQueryChange={list.setQuery}
+            searchPlaceholder="Search project, ref, site…"
+            filters={filters}
+            filterValues={list.filterValues}
+            onFilterChange={list.setFilter}
+          />
+          <div className="space-y-3">
+            {list.pageItems.map((log) => (
+              <div
+                key={log.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 transition-colors hover:border-[#e87722]/40"
+              >
+                <Link href={`/site-tracker/${log.id}`} className="min-w-0 flex-1">
+                  <p className="font-medium text-[#1a2744]">{log.projectName}</p>
+                  <p className="text-sm text-slate-500">
+                    {log.refCode} · {log.site.code} ·{' '}
+                    {new Date(log.date).toLocaleDateString()}
                   </p>
-                )}
-              </Link>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[log.status] ?? ''}`}
-                >
-                  {log.status}
-                </span>
-                <Link
-                  href={`/site-tracker/${log.id}`}
-                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
-                >
-                  View
+                  {log.submittedBy && (
+                    <p className="text-xs text-slate-400">
+                      By {log.submittedBy.firstName} {log.submittedBy.lastName}
+                    </p>
+                  )}
                 </Link>
-                {canApprove && log.status === 'SUBMITTED' && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => approve(log.id)}
-                      className="rounded-md bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => reject(log.id)}
-                      className="rounded-md bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700"
-                    >
-                      Reject
-                    </button>
-                  </>
-                )}
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[log.status] ?? ''}`}
+                  >
+                    {log.status}
+                  </span>
+                  <Link
+                    href={`/site-tracker/${log.id}`}
+                    className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+                  >
+                    View
+                  </Link>
+                  {canApprove && log.status === 'SUBMITTED' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => approve(log.id)}
+                        className="rounded-md bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => reject(log.id)}
+                        className="rounded-md bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700"
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          <PaginationBar
+            page={list.page}
+            pageCount={list.pageCount}
+            pageSize={list.pageSize}
+            filteredCount={list.filteredCount}
+            onPageChange={list.setPage}
+          />
+        </>
       )}
     </AppShell>
   );

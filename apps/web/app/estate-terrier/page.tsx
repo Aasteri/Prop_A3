@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 
 type Estate = {
   id: string;
@@ -17,6 +19,20 @@ type Estate = {
 export default function EstateTerrierIndexPage() {
   const router = useRouter();
   const [estates, setEstates] = useState<Estate[]>([]);
+
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<Estate>({
+    items: estates,
+    searchKeys: ['code', 'name', 'title', 'location'],
+  });
 
   useEffect(() => {
     if (!getToken()) {
@@ -33,8 +49,16 @@ export default function EstateTerrierIndexPage() {
         <p className="text-sm text-slate-600">16-column rental register per managed estate</p>
       </div>
 
+      {estates.length > 0 && (
+        <ListToolbar
+          query={query}
+          onQueryChange={setQuery}
+          searchPlaceholder="Search estates…"
+        />
+      )}
+
       <div className="space-y-3">
-        {estates.map((e) => (
+        {pageItems.map((e) => (
           <Link
             key={e.id}
             href={`/estate-terrier/${e.id}`}
@@ -48,6 +72,15 @@ export default function EstateTerrierIndexPage() {
         ))}
         {!estates.length && <p className="text-sm text-slate-500">No rental estates configured.</p>}
       </div>
+      {estates.length > 0 && (
+        <PaginationBar
+          page={page}
+          pageCount={pageCount}
+          pageSize={pageSize}
+          filteredCount={filteredCount}
+          onPageChange={setPage}
+        />
+      )}
     </AppShell>
   );
 }

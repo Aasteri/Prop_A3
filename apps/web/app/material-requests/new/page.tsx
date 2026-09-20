@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
 import { api, getToken, ApiError } from '@/lib/api';
 
 type Project = { id: string; name: string; site: { code: string } };
@@ -96,17 +97,16 @@ export default function NewMaterialRequestPage() {
       <form className="max-w-2xl space-y-4 rounded-xl border border-slate-200 bg-white p-6">
         <label className="block text-sm">
           <span className="mb-1 block font-medium">Project</span>
-          <select
+          <SearchableSelect
+            className="w-full"
             value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            className={INPUT}
-          >
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.site.code} — {p.name}
-              </option>
-            ))}
-          </select>
+            onChange={setProjectId}
+            options={projects.map((p) => ({
+              value: p.id,
+              label: `${p.site.code} — ${p.name}`,
+            }))}
+            placeholder="Search projects…"
+          />
         </label>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -179,23 +179,22 @@ export default function NewMaterialRequestPage() {
                   }}
                   className={INPUT}
                 />
-                <select
+                <SearchableSelect
+                  className="min-w-[7rem] flex-1"
                   value={line.urgency}
-                  onChange={(e) => {
+                  onChange={(v) => {
                     const next = [...lines];
                     next[i] = {
                       ...next[i],
-                      urgency: e.target.value as LineRow['urgency'],
+                      urgency: v as LineRow['urgency'],
                     };
                     setLines(next);
                   }}
-                  className={INPUT}
-                >
-                  <option value="LOW">Low</option>
-                  <option value="NORMAL">Normal</option>
-                  <option value="HIGH">High</option>
-                  <option value="CRITICAL">Critical</option>
-                </select>
+                  options={optionsFromValues(['LOW', 'NORMAL', 'HIGH', 'CRITICAL'], (u) =>
+                    u.charAt(0) + u.slice(1).toLowerCase(),
+                  )}
+                  placeholder="Urgency…"
+                />
               </div>
             </div>
           ))}

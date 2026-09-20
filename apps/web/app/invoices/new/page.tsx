@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, getToken, ApiError } from '@/lib/api';
 
 type Project = { id: string; name: string; contractRef: string | null; site: { code: string } };
@@ -148,31 +149,29 @@ export default function NewInvoicePage() {
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm">
             <span className="mb-1 block font-medium">Project</span>
-            <select
+            <SearchableSelect
+              className="w-full"
               value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
-              className={INPUT}
-            >
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.site.code} — {p.name}
-                </option>
-              ))}
-            </select>
+              onChange={setProjectId}
+              options={projects.map((p) => ({
+                value: p.id,
+                label: `${p.site.code} — ${p.name}`,
+              }))}
+              placeholder="Search projects…"
+            />
           </label>
           <label className="block text-sm">
             <span className="mb-1 block font-medium">Settlement entity</span>
-            <select
+            <SearchableSelect
+              className="w-full"
               value={settlementEntityId}
-              onChange={(e) => setSettlementEntityId(e.target.value)}
-              className={INPUT}
-            >
-              {entities.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.name} — {e.bankName}
-                </option>
-              ))}
-            </select>
+              onChange={setSettlementEntityId}
+              options={entities.map((e) => ({
+                value: e.id,
+                label: `${e.name} — ${e.bankName}`,
+              }))}
+              placeholder="Search entities…"
+            />
           </label>
         </div>
 

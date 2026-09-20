@@ -1,8 +1,9 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, ApiError, getToken } from '@/lib/api';
 
 type Estate = { id: string; code: string; name: string };
@@ -136,6 +137,27 @@ export default function NewTenantApplicationPage() {
   const feePct = clauses?.applicationAgencyLegalPct ?? 20;
   const agencyFee = ((parseFloat(form.rentAccepted) || 0) * feePct) / 100;
 
+  const estateOptions = useMemo(
+    () => estates.map((e) => ({ value: e.id, label: `${e.code} — ${e.name}` })),
+    [estates],
+  );
+  const vacantUnitOptions = useMemo(
+    () =>
+      vacantUnits.map((u) => ({
+        value: u.id,
+        label: `#${u.serialNo} ${u.propertyType} · ${u.location}`,
+      })),
+    [vacantUnits],
+  );
+  const propertyOptions = useMemo(
+    () =>
+      properties.map((p) => ({
+        value: p.id,
+        label: `${p.name}${p.code ? ` (${p.code})` : ''}`,
+      })),
+    [properties],
+  );
+
   return (
     <AppShell>
       <h1 className="mb-1 text-2xl font-semibold text-[#1a2744]">Tenant application</h1>
@@ -151,40 +173,32 @@ export default function NewTenantApplicationPage() {
         <section className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm sm:col-span-2">
             <span className="mb-1 block font-medium">Estate</span>
-            <select value={estateId} onChange={(e) => setEstateId(e.target.value)} className={INPUT}>
-              {estates.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.code} — {e.name}
-                </option>
-              ))}
-            </select>
+            <SearchableSelect
+              options={estateOptions}
+              value={estateId}
+              onChange={setEstateId}
+              placeholder="Search estate…"
+            />
           </label>
           <label className="block text-sm sm:col-span-2">
             <span className="mb-1 block font-medium">Unit applying for (vacant)</span>
-            <select value={terrierRowId} onChange={(e) => setTerrierRowId(e.target.value)} className={INPUT}>
-              <option value="">— Select later —</option>
-              {vacantUnits.map((u) => (
-                <option key={u.id} value={u.id}>
-                  #{u.serialNo} {u.propertyType} · {u.location}
-                </option>
-              ))}
-            </select>
+            <SearchableSelect
+              options={vacantUnitOptions}
+              value={terrierRowId}
+              onChange={setTerrierRowId}
+              emptyLabel="— Select later —"
+              placeholder="Search unit…"
+            />
           </label>
           <label className="block text-sm sm:col-span-2">
             <span className="mb-1 block font-medium">Managed property (fee schedule)</span>
-            <select
+            <SearchableSelect
+              options={propertyOptions}
               value={propertyId}
-              onChange={(e) => setPropertyId(e.target.value)}
-              className={INPUT}
-            >
-              <option value="">Doc 12 default (20%)</option>
-              {properties.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                  {p.code ? ` (${p.code})` : ''}
-                </option>
-              ))}
-            </select>
+              onChange={setPropertyId}
+              emptyLabel="Doc 12 default (20%)"
+              placeholder="Search property…"
+            />
             {clauses?.scheduleSource && (
               <span className="mt-1 block text-xs text-slate-500">
                 Schedule: {clauses.scheduleSource}

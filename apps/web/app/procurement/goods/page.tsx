@@ -4,7 +4,9 @@ import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Requisition = {
@@ -45,6 +47,16 @@ export default function GoodsProcurementPage() {
     qty: '1',
     unit: 'pcs',
     estUnitCost: '',
+  });
+
+  const requisitionList = useFilteredList<Requisition>({
+    items: rows,
+    searchKeys: ['number', 'status', 'justification', (r) => r.lines.map((l) => l.description).join(' ')],
+  });
+
+  const orderList = useFilteredList<PurchaseOrder>({
+    items: orders,
+    searchKeys: ['number', 'status', 'destination', 'supplier.legalName', (o) => o.pr?.number ?? ''],
   });
 
   const load = () => {
@@ -244,7 +256,14 @@ export default function GoodsProcurementPage() {
 
         <section className="space-y-3">
           <h2 className="text-base font-semibold text-[#1a2744]">Purchase requisitions</h2>
-          {rows.map((r) => (
+          {rows.length > 0 && (
+            <ListToolbar
+              query={requisitionList.query}
+              onQueryChange={requisitionList.setQuery}
+              searchPlaceholder="Search PRs…"
+            />
+          )}
+          {requisitionList.pageItems.map((r) => (
             <div key={r.id} className={`${CARD} p-4`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -282,11 +301,27 @@ export default function GoodsProcurementPage() {
           {rows.length === 0 && (
             <div className={`${CARD} p-6 text-center text-sm text-slate-500`}>No PRs yet.</div>
           )}
+          {rows.length > 0 && (
+            <PaginationBar
+              page={requisitionList.page}
+              pageCount={requisitionList.pageCount}
+              pageSize={requisitionList.pageSize}
+              filteredCount={requisitionList.filteredCount}
+              onPageChange={requisitionList.setPage}
+            />
+          )}
         </section>
 
         <section className="space-y-3">
           <h2 className="text-base font-semibold text-[#1a2744]">Purchase orders & receipts</h2>
-          {orders.map((o) => (
+          {orders.length > 0 && (
+            <ListToolbar
+              query={orderList.query}
+              onQueryChange={orderList.setQuery}
+              searchPlaceholder="Search POs…"
+            />
+          )}
+          {orderList.pageItems.map((o) => (
             <div key={o.id} className={`${CARD} p-4`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -319,6 +354,15 @@ export default function GoodsProcurementPage() {
             <div className={`${CARD} p-6 text-center text-sm text-slate-500`}>
               No purchase orders yet. Approve a PR and convert it.
             </div>
+          )}
+          {orders.length > 0 && (
+            <PaginationBar
+              page={orderList.page}
+              pageCount={orderList.pageCount}
+              pageSize={orderList.pageSize}
+              filteredCount={orderList.filteredCount}
+              onPageChange={orderList.setPage}
+            />
           )}
         </section>
       </div>

@@ -4,7 +4,9 @@ import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, downloadPdf, getToken } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Property = { id: string; name: string; code: string | null };
@@ -41,6 +43,26 @@ export default function PmEngagementsPage() {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState(emptyForm);
+
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<Engagement>({
+    items: rows,
+    searchKeys: [
+      'ownerName',
+      'ownerPhone',
+      'status',
+      'notes',
+      (r) => r.properties.map((x) => x.property.name).join(' '),
+    ],
+  });
 
   const load = () => {
     api<Engagement[]>('/pm-engagements')
@@ -239,8 +261,16 @@ export default function PmEngagementsPage() {
           ← Properties hub
         </Link>
 
+        {rows.length > 0 && (
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search engagements…"
+          />
+        )}
+
         <div className="space-y-3">
-          {rows.map((r) => (
+          {pageItems.map((r) => (
             <div key={r.id} className={`${CARD} p-4`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -278,6 +308,15 @@ export default function PmEngagementsPage() {
             </div>
           )}
         </div>
+        {rows.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </AppShell>
   );

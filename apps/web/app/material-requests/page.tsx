@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, getToken, getUser, type AuthUser } from '@/lib/api';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 
 type MaterialRequest = {
   id: string;
@@ -55,6 +57,34 @@ export default function MaterialRequestsPage() {
     user?.role === 'CEO' ||
     user?.role === 'ADMIN';
 
+  const filters: FilterDef[] = useMemo(
+    () => [
+      {
+        key: 'status',
+        label: 'Status',
+        options: Object.keys(STATUS_COLORS).map((v) => ({
+          value: v,
+          label: v.replace(/_/g, ' '),
+        })),
+        getValue: (item) => (item as MaterialRequest).status,
+      },
+    ],
+    [],
+  );
+
+  const list = useFilteredList({
+    items: requests,
+    searchKeys: [
+      'requestRef',
+      'status',
+      'area',
+      'project.name',
+      'site.code',
+      (r) => `${r.requestedBy.firstName} ${r.requestedBy.lastName}`,
+    ],
+    filters,
+  });
+
   return (
     <AppShell>
       <div className="mb-4 flex items-center justify-between">
@@ -77,46 +107,63 @@ export default function MaterialRequestsPage() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-3">
-          {requests.map((r) => (
-            <div
-              key={r.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4"
-            >
-              <div>
-                <p className="font-medium text-[#1a2744]">
-                  {r.requestRef} · {r.site.code}
-                </p>
-                <p className="text-sm text-slate-500">
-                  {r.project.name}
-                  {r.area ? ` · ${r.area}` : ''} · Required{' '}
-                  {new Date(r.requiredDate).toLocaleDateString()}
-                </p>
-                <p className="text-xs text-slate-400">
-                  {r.lines.length} item(s) · By {r.requestedBy.firstName}{' '}
-                  {r.requestedBy.lastName}
-                </p>
+        <>
+          <ListToolbar
+            query={list.query}
+            onQueryChange={list.setQuery}
+            searchPlaceholder="Search ref, project, site…"
+            filters={filters}
+            filterValues={list.filterValues}
+            onFilterChange={list.setFilter}
+          />
+          <div className="space-y-3">
+            {list.pageItems.map((r) => (
+              <div
+                key={r.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4"
+              >
+                <div>
+                  <p className="font-medium text-[#1a2744]">
+                    {r.requestRef} · {r.site.code}
+                  </p>
+                  <p className="text-sm text-slate-500">
+                    {r.project.name}
+                    {r.area ? ` · ${r.area}` : ''} · Required{' '}
+                    {new Date(r.requiredDate).toLocaleDateString()}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {r.lines.length} item(s) · By {r.requestedBy.firstName}{' '}
+                    {r.requestedBy.lastName}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[r.status] ?? ''}`}
+                  >
+                    {r.status.replace(/_/g, ' ')}
+                  </span>
+                  <Link
+                    href={`/material-requests/${r.id}`}
+                    className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+                  >
+                    {r.status === 'PENDING_APPROVAL' && canApprove
+                      ? 'Review'
+                      : r.status === 'APPROVED' && canIssue
+                        ? 'Issue'
+                        : 'View'}
+                  </Link>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLORS[r.status] ?? ''}`}
-                >
-                  {r.status.replace(/_/g, ' ')}
-                </span>
-                <Link
-                  href={`/material-requests/${r.id}`}
-                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
-                >
-                  {r.status === 'PENDING_APPROVAL' && canApprove
-                    ? 'Review'
-                    : r.status === 'APPROVED' && canIssue
-                      ? 'Issue'
-                      : 'View'}
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          <PaginationBar
+            page={list.page}
+            pageCount={list.pageCount}
+            pageSize={list.pageSize}
+            filteredCount={list.filteredCount}
+            onPageChange={list.setPage}
+          />
+        </>
       )}
     </AppShell>
   );

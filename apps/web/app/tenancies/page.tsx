@@ -1,11 +1,35 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
+
+const TENANCY_STATUSES = [
+  'PENDING_MOVE_IN',
+  'ACTIVE',
+  'DRAFT',
+  'RENEWAL_PENDING',
+  'EXPIRED',
+  'TERMINATED',
+] as const;
+
+function tenancyStatusLabel(s: string) {
+  const labels: Record<string, string> = {
+    PENDING_MOVE_IN: 'Pending move-in',
+    ACTIVE: 'Active',
+    DRAFT: 'Draft',
+    RENEWAL_PENDING: 'Renewal pending',
+    EXPIRED: 'Expired',
+    TERMINATED: 'Terminated',
+  };
+  return labels[s] ?? s;
+}
 
 type PropertyOption = { id: string; name: string; units: { id: string; unitCode: string }[] };
 
@@ -29,7 +53,6 @@ export default function TenanciesPage() {
   const router = useRouter();
   const [rows, setRows] = useState<Tenancy[]>([]);
   const [properties, setProperties] = useState<PropertyOption[]>([]);
-  const [status, setStatus] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
@@ -47,8 +70,7 @@ export default function TenanciesPage() {
   });
 
   const load = () => {
-    const q = status ? `?status=${status}` : '';
-    api<Tenancy[]>(`/tenancies${q}`).then(setRows).catch(console.error);
+    api<Tenancy[]>('/tenancies').then(setRows).catch(console.error);
   };
 
   useEffect(() => {
@@ -59,9 +81,51 @@ export default function TenanciesPage() {
     load();
     api<PropertyOption[]>('/properties').then(setProperties).catch(console.error);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router, status]);
+  }, [router]);
 
   const selectedUnits = properties.find((p) => p.id === form.propertyId)?.units ?? [];
+
+  const propertyOptions = useMemo(
+    () => properties.map((p) => ({ value: p.id, label: p.name })),
+    [properties],
+  );
+  const unitOptions = useMemo(
+    () => selectedUnits.map((u) => ({ value: u.id, label: u.unitCode })),
+    [selectedUnits],
+  );
+
+  const statusFilter: FilterDef = useMemo(
+    () => ({
+      key: 'status',
+      label: 'Status',
+      options: TENANCY_STATUSES.map((s) => ({ value: s, label: tenancyStatusLabel(s) })),
+      getValue: (item) => (item as Tenancy).status,
+    }),
+    [],
+  );
+
+  const {
+    query,
+    setQuery,
+    filterValues,
+    setFilter,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+  } = useFilteredList<Tenancy>({
+    items: rows,
+    searchKeys: [
+      'tenantName',
+      'tenantPhone',
+      'agreementNo',
+      'status',
+      'property.name',
+      (r) => r.unit?.unitCode ?? '',
+    ],
+    filters: [statusFilter],
+  });
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -119,34 +183,24 @@ export default function TenanciesPage() {
           <form onSubmit={onSubmit} className={`${CARD} grid gap-4 p-6 sm:grid-cols-2`}>
             <div>
               <label className={LABEL}>Property</label>
-              <select
-                className={INPUT}
+              <SearchableSelect
                 required
+                options={propertyOptions}
                 value={form.propertyId}
-                onChange={(e) => setForm({ ...form, propertyId: e.target.value, unitId: '' })}
-              >
-                <option value="">Select…</option>
-                {properties.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+                emptyLabel="Select…"
+                placeholder="Search property…"
+                onChange={(v) => setForm({ ...form, propertyId: v, unitId: '' })}
+              />
             </div>
             <div>
               <label className={LABEL}>Unit</label>
-              <select
-                className={INPUT}
+              <SearchableSelect
+                options={unitOptions}
                 value={form.unitId}
-                onChange={(e) => setForm({ ...form, unitId: e.target.value })}
-              >
-                <option value="">Whole property / n/a</option>
-                {selectedUnits.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.unitCode}
-                  </option>
-                ))}
-              </select>
+                emptyLabel="Whole property / n/a"
+                placeholder="Search unit…"
+                onChange={(v) => setForm({ ...form, unitId: v })}
+              />
             </div>
             <div>
               <label className={LABEL}>Tenant name</label>
@@ -218,40 +272,37 @@ export default function TenanciesPage() {
           </form>
         )}
 
-        <div className="flex flex-wrap gap-3">
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-          >
-            <option value="">All statuses</option>
-            <option value="PENDING_MOVE_IN">Pending move-in</option>
-            <option value="ACTIVE">Active</option>
-            <option value="DRAFT">Draft</option>
-            <option value="RENEWAL_PENDING">Renewal pending</option>
-            <option value="EXPIRED">Expired</option>
-            <option value="TERMINATED">Terminated</option>
-          </select>
-          <button
-            type="button"
-            onClick={async () => {
-              const r = await api<{ created: number }>('/tenancies/renewals/scan', {
-                method: 'POST',
-              });
-              alert(`Renewal scan: ${r.created} notice(s) created`);
-              load();
-            }}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
-          >
-            Run renewal scan
-          </button>
-          <Link href="/inventories" className="self-center text-sm font-medium text-slate-600 hover:underline">
-            Inventories
-          </Link>
-          <Link href="/properties-hub" className="self-center text-sm font-medium text-[#e87722] hover:underline">
-            ← Properties hub
-          </Link>
-        </div>
+        <ListToolbar
+          query={query}
+          onQueryChange={setQuery}
+          searchPlaceholder="Search tenancies…"
+          filters={[statusFilter]}
+          filterValues={filterValues}
+          onFilterChange={setFilter}
+          rightSlot={
+            <div className="flex flex-wrap items-end gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  const r = await api<{ created: number }>('/tenancies/renewals/scan', {
+                    method: 'POST',
+                  });
+                  alert(`Renewal scan: ${r.created} notice(s) created`);
+                  load();
+                }}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
+              >
+                Run renewal scan
+              </button>
+              <Link href="/inventories" className="text-sm font-medium text-slate-600 hover:underline">
+                Inventories
+              </Link>
+              <Link href="/properties-hub" className="text-sm font-medium text-[#e87722] hover:underline">
+                ← Properties hub
+              </Link>
+            </div>
+          }
+        />
 
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
           <table className="min-w-full text-sm">
@@ -266,7 +317,7 @@ export default function TenanciesPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {pageItems.map((r) => (
                 <tr key={r.id} className="border-b hover:bg-slate-50">
                   <td className="px-4 py-3">
                     <p className="font-medium text-[#1a2744]">{r.tenantName}</p>
@@ -336,16 +387,25 @@ export default function TenanciesPage() {
                   </td>
                 </tr>
               ))}
-              {rows.length === 0 && (
+              {!filteredCount && (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
-                    No tenancies yet. Create a property asset first, then add an agreement.
+                    {rows.length === 0
+                      ? 'No tenancies yet. Create a property asset first, then add an agreement.'
+                      : 'No matching tenancies.'}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+        <PaginationBar
+          page={page}
+          pageCount={pageCount}
+          pageSize={20}
+          filteredCount={filteredCount}
+          onPageChange={setPage}
+        />
       </div>
     </AppShell>
   );

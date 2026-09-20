@@ -4,7 +4,10 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Project = { id: string; name: string; site?: { code: string } };
@@ -75,6 +78,80 @@ export default function InspectionsPage() {
     checklist.length > 0 &&
     checklist.every((c) => c.status === 'YES' || c.status === 'NA');
   const canPassPrePour = checklistReady && !!form.sectionSignedBy.trim();
+
+  const projectFilterOptions = useMemo(
+    () => [
+      { value: '', label: 'All projects' },
+      ...projects.map((p) => ({
+        value: p.id,
+        label: `${p.site?.code ? `${p.site.code} · ` : ''}${p.name}`,
+        keywords: p.name,
+      })),
+    ],
+    [projects],
+  );
+
+  const projectFormOptions = useMemo(
+    () =>
+      projects.map((p) => ({
+        value: p.id,
+        label: `${p.site?.code ? `${p.site.code} · ` : ''}${p.name}`,
+        keywords: p.name,
+      })),
+    [projects],
+  );
+
+  const categoryOptions = useMemo(
+    () => optionsFromValues(meta.categories),
+    [meta.categories],
+  );
+
+  const sectionOptions = useMemo(
+    () => optionsFromValues(meta.sections.map((s) => s.title)),
+    [meta.sections],
+  );
+
+  const resultFormOptions = useMemo(() => {
+    const blocked = prePour && !canPassPrePour;
+    return meta.results
+      .filter((r) => !(r === 'PASS' && blocked))
+      .map((r) => ({ value: r, label: r }));
+  }, [meta.results, prePour, canPassPrePour]);
+
+  const resultFilter: FilterDef = useMemo(
+    () => ({
+      key: 'result',
+      label: 'Result',
+      options: meta.results.map((r) => ({ value: r, label: r })),
+      getValue: (item) => (item as Inspection).result,
+    }),
+    [meta.results],
+  );
+
+  const {
+    query,
+    setQuery,
+    filterValues,
+    setFilter,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<Inspection>({
+    items: rows,
+    searchKeys: [
+      'number',
+      'category',
+      'section',
+      'phase',
+      'result',
+      'inspectedBy',
+      'project.name',
+    ],
+    filters: [resultFilter],
+  });
 
   const load = (projectId?: string) => {
     const q = projectId ? `?projectId=${projectId}` : '';
@@ -218,19 +295,16 @@ export default function InspectionsPage() {
         </header>
 
         <div className="flex flex-wrap gap-3">
-          <select
-            className={`${INPUT} max-w-xs`}
-            value={projectFilter}
-            onChange={(e) => setProjectFilter(e.target.value)}
-          >
-            <option value="">All projects</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.site?.code ? `${p.site.code} · ` : ''}
-                {p.name}
-              </option>
-            ))}
-          </select>
+          <div className="w-full max-w-xs">
+            <SearchableSelect
+              className={INPUT}
+              options={projectFilterOptions}
+              value={projectFilter}
+              onChange={setProjectFilter}
+              emptyLabel="All projects"
+              placeholder="Filter project…"
+            />
+          </div>
         </div>
 
         {error && (
@@ -243,49 +317,36 @@ export default function InspectionsPage() {
           <form onSubmit={onSubmit} className={`${CARD} grid gap-4 p-6 sm:grid-cols-2`}>
             <div>
               <label className={LABEL}>Project</label>
-              <select
+              <SearchableSelect
                 className={INPUT}
                 required
+                options={projectFormOptions}
                 value={form.projectId}
-                onChange={(e) => setForm({ ...form, projectId: e.target.value })}
-              >
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.site?.code ? `${p.site.code} · ` : ''}
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setForm({ ...form, projectId: v })}
+                placeholder="Search projects…"
+              />
             </div>
             <div>
               <label className={LABEL}>Category</label>
-              <select
+              <SearchableSelect
                 className={INPUT}
                 required
+                options={categoryOptions}
                 value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-              >
-                {meta.categories.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setForm({ ...form, category: v })}
+                placeholder="Category…"
+              />
             </div>
             <div className="sm:col-span-2">
               <label className={LABEL}>Doc 4 section</label>
-              <select
+              <SearchableSelect
                 className={INPUT}
                 required
+                options={sectionOptions}
                 value={form.section}
-                onChange={(e) => onSectionChange(e.target.value)}
-              >
-                {meta.sections.map((s) => (
-                  <option key={s.title} value={s.title}>
-                    {s.title}
-                  </option>
-                ))}
-              </select>
+                onChange={onSectionChange}
+                placeholder="Section…"
+              />
               {selectedSection ? (
                 <p className="mt-1 text-xs text-slate-500">
                   {selectedSection.items.length} checklist items
@@ -321,21 +382,13 @@ export default function InspectionsPage() {
             </div>
             <div>
               <label className={LABEL}>Result</label>
-              <select
+              <SearchableSelect
                 className={INPUT}
+                options={resultFormOptions}
                 value={form.result}
-                onChange={(e) => setForm({ ...form, result: e.target.value })}
-              >
-                {meta.results.map((r) => (
-                  <option
-                    key={r}
-                    value={r}
-                    disabled={r === 'PASS' && prePour && !canPassPrePour}
-                  >
-                    {r}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setForm({ ...form, result: v })}
+                placeholder="Result…"
+              />
               {prePour && (
                 <p className="mt-1 text-xs text-amber-700">
                   Pre-pour gate: PASS needs all items YES/NA and section signature.
@@ -425,6 +478,17 @@ export default function InspectionsPage() {
           </form>
         )}
 
+        {rows.length > 0 && (
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search inspections…"
+            filters={[resultFilter]}
+            filterValues={filterValues}
+            onFilterChange={setFilter}
+          />
+        )}
+
         <div className={`${CARD} overflow-x-auto`}>
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-slate-200 text-slate-500">
@@ -438,7 +502,7 @@ export default function InspectionsPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {pageItems.map((r) => (
                 <tr key={r.id} className="border-b border-slate-100">
                   <td className="px-4 py-3 font-medium text-[#1a2744]">{r.number}</td>
                   <td className="px-4 py-3">
@@ -495,6 +559,15 @@ export default function InspectionsPage() {
             </tbody>
           </table>
         </div>
+        {rows.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </AppShell>
   );

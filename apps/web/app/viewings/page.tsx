@@ -1,10 +1,13 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Inspection = {
@@ -47,6 +50,37 @@ export default function ViewingsPage() {
     buyerFeedback: '',
     interestLevel: 'HIGH',
     nextAction: '',
+  });
+
+  const leadOptions = useMemo(
+    () => [
+      { value: '', label: 'Optional…' },
+      ...leads.map((l) => ({
+        value: l.id,
+        label: `${l.leadRef} — ${l.firstName} ${l.lastName} (${l.stage})`,
+        keywords: `${l.leadRef} ${l.firstName} ${l.lastName}`,
+      })),
+    ],
+    [leads],
+  );
+
+  const interestOptions = useMemo(
+    () => optionsFromValues(['HIGH', 'MEDIUM', 'LOW']),
+    [],
+  );
+
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<Inspection>({
+    items: rows,
+    searchKeys: ['number', 'status', 'observations', 'buyerFeedback', 'nextAction'],
   });
 
   const load = () => {
@@ -122,18 +156,14 @@ export default function ViewingsPage() {
           <form onSubmit={onSubmit} className={`${CARD} grid gap-4 p-6 sm:grid-cols-2`}>
             <div>
               <label className={LABEL}>Lead</label>
-              <select
+              <SearchableSelect
                 className={INPUT}
+                options={leadOptions}
                 value={form.leadId}
-                onChange={(e) => setForm({ ...form, leadId: e.target.value })}
-              >
-                <option value="">Optional…</option>
-                {leads.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.leadRef} — {l.firstName} {l.lastName} ({l.stage})
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setForm({ ...form, leadId: v })}
+                emptyLabel="Optional…"
+                placeholder="Search leads…"
+              />
             </div>
             <div>
               <label className={LABEL}>Scheduled at</label>
@@ -188,15 +218,13 @@ export default function ViewingsPage() {
             </div>
             <div>
               <label className={LABEL}>Interest</label>
-              <select
+              <SearchableSelect
                 className={INPUT}
+                options={interestOptions}
                 value={response.interestLevel}
-                onChange={(e) => setResponse({ ...response, interestLevel: e.target.value })}
-              >
-                <option value="HIGH">High</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="LOW">Low</option>
-              </select>
+                onChange={(v) => setResponse({ ...response, interestLevel: v })}
+                placeholder="Interest…"
+              />
             </div>
             <div className="sm:col-span-2">
               <label className={LABEL}>Next action</label>
@@ -225,8 +253,16 @@ export default function ViewingsPage() {
           ← Properties hub
         </Link>
 
+        {rows.length > 0 && (
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search viewings…"
+          />
+        )}
+
         <div className="space-y-3">
-          {rows.map((r) => (
+          {pageItems.map((r) => (
             <div key={r.id} className={`${CARD} p-4`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -265,6 +301,15 @@ export default function ViewingsPage() {
             </div>
           )}
         </div>
+        {rows.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </AppShell>
   );

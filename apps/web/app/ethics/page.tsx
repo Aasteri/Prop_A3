@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, getToken, getUser, type AuthUser } from '@/lib/api';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 import { CARD, PAGE_HEADER } from '@/lib/ui';
 
 type Principle = { number: number; title: string; description: string };
@@ -68,6 +70,41 @@ export default function EthicsPage() {
       .then((res) => setStatusRows(res.acknowledgements))
       .catch(console.error);
   }, [canViewStatus]);
+
+  const roleFilter: FilterDef = useMemo(
+    () => ({
+      key: 'role',
+      label: 'Role',
+      options: [...new Set(statusRows.map((r) => r.user.role))].sort().map((role) => ({
+        value: role,
+        label: role.replace(/_/g, ' '),
+      })),
+      getValue: (item) => (item as StatusRow).user.role,
+    }),
+    [statusRows],
+  );
+
+  const {
+    query,
+    setQuery,
+    filterValues,
+    setFilter,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<StatusRow>({
+    items: statusRows,
+    searchKeys: [
+      'user.firstName',
+      'user.lastName',
+      'user.email',
+      'user.role',
+    ],
+    filters: [roleFilter],
+  });
 
   async function acknowledge() {
     setError('');
@@ -175,6 +212,18 @@ export default function EthicsPage() {
                 Team acknowledgements (PM / CEO)
               </h2>
             </div>
+            {statusRows.length > 0 && (
+              <div className="px-4 pt-4">
+                <ListToolbar
+                  query={query}
+                  onQueryChange={setQuery}
+                  searchPlaceholder="Search team…"
+                  filters={[roleFilter]}
+                  filterValues={filterValues}
+                  onFilterChange={setFilter}
+                />
+              </div>
+            )}
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-slate-200 text-slate-500">
                 <tr>
@@ -184,7 +233,7 @@ export default function EthicsPage() {
                 </tr>
               </thead>
               <tbody>
-                {statusRows.map((r) => (
+                {pageItems.map((r) => (
                   <tr key={r.userId} className="border-b border-slate-100">
                     <td className="px-4 py-3">
                       {r.user.firstName} {r.user.lastName}
@@ -205,6 +254,17 @@ export default function EthicsPage() {
                 )}
               </tbody>
             </table>
+            {statusRows.length > 0 && (
+              <div className="px-4 pb-4">
+                <PaginationBar
+                  page={page}
+                  pageCount={pageCount}
+                  pageSize={pageSize}
+                  filteredCount={filteredCount}
+                  onPageChange={setPage}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

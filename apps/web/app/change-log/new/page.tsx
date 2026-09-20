@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
 import { api, getToken, ApiError } from '@/lib/api';
 
 type Project = {
@@ -76,17 +77,16 @@ export default function NewChangeLogPage() {
       <form className="max-w-2xl space-y-4 rounded-xl border border-slate-200 bg-white p-6">
         <label className="block text-sm">
           <span className="mb-1 block font-medium">Project</span>
-          <select
+          <SearchableSelect
+            className="w-full"
             value={projectId}
-            onChange={(e) => setProjectId(e.target.value)}
-            className={INPUT}
-          >
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.site.code} — {p.name}
-              </option>
-            ))}
-          </select>
+            onChange={setProjectId}
+            options={projects.map((p) => ({
+              value: p.id,
+              label: `${p.site.code} — ${p.name}`,
+            }))}
+            placeholder="Search projects…"
+          />
         </label>
 
         <label className="block text-sm">
@@ -124,15 +124,15 @@ export default function NewChangeLogPage() {
 
         <label className="block text-sm">
           <span className="mb-1 block font-medium">Impact (Scope / Time / Cost)</span>
-          <select
+          <SearchableSelect
+            className="w-full"
             value={impactLevel}
-            onChange={(e) => setImpactLevel(e.target.value as typeof impactLevel)}
-            className={INPUT}
-          >
-            <option value="LOW">Low</option>
-            <option value="MEDIUM">Med</option>
-            <option value="HIGH">High (requires CEO approval)</option>
-          </select>
+            onChange={(v) => setImpactLevel(v as typeof impactLevel)}
+            options={optionsFromValues(['LOW', 'MEDIUM', 'HIGH'], (v) =>
+              v === 'LOW' ? 'Low' : v === 'MEDIUM' ? 'Med' : 'High (requires CEO approval)',
+            )}
+            placeholder="Select impact…"
+          />
         </label>
 
         {error && (

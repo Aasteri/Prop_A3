@@ -1,10 +1,13 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Supplier = {
@@ -59,6 +62,50 @@ export default function VendorsPage() {
     }
     load();
   }, [router]);
+
+  const statusFilter: FilterDef = useMemo(() => {
+    const statuses = [...new Set(rows.map((r) => r.status))].filter(Boolean).sort();
+    return {
+      key: 'status',
+      label: 'Status',
+      options: statuses.map((s) => ({ value: s, label: s.replace(/_/g, ' ') })),
+      getValue: (item) => (item as Supplier).status,
+    };
+  }, [rows]);
+
+  const {
+    query,
+    setQuery,
+    filterValues,
+    setFilter,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+  } = useFilteredList<Supplier>({
+    items: rows,
+    searchKeys: [
+      'legalName',
+      'tradingName',
+      'productServices',
+      'productPrice',
+      'address',
+      'phone',
+      'email',
+      'notes',
+    ],
+    filters: statusFilter.options.length ? [statusFilter] : [],
+  });
+
+  const starOptions = useMemo(
+    () =>
+      optionsFromValues(
+        ['1', '2', '3', '4', '5'],
+        (n) => `${n} star${Number(n) > 1 ? 's' : ''}`,
+      ),
+    [],
+  );
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -161,18 +208,14 @@ export default function VendorsPage() {
             </div>
             <div>
               <label className={LABEL}>Reliability (1–5 stars)</label>
-              <select
-                className={INPUT}
+              <SearchableSelect
+                className="w-full"
                 value={form.reliabilityStars}
-                onChange={(e) => setForm({ ...form, reliabilityStars: e.target.value })}
-              >
-                <option value="">—</option>
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <option key={n} value={n}>
-                    {n} star{n > 1 ? 's' : ''}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setForm({ ...form, reliabilityStars: v })}
+                options={starOptions}
+                emptyLabel="—"
+                placeholder="Stars…"
+              />
             </div>
             <div className="sm:col-span-2">
               <label className={LABEL}>Location / address</label>
@@ -224,6 +267,14 @@ export default function VendorsPage() {
           ← Procurement hub
         </Link>
 
+        <ListToolbar
+          query={query}
+          onQueryChange={setQuery}
+          searchPlaceholder="Search suppliers…"
+          filters={statusFilter.options.length ? [statusFilter] : []}
+          filterValues={filterValues}
+          onFilterChange={setFilter}
+        />
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
           <table className="min-w-full text-sm">
             <thead className="border-b bg-slate-50 text-left text-slate-600">
@@ -238,7 +289,7 @@ export default function VendorsPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {pageItems.map((r) => (
                 <tr key={r.id} className="border-b hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-[#1a2744]">
                     {r.legalName}
@@ -254,7 +305,7 @@ export default function VendorsPage() {
                   <td className="px-4 py-3 max-w-[10rem] text-slate-600">{r.notes ?? '—'}</td>
                 </tr>
               ))}
-              {rows.length === 0 && (
+              {!rows.length && (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                     No suppliers yet.
@@ -264,6 +315,15 @@ export default function VendorsPage() {
             </tbody>
           </table>
         </div>
+        {rows.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={20}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </AppShell>
   );

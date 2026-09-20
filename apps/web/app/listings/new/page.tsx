@@ -3,11 +3,25 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, ApiError, getToken } from '@/lib/api';
 import { useEffect } from 'react';
 
 const INPUT =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#e87722] focus:outline-none focus:ring-1 focus:ring-[#e87722]';
+
+const FINISH_OPTIONS = [
+  { value: 'FF', label: 'FF — Fully Finished' },
+  { value: 'SF', label: 'SF — Shell Finish' },
+  { value: 'DPC', label: 'DPC' },
+];
+
+const STATUS_OPTIONS = [
+  { value: 'AVAILABLE', label: 'Available' },
+  { value: 'RESERVED', label: 'Reserved' },
+  { value: 'SOLD', label: 'Sold' },
+  { value: 'ARCHIVED', label: 'Archived' },
+];
 
 export default function NewListingPage() {
   const router = useRouter();
@@ -64,21 +78,22 @@ export default function NewListingPage() {
         <Field label="Property type" value={form.propertyType} onChange={(v) => setForm({ ...form, propertyType: v })} required />
         <label className="block text-sm">
           <span className="mb-1 block font-medium">Finish</span>
-          <select value={form.finish} onChange={(e) => setForm({ ...form, finish: e.target.value })} className={INPUT}>
-            <option value="FF">FF — Fully Finished</option>
-            <option value="SF">SF — Shell Finish</option>
-            <option value="DPC">DPC</option>
-          </select>
+          <SearchableSelect
+            options={FINISH_OPTIONS}
+            value={form.finish}
+            onChange={(v) => setForm({ ...form, finish: v })}
+            placeholder="Finish…"
+          />
         </label>
         <Field label="Payment plan" value={form.paymentPlan} onChange={(v) => setForm({ ...form, paymentPlan: v })} />
         <label className="block text-sm">
           <span className="mb-1 block font-medium">Status</span>
-          <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className={INPUT}>
-            <option value="AVAILABLE">Available</option>
-            <option value="RESERVED">Reserved</option>
-            <option value="SOLD">Sold</option>
-            <option value="ARCHIVED">Archived</option>
-          </select>
+          <SearchableSelect
+            options={STATUS_OPTIONS}
+            value={form.status}
+            onChange={(v) => setForm({ ...form, status: v })}
+            placeholder="Status…"
+          />
         </label>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Single price (₦)" value={form.priceNgn} onChange={(v) => setForm({ ...form, priceNgn: v })} type="number" />

@@ -11,6 +11,8 @@ import {
   saveMarketplaceDraft,
   type MarketplaceJobDraft,
 } from '@/lib/marketplace-draft';
+import { PaginationBar } from '@/components/ListToolbar';
+import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type CatalogItem = {
@@ -81,15 +83,28 @@ export default function MarketplacePage() {
     setAddressText(draft.addressText);
   }
 
+  const {
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<CatalogItem>({
+    items,
+    searchKeys: ['label', 'category', 'code', 'description'],
+    pageSize: 20,
+  });
+
   const grouped = useMemo(() => {
     const map = new Map<string, CatalogItem[]>();
-    for (const item of items) {
+    for (const item of pageItems) {
       const list = map.get(item.category) ?? [];
       list.push(item);
       map.set(item.category, list);
     }
     return [...map.entries()];
-  }, [items]);
+  }, [pageItems]);
 
   function persistDraft() {
     if (!selected) return;
@@ -242,6 +257,15 @@ export default function MarketplacePage() {
               </div>
             ))}
             {!items.length && <p className="text-sm text-slate-500">No matches.</p>}
+            {items.length > 0 && (
+              <PaginationBar
+                page={page}
+                pageCount={pageCount}
+                pageSize={pageSize}
+                filteredCount={filteredCount}
+                onPageChange={setPage}
+              />
+            )}
           </section>
 
           <section className={`${CARD} p-5`}>

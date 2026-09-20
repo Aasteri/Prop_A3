@@ -1,10 +1,13 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Project = { id: string; name: string; site?: { code: string } };
@@ -39,6 +42,36 @@ export default function WorksProcurementPage() {
     platformFeePct: '10',
     startDate: '',
     completionDate: '',
+  });
+
+  const projectOptions = useMemo(
+    () =>
+      projects.map((p) => ({
+        value: p.id,
+        label: `${p.site?.code ? `${p.site.code} · ` : ''}${p.name}`,
+        keywords: p.name,
+      })),
+    [projects],
+  );
+
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<WorksRow>({
+    items: rows,
+    searchKeys: [
+      'number',
+      'subcontractorName',
+      'scopeSummary',
+      'status',
+      'project.name',
+    ],
   });
 
   const load = () => {
@@ -135,19 +168,14 @@ export default function WorksProcurementPage() {
           <form onSubmit={onSubmit} className={`${CARD} grid gap-4 p-6 sm:grid-cols-2`}>
             <div>
               <label className={LABEL}>Project</label>
-              <select
+              <SearchableSelect
                 className={INPUT}
                 required
+                options={projectOptions}
                 value={form.projectId}
-                onChange={(e) => setForm({ ...form, projectId: e.target.value })}
-              >
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.site?.code ? `${p.site.code} · ` : ''}
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setForm({ ...form, projectId: v })}
+                placeholder="Search projects…"
+              />
             </div>
             <div>
               <label className={LABEL}>Subcontractor</label>
@@ -240,6 +268,15 @@ export default function WorksProcurementPage() {
           </form>
         )}
 
+        {rows.length > 0 && (
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search works contracts…"
+          />
+        )}
+
+
         <div className={`${CARD} overflow-x-auto`}>
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-slate-200 text-slate-500">
@@ -253,7 +290,7 @@ export default function WorksProcurementPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {pageItems.map((r) => (
                 <tr key={r.id} className="border-b border-slate-100 align-top">
                   <td className="px-4 py-3">
                     <div className="font-medium text-[#1a2744]">{r.number}</div>
@@ -307,6 +344,15 @@ export default function WorksProcurementPage() {
             </tbody>
           </table>
         </div>
+        {rows.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </AppShell>
   );

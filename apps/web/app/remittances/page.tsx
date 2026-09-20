@@ -1,10 +1,13 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, downloadPdf, getToken } from '@/lib/api';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Property = { id: string; name: string; landlordName: string | null };
@@ -152,6 +155,43 @@ export default function RemittancesPage() {
     load();
   }
 
+  const propertyOptions = useMemo(
+    () => properties.map((p) => ({ value: p.id, label: p.name })),
+    [properties],
+  );
+
+  const statusFilter: FilterDef = useMemo(() => {
+    const statuses = [...new Set(rows.map((r) => r.status))].sort();
+    return {
+      key: 'status',
+      label: 'Status',
+      options: statuses.map((s) => ({ value: s, label: s })),
+      getValue: (item) => (item as Remittance).status,
+    };
+  }, [rows]);
+
+  const {
+    query,
+    setQuery,
+    filterValues,
+    setFilter,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+  } = useFilteredList<Remittance>({
+    items: rows,
+    searchKeys: [
+      'number',
+      'landlordName',
+      'status',
+      'property.name',
+      'transferRef',
+    ],
+    filters: statusFilter.options.length ? [statusFilter] : [],
+  });
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -183,27 +223,22 @@ export default function RemittancesPage() {
           <form onSubmit={onSubmit} className={`${CARD} grid gap-4 p-6 sm:grid-cols-2`}>
             <div>
               <label className={LABEL}>Property</label>
-              <select
-                className={INPUT}
+              <SearchableSelect
                 required
+                options={propertyOptions}
                 value={form.propertyId}
-                onChange={(e) => {
-                  const p = properties.find((x) => x.id === e.target.value);
+                emptyLabel="Select…"
+                placeholder="Search property…"
+                onChange={(v) => {
+                  const p = properties.find((x) => x.id === v);
                   setForm({
                     ...form,
-                    propertyId: e.target.value,
+                    propertyId: v,
                     landlordName: p?.landlordName ?? form.landlordName,
                   });
                   setPreview(null);
                 }}
-              >
-                <option value="">Select…</option>
-                {properties.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div>
               <label className={LABEL}>Landlord</label>
@@ -325,8 +360,17 @@ export default function RemittancesPage() {
           ← Properties hub
         </Link>
 
+        <ListToolbar
+          query={query}
+          onQueryChange={setQuery}
+          searchPlaceholder="Search remittances…"
+          filters={statusFilter.options.length ? [statusFilter] : []}
+          filterValues={filterValues}
+          onFilterChange={setFilter}
+        />
+
         <div className="space-y-3">
-          {rows.map((r) => (
+          {pageItems.map((r) => (
             <div key={r.id} className={`${CARD} p-4`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -375,12 +419,19 @@ export default function RemittancesPage() {
               </div>
             </div>
           ))}
-          {rows.length === 0 && (
+          {!filteredCount && (
             <div className={`${CARD} p-8 text-center text-sm text-slate-500`}>
-              No remittances yet.
+              {rows.length === 0 ? 'No remittances yet.' : 'No matching remittances.'}
             </div>
           )}
         </div>
+        <PaginationBar
+          page={page}
+          pageCount={pageCount}
+          pageSize={20}
+          filteredCount={filteredCount}
+          onPageChange={setPage}
+        />
       </div>
     </AppShell>
   );

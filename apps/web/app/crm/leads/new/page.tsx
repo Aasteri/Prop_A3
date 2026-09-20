@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, ApiError, getToken } from '@/lib/api';
 
 const INPUT =
@@ -70,25 +71,34 @@ export default function NewLeadPage() {
         <Field label="Email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} type="email" />
         <label className="block text-sm">
           <span className="mb-1 block font-medium">Source</span>
-          <select value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} className={INPUT}>
-            <option value="MANUAL">Manual</option>
-            <option value="WEB">Web</option>
-            <option value="WHATSAPP">WhatsApp</option>
-            <option value="PHONE">Phone</option>
-            <option value="REFERRAL">Referral</option>
-            <option value="WALK_IN">Walk-in</option>
-          </select>
+          <SearchableSelect
+            className="w-full"
+            value={form.source}
+            onChange={(v) => setForm({ ...form, source: v })}
+            options={[
+              { value: 'MANUAL', label: 'Manual' },
+              { value: 'WEB', label: 'Web' },
+              { value: 'WHATSAPP', label: 'WhatsApp' },
+              { value: 'PHONE', label: 'Phone' },
+              { value: 'REFERRAL', label: 'Referral' },
+              { value: 'WALK_IN', label: 'Walk-in' },
+            ]}
+            placeholder="Source…"
+          />
         </label>
         <label className="block text-sm">
           <span className="mb-1 block font-medium">Listing interest</span>
-          <select value={form.listingId} onChange={(e) => setForm({ ...form, listingId: e.target.value })} className={INPUT}>
-            <option value="">— None —</option>
-            {listings.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.listingRef} — {l.location} ({l.propertyType})
-              </option>
-            ))}
-          </select>
+          <SearchableSelect
+            className="w-full"
+            value={form.listingId}
+            onChange={(v) => setForm({ ...form, listingId: v })}
+            options={listings.map((l) => ({
+              value: l.id,
+              label: `${l.listingRef} — ${l.location} (${l.propertyType})`,
+            }))}
+            emptyLabel="— None —"
+            placeholder="Search listings…"
+          />
         </label>
         <label className="block text-sm">
           <span className="mb-1 block font-medium">Preferences / notes</span>

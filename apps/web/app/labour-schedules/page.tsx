@@ -1,10 +1,13 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
 import { api, getToken, getUser, type AuthUser } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Project = { id: string; name: string; location: string | null; site?: { code: string } };
@@ -95,6 +98,41 @@ export default function LabourSchedulesPage() {
 
   const canManage =
     user?.role === 'PROJECT_MANAGER' || user?.role === 'CEO' || user?.role === 'ADMIN';
+
+  const projectOptions = useMemo(
+    () => [
+      { value: '', label: 'Select…' },
+      ...projects.map((p) => ({
+        value: p.id,
+        label: `${p.site?.code ? `${p.site.code} · ` : ''}${p.name}`,
+        keywords: p.name,
+      })),
+    ],
+    [projects],
+  );
+
+  const costUnitOptions = useMemo(() => optionsFromValues(['DAY', 'HOUR']), []);
+
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<LabourSchedule>({
+    items: rows,
+    searchKeys: [
+      'number',
+      'projectTitle',
+      'projectPhase',
+      'projectManager',
+      'project.name',
+      'notes',
+    ],
+  });
 
   const load = () => {
     api<LabourSchedule[]>('/labour-schedules')
@@ -299,12 +337,12 @@ export default function LabourSchedulesPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <label className={LABEL}>Project</label>
-                <select
+                <SearchableSelect
                   className={INPUT}
                   required
+                  options={projectOptions}
                   value={form.projectId}
-                  onChange={(e) => {
-                    const id = e.target.value;
+                  onChange={(id) => {
                     const p = projects.find((x) => x.id === id);
                     setForm({
                       ...form,
@@ -312,15 +350,9 @@ export default function LabourSchedulesPage() {
                       projectTitle: p?.name ?? form.projectTitle,
                     });
                   }}
-                >
-                  <option value="">Select…</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.site?.code ? `${p.site.code} · ` : ''}
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
+                  emptyLabel="Select…"
+                  placeholder="Search projects…"
+                />
               </div>
               <div>
                 <label className={LABEL}>Project title</label>
@@ -464,14 +496,13 @@ export default function LabourSchedulesPage() {
                     </div>
                     <div>
                       <label className={LABEL}>Unit</label>
-                      <select
+                      <SearchableSelect
                         className={INPUT}
+                        options={costUnitOptions}
                         value={line.costUnit}
-                        onChange={(e) => updateCreateLine(i, { costUnit: e.target.value })}
-                      >
-                        <option value="DAY">DAY</option>
-                        <option value="HOUR">HOUR</option>
-                      </select>
+                        onChange={(v) => updateCreateLine(i, { costUnit: v })}
+                        placeholder="Unit…"
+                      />
                     </div>
                     <div>
                       <label className={LABEL}>Total amount</label>
@@ -508,8 +539,16 @@ export default function LabourSchedulesPage() {
         )}
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className={`${CARD} divide-y divide-slate-100`}>
-            {rows.map((r) => (
+          <div>
+            {rows.length > 0 && (
+              <ListToolbar
+                query={query}
+                onQueryChange={setQuery}
+                searchPlaceholder="Search labour schedules…"
+              />
+            )}
+            <div className={`${CARD} divide-y divide-slate-100`}>
+            {pageItems.map((r) => (
               <button
                 key={r.id}
                 type="button"
@@ -533,6 +572,16 @@ export default function LabourSchedulesPage() {
               <p className="px-4 py-8 text-center text-sm text-slate-500">
                 No labour schedules yet.
               </p>
+            )}
+            </div>
+            {rows.length > 0 && (
+              <PaginationBar
+                page={page}
+                pageCount={pageCount}
+                pageSize={pageSize}
+                filteredCount={filteredCount}
+                onPageChange={setPage}
+              />
             )}
           </div>
 

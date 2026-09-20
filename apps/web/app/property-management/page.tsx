@@ -1,10 +1,13 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type PropertyAsset = {
@@ -22,7 +25,6 @@ type PropertyAsset = {
 export default function PropertyManagementPage() {
   const router = useRouter();
   const [rows, setRows] = useState<PropertyAsset[]>([]);
-  const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
@@ -37,9 +39,43 @@ export default function PropertyManagementPage() {
     unitType: '',
   });
 
+  const categoryOptions = useMemo(
+    () => optionsFromValues(['RESIDENTIAL', 'COMMERCIAL'], (v) => v.charAt(0) + v.slice(1).toLowerCase()),
+    [],
+  );
+
+  const categoryFilter: FilterDef = useMemo(
+    () => ({
+      key: 'category',
+      label: 'Category',
+      options: [
+        { value: 'RESIDENTIAL', label: 'Residential' },
+        { value: 'COMMERCIAL', label: 'Commercial' },
+      ],
+      getValue: (item) => (item as PropertyAsset).category,
+    }),
+    [],
+  );
+
+  const {
+    query,
+    setQuery,
+    filterValues,
+    setFilter,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<PropertyAsset>({
+    items: rows,
+    searchKeys: ['name', 'address', 'code', 'estateName', 'landlordName', 'category'],
+    filters: [categoryFilter],
+  });
+
   const load = () => {
-    const q = search ? `?search=${encodeURIComponent(search)}` : '';
-    api<PropertyAsset[]>(`/properties${q}`).then(setRows).catch(console.error);
+    api<PropertyAsset[]>('/properties').then(setRows).catch(console.error);
   };
 
   useEffect(() => {
@@ -48,8 +84,7 @@ export default function PropertyManagementPage() {
       return;
     }
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router, search]);
+  }, [router]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -144,14 +179,13 @@ export default function PropertyManagementPage() {
             </div>
             <div>
               <label className={LABEL}>Category</label>
-              <select
+              <SearchableSelect
                 className={INPUT}
+                options={categoryOptions}
                 value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-              >
-                <option value="RESIDENTIAL">Residential</option>
-                <option value="COMMERCIAL">Commercial</option>
-              </select>
+                onChange={(v) => setForm({ ...form, category: v })}
+                placeholder="Category…"
+              />
             </div>
             <div>
               <label className={LABEL}>Estate</label>
@@ -199,12 +233,18 @@ export default function PropertyManagementPage() {
         )}
 
         <div className="flex flex-wrap gap-3">
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name, address, estate…"
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-          />
+          {rows.length > 0 && (
+            <div className="min-w-0 flex-1">
+              <ListToolbar
+                query={query}
+                onQueryChange={setQuery}
+                searchPlaceholder="Search name, address, estate…"
+                filters={[categoryFilter]}
+                filterValues={filterValues}
+                onFilterChange={setFilter}
+              />
+            </div>
+          )}
           <Link href="/properties-hub" className="text-sm font-medium text-[#e87722] hover:underline self-center">
             ← Properties hub
           </Link>
@@ -223,7 +263,7 @@ export default function PropertyManagementPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {pageItems.map((r) => (
                 <tr key={r.id} className="border-b hover:bg-slate-50">
                   <td className="px-4 py-3">
                     <p className="font-medium text-[#1a2744]">{r.name}</p>
@@ -246,6 +286,15 @@ export default function PropertyManagementPage() {
             </tbody>
           </table>
         </div>
+        {rows.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </AppShell>
   );

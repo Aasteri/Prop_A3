@@ -4,7 +4,15 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, ApiError, getToken, getUser, type AuthUser } from '@/lib/api';
+
+const STATUS_OPTIONS = [
+  { value: 'AVAILABLE', label: 'Available' },
+  { value: 'RESERVED', label: 'Reserved' },
+  { value: 'SOLD', label: 'Sold' },
+  { value: 'ARCHIVED', label: 'Archived' },
+];
 
 type Listing = {
   id: string;
@@ -108,12 +116,12 @@ export default function ListingDetailPage() {
           </label>
           <label className="block text-sm">
             <span className="mb-1 block font-medium">Status</span>
-            <select className={INPUT} value={listing.status} onChange={(e) => setListing({ ...listing, status: e.target.value })}>
-              <option value="AVAILABLE">Available</option>
-              <option value="RESERVED">Reserved</option>
-              <option value="SOLD">Sold</option>
-              <option value="ARCHIVED">Archived</option>
-            </select>
+            <SearchableSelect
+              options={STATUS_OPTIONS}
+              value={listing.status}
+              onChange={(v) => setListing({ ...listing, status: v })}
+              placeholder="Status…"
+            />
           </label>
           <label className="block text-sm">
             <span className="mb-1 block font-medium">Outright price (₦)</span>

@@ -1,9 +1,12 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, getToken, getUser, type AuthUser } from '@/lib/api';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER, SECTION_TITLE } from '@/lib/ui';
 
 type Artisan = {
@@ -108,6 +111,32 @@ export default function MarketplaceAdminPage() {
     reload();
   }
 
+  const jobStatusFilter: FilterDef = useMemo(() => {
+    const statuses = [...new Set(jobs.map((j) => j.status))].sort();
+    return {
+      key: 'status',
+      label: 'Status',
+      options: statuses.map((s) => ({ value: s, label: s.replace(/_/g, ' ') })),
+      getValue: (item) => (item as Job).status,
+    };
+  }, [jobs]);
+
+  const {
+    query: jobsQuery,
+    setQuery: setJobsQuery,
+    filterValues: jobsFilterValues,
+    setFilter: setJobsFilter,
+    page: jobsPage,
+    setPage: setJobsPage,
+    pageItems: jobsPageItems,
+    filteredCount: jobsFilteredCount,
+    pageCount: jobsPageCount,
+  } = useFilteredList<Job>({
+    items: jobs,
+    searchKeys: ['publicId', 'title', 'status', (j) => j.catalogItem?.label ?? '', (j) => j.seeker?.email ?? ''],
+    filters: [jobStatusFilter],
+  });
+
   if (!canManage) {
     return (
       <AppShell>
@@ -118,6 +147,11 @@ export default function MarketplaceAdminPage() {
 
   const pending = artisans.filter((a) => a.status === 'PENDING_REVIEW');
   const approved = artisans.filter((a) => a.status === 'APPROVED');
+
+  const jobOptions = jobs.map((j) => ({
+    value: j.id,
+    label: `${j.publicId} · ${j.title} · ${j.status}`,
+  }));
 
   return (
     <AppShell>
@@ -216,36 +250,38 @@ export default function MarketplaceAdminPage() {
         <div className="mt-3 grid gap-3 lg:grid-cols-2">
           <div>
             <label className={LABEL}>Job</label>
-            <select
-              className={INPUT}
+            <SearchableSelect
+              className="w-full"
               value={selectedJob}
-              onChange={(e) => setSelectedJob(e.target.value)}
-            >
-              <option value="">Select…</option>
-              {jobs.map((j) => (
-                <option key={j.id} value={j.id}>
-                  {j.publicId} · {j.title} · {j.status}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedJob}
+              options={jobOptions}
+              emptyLabel="Select…"
+              placeholder="Search jobs…"
+            />
           </div>
           <div>
             <label className={LABEL}>Approved artisans (multi-select)</label>
-            <select
-              className={INPUT}
-              multiple
-              size={6}
-              value={selectedArtisans}
-              onChange={(e) =>
-                setSelectedArtisans([...e.target.selectedOptions].map((o) => o.value))
-              }
-            >
+            <div className={`${INPUT} max-h-40 space-y-1 overflow-y-auto p-2`}>
               {approved.map((a) => (
-                <option key={a.id} value={a.id}>
-                  [{a.source}] {a.fullName}
-                </option>
+                <label key={a.id} className="flex cursor-pointer items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={selectedArtisans.includes(a.id)}
+                    onChange={(e) => {
+                      setSelectedArtisans((prev) =>
+                        e.target.checked ? [...prev, a.id] : prev.filter((id) => id !== a.id),
+                      );
+                    }}
+                  />
+                  <span>
+                    [{a.source}] {a.fullName}
+                  </span>
+                </label>
               ))}
-            </select>
+              {!approved.length && (
+                <p className="text-sm text-slate-500">No approved artisans.</p>
+              )}
+            </div>
           </div>
         </div>
         <button
@@ -259,8 +295,16 @@ export default function MarketplaceAdminPage() {
 
       <section className={`${CARD} mt-6 p-5`}>
         <h2 className={SECTION_TITLE}>Recent jobs</h2>
+        <ListToolbar
+          query={jobsQuery}
+          onQueryChange={setJobsQuery}
+          searchPlaceholder="Search jobs…"
+          filters={[jobStatusFilter]}
+          filterValues={jobsFilterValues}
+          onFilterChange={setJobsFilter}
+        />
         <ul className="mt-3 divide-y divide-slate-100 text-sm">
-          {jobs.slice(0, 30).map((j) => (
+          {jobsPageItems.map((j) => (
             <li key={j.id} className="flex justify-between gap-2 py-2">
               <span>
                 <span className="font-medium">{j.publicId}</span> {j.title} · {j.status}
@@ -276,6 +320,13 @@ export default function MarketplaceAdminPage() {
             </li>
           ))}
         </ul>
+        <PaginationBar
+          page={jobsPage}
+          pageCount={jobsPageCount}
+          pageSize={20}
+          filteredCount={jobsFilteredCount}
+          onPageChange={setJobsPage}
+        />
       </section>
     </AppShell>
   );

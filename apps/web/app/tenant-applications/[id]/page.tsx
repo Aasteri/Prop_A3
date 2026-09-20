@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, ApiError, downloadPdf, getToken, getUser, type AuthUser } from '@/lib/api';
 import { INPUT, LABEL } from '@/lib/ui';
 
@@ -452,18 +453,13 @@ export default function TenantApplicationDetailPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className={LABEL}>Property (for fee schedule)</label>
-                <select
-                  className={INPUT}
+                <SearchableSelect
+                  options={properties.map((p) => ({ value: p.id, label: p.name }))}
                   value={offerPropertyId}
-                  onChange={(e) => setOfferPropertyId(e.target.value)}
-                >
-                  <option value="">Doc defaults (no engagement)</option>
-                  {properties.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setOfferPropertyId}
+                  emptyLabel="Doc defaults (no engagement)"
+                  placeholder="Search property…"
+                />
               </div>
               {feeSchedule && (
                 <div className="rounded-md border border-slate-100 bg-slate-50 p-3 text-xs text-slate-600">
@@ -497,18 +493,16 @@ export default function TenantApplicationDetailPage() {
               ).map(([key, label]) => (
                 <div key={key}>
                   <label className={LABEL}>{label}</label>
-                  <select
-                    className={INPUT}
+                  <SearchableSelect
+                    options={settlements.map((s) => ({
+                      value: s.id,
+                      label: `${s.name} · ${s.bankName} · ${s.accountNumber}`,
+                    }))}
                     value={offerPayees[key]}
-                    onChange={(e) => setOfferPayees({ ...offerPayees, [key]: e.target.value })}
-                  >
-                    <option value="">Select…</option>
-                    {settlements.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} · {s.bankName} · {s.accountNumber}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => setOfferPayees({ ...offerPayees, [key]: v })}
+                    emptyLabel="Select…"
+                    placeholder="Search payee…"
+                  />
                 </div>
               ))}
             </div>

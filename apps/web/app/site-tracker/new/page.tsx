@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { api, getToken, ApiError, uploadSiteLogPhotos } from '@/lib/api';
 import {
@@ -221,17 +222,16 @@ export default function NewSiteLogPage() {
         <Section title="1. Header">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Project">
-              <select
+              <SearchableSelect
+                className="w-full"
                 value={projectId}
-                onChange={(e) => onProjectChange(e.target.value)}
-                className={INPUT}
-              >
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.site.code} — {p.name}
-                  </option>
-                ))}
-              </select>
+                onChange={onProjectChange}
+                options={projects.map((p) => ({
+                  value: p.id,
+                  label: `${p.site.code} — ${p.name}`,
+                }))}
+                placeholder="Search projects…"
+              />
             </Field>
             <Field label="Date">
               <input type="date" defaultValue={new Date().toISOString().slice(0, 10)} className={INPUT} readOnly />
@@ -267,19 +267,19 @@ export default function NewSiteLogPage() {
                 }}
                 className={`${INPUT} sm:col-span-2`}
               />
-              <select
+              <SearchableSelect
+                className="w-full"
                 value={row.status}
-                onChange={(e) => {
+                onChange={(v) => {
                   const next = [...activities];
-                  next[i] = { ...next[i], status: e.target.value as ActivityRow['status'] };
+                  next[i] = { ...next[i], status: v as ActivityRow['status'] };
                   setActivities(next);
                 }}
-                className={INPUT}
-              >
-                <option value="TODO">To do</option>
-                <option value="ONGOING">Ongoing</option>
-                <option value="DONE">Done</option>
-              </select>
+                options={optionsFromValues(['TODO', 'ONGOING', 'DONE'], (v) =>
+                  v === 'TODO' ? 'To do' : v === 'ONGOING' ? 'Ongoing' : 'Done',
+                )}
+                placeholder="Status…"
+              />
               <input
                 type="number"
                 min={0}

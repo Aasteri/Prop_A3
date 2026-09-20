@@ -4,7 +4,9 @@ import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Account = {
@@ -41,6 +43,16 @@ export default function ServiceChargesPage() {
   const [description, setDescription] = useState('Service charge levy received');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  const accountList = useFilteredList<Account>({
+    items: accounts,
+    searchKeys: ['property.name', 'property.code', 'property.address'],
+  });
+
+  const entryList = useFilteredList<Ledger['entries'][number]>({
+    items: ledger?.entries ?? [],
+    searchKeys: ['description', 'entryDate'],
+  });
 
   const loadAccounts = () =>
     api<Account[]>('/service-charges').then(setAccounts).catch(console.error);
@@ -107,8 +119,17 @@ export default function ServiceChargesPage() {
             <div className="border-b border-slate-100 px-4 py-3">
               <h2 className="text-sm font-semibold text-[#1a2744]">Property accounts</h2>
             </div>
+            {accounts.length > 0 && (
+              <div className="px-4 pt-3">
+                <ListToolbar
+                  query={accountList.query}
+                  onQueryChange={accountList.setQuery}
+                  searchPlaceholder="Search accounts…"
+                />
+              </div>
+            )}
             <ul className="divide-y divide-slate-100">
-              {accounts.map((a) => (
+              {accountList.pageItems.map((a) => (
                 <li key={a.id}>
                   <button
                     type="button"
@@ -132,6 +153,17 @@ export default function ServiceChargesPage() {
                 </li>
               )}
             </ul>
+            {accounts.length > 0 && (
+              <div className="px-4 pb-3">
+                <PaginationBar
+                  page={accountList.page}
+                  pageCount={accountList.pageCount}
+                  pageSize={accountList.pageSize}
+                  filteredCount={accountList.filteredCount}
+                  onPageChange={accountList.setPage}
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-4 xl:col-span-3">
@@ -184,6 +216,14 @@ export default function ServiceChargesPage() {
                   </div>
                 </form>
 
+                {ledger.entries.length > 0 && (
+                  <ListToolbar
+                    query={entryList.query}
+                    onQueryChange={entryList.setQuery}
+                    searchPlaceholder="Search ledger entries…"
+                  />
+                )}
+
                 <div className={`${CARD} overflow-x-auto`}>
                   <table className="min-w-full text-sm">
                     <thead className="border-b bg-slate-50 text-left text-slate-600">
@@ -195,7 +235,7 @@ export default function ServiceChargesPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {ledger.entries.map((e) => (
+                      {entryList.pageItems.map((e) => (
                         <tr key={e.id} className="border-b">
                           <td className="px-4 py-2 text-xs">{e.entryDate.slice(0, 10)}</td>
                           <td className="px-4 py-2">
@@ -222,6 +262,15 @@ export default function ServiceChargesPage() {
                     </tbody>
                   </table>
                 </div>
+                {ledger.entries.length > 0 && (
+                  <PaginationBar
+                    page={entryList.page}
+                    pageCount={entryList.pageCount}
+                    pageSize={entryList.pageSize}
+                    filteredCount={entryList.filteredCount}
+                    onPageChange={entryList.setPage}
+                  />
+                )}
               </>
             ) : (
               <div className={`${CARD} p-8 text-center text-sm text-slate-500`}>

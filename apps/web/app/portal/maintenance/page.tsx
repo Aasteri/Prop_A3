@@ -3,7 +3,10 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PortalShell } from '@/components/PortalShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type PropertyOpt = { id: string; name: string; address: string; unitLabel?: string | null };
@@ -54,6 +57,20 @@ export default function PortalMaintenancePage() {
     component: '',
     description: '',
     urgency: 'MEDIUM',
+  });
+
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<MaintRow>({
+    items: rows,
+    searchKeys: ['number', 'description', 'category', 'status', 'property.name'],
   });
 
   const load = () => {
@@ -170,25 +187,20 @@ export default function PortalMaintenancePage() {
           <form onSubmit={onSubmit} className={`${CARD} grid gap-4 p-6 sm:grid-cols-2`}>
             <div>
               <label className={LABEL}>Property</label>
-              <select
-                className={INPUT}
+              <SearchableSelect
                 required
                 value={form.propertyId}
-                onChange={(e) => {
-                  const p = properties.find((x) => x.id === e.target.value);
+                onChange={(v) => {
+                  const p = properties.find((x) => x.id === v);
                   setForm({
                     ...form,
-                    propertyId: e.target.value,
+                    propertyId: v,
                     unitLabel: p?.unitLabel ?? '',
                   });
                 }}
-              >
-                {properties.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+                options={properties.map((p) => ({ value: p.id, label: p.name }))}
+                placeholder="Select property…"
+              />
             </div>
             <div>
               <label className={LABEL}>Unit / location</label>
@@ -200,33 +212,24 @@ export default function PortalMaintenancePage() {
             </div>
             <div>
               <label className={LABEL}>Category</label>
-              <select
-                className={INPUT}
+              <SearchableSelect
                 value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-              >
-                {['Plumbing', 'Electrical', 'HVAC', 'Civil', 'Carpentry', 'Security', 'Other'].map(
-                  (c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ),
+                onChange={(v) => setForm({ ...form, category: v })}
+                options={['Plumbing', 'Electrical', 'HVAC', 'Civil', 'Carpentry', 'Security', 'Other'].map(
+                  (c) => ({ value: c, label: c }),
                 )}
-              </select>
+              />
             </div>
             <div>
               <label className={LABEL}>Urgency</label>
-              <select
-                className={INPUT}
+              <SearchableSelect
                 value={form.urgency}
-                onChange={(e) => setForm({ ...form, urgency: e.target.value })}
-              >
-                {['LOW', 'MEDIUM', 'HIGH', 'EMERGENCY'].map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setForm({ ...form, urgency: v })}
+                options={['LOW', 'MEDIUM', 'HIGH', 'EMERGENCY'].map((u) => ({
+                  value: u,
+                  label: u,
+                }))}
+              />
             </div>
             <div>
               <label className={LABEL}>Component</label>
@@ -259,8 +262,16 @@ export default function PortalMaintenancePage() {
           </form>
         )}
 
+        {rows.length > 0 && (
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search maintenance…"
+          />
+        )}
+
         <div className="space-y-3">
-          {rows.map((r) => (
+          {pageItems.map((r) => (
             <div key={r.id} className={`${CARD} p-5`}>
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
@@ -303,6 +314,15 @@ export default function PortalMaintenancePage() {
             <div className={`${CARD} p-6 text-sm text-slate-500`}>No maintenance requests yet.</div>
           )}
         </div>
+        {rows.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </PortalShell>
   );

@@ -1,10 +1,13 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, downloadPdf, getToken, getUser, type AuthUser } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Project = { id: string; name: string; status: string };
@@ -60,6 +63,28 @@ export default function ProgressReportsPage() {
 
   const canManage =
     user?.role === 'PROJECT_MANAGER' || user?.role === 'CEO' || user?.role === 'ADMIN';
+
+  const projectOptions = useMemo(
+    () => [
+      { value: '', label: 'Select…' },
+      ...projects.map((p) => ({ value: p.id, label: p.name, keywords: p.name })),
+    ],
+    [projects],
+  );
+
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<ProgressReport>({
+    items: rows,
+    searchKeys: ['number', 'status', 'preparedBy', 'summary', 'project.name'],
+  });
 
   const load = () => {
     api<ProgressReport[]>('/progress-reports')
@@ -180,19 +205,15 @@ export default function ProgressReportsPage() {
           <form onSubmit={create} className={`${CARD} grid gap-3 p-6 sm:grid-cols-2`}>
             <div>
               <label className={LABEL}>Project</label>
-              <select
+              <SearchableSelect
                 className={INPUT}
                 required
+                options={projectOptions}
                 value={form.projectId}
-                onChange={(e) => setForm({ ...form, projectId: e.target.value })}
-              >
-                <option value="">Select…</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setForm({ ...form, projectId: v })}
+                emptyLabel="Select…"
+                placeholder="Search projects…"
+              />
             </div>
             <div>
               <label className={LABEL}>Report date</label>
@@ -285,8 +306,16 @@ export default function ProgressReportsPage() {
           </form>
         )}
 
+        {rows.length > 0 && (
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search progress reports…"
+          />
+        )}
+
         <div className="space-y-3">
-          {rows.map((r) => (
+          {pageItems.map((r) => (
             <div key={r.id} className={`${CARD} p-4`}>
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
@@ -336,6 +365,15 @@ export default function ProgressReportsPage() {
             </div>
           )}
         </div>
+        {rows.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </AppShell>
   );

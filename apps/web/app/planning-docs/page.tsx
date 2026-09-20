@@ -1,9 +1,12 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 import {
   api,
   uploadDocument,
@@ -88,6 +91,48 @@ export default function PlanningDocsPage() {
     user?.role === 'ENGINEER' ||
     user?.role === 'ARCHITECT';
 
+  const projectOptions = useMemo(
+    () =>
+      projects.map((p) => ({
+        value: p.id,
+        label: `${p.site?.code ? `${p.site.code} · ` : ''}${p.name}`,
+        keywords: p.name,
+      })),
+    [projects],
+  );
+
+  const categoryOptions = useMemo(
+    () => optionsFromValues([...PLANNING_CATEGORIES], labelCategory),
+    [],
+  );
+
+  const categoryFilter: FilterDef = useMemo(
+    () => ({
+      key: 'category',
+      label: 'Category',
+      options: PLANNING_CATEGORIES.map((c) => ({ value: c, label: labelCategory(c) })),
+      getValue: (item) => (item as DocumentRecord).category,
+    }),
+    [],
+  );
+
+  const {
+    query,
+    setQuery,
+    filterValues,
+    setFilter,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<DocumentRecord>({
+    items: docs,
+    searchKeys: ['title', 'category', 'fileName'],
+    filters: [categoryFilter],
+  });
+
   async function onUpload(e: FormEvent) {
     e.preventDefault();
     const fileInput = (e.target as HTMLFormElement).elements.namedItem('file') as HTMLInputElement;
@@ -139,21 +184,18 @@ export default function PlanningDocsPage() {
         </header>
 
         <div className="flex flex-wrap gap-3">
-          <select
-            className={`${INPUT} max-w-md`}
-            value={projectId}
-            onChange={(e) => {
-              setProjectId(e.target.value);
-              loadDocs(e.target.value);
-            }}
-          >
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.site?.code ? `${p.site.code} · ` : ''}
-                {p.name}
-              </option>
-            ))}
-          </select>
+          <div className="w-full max-w-md">
+            <SearchableSelect
+              className={INPUT}
+              options={projectOptions}
+              value={projectId}
+              onChange={(v) => {
+                setProjectId(v);
+                loadDocs(v);
+              }}
+              placeholder="Select project…"
+            />
+          </div>
           <Link href="/documents" className="self-center text-sm text-[#e87722] hover:underline">
             Full documents library →
           </Link>
@@ -169,17 +211,13 @@ export default function PlanningDocsPage() {
           <form onSubmit={onUpload} className={`${CARD} grid gap-4 p-6 sm:grid-cols-2`}>
             <div>
               <label className={LABEL}>Category</label>
-              <select
+              <SearchableSelect
                 className={INPUT}
+                options={categoryOptions}
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                {PLANNING_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {labelCategory(c)}
-                  </option>
-                ))}
-              </select>
+                onChange={setCategory}
+                placeholder="Category…"
+              />
             </div>
             <div>
               <label className={LABEL}>Title</label>
@@ -206,6 +244,17 @@ export default function PlanningDocsPage() {
           </form>
         )}
 
+        {docs.length > 0 && (
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search planning docs…"
+            filters={[categoryFilter]}
+            filterValues={filterValues}
+            onFilterChange={setFilter}
+          />
+        )}
+
         <div className={`${CARD} overflow-x-auto`}>
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-slate-200 text-slate-500">
@@ -217,7 +266,7 @@ export default function PlanningDocsPage() {
               </tr>
             </thead>
             <tbody>
-              {docs.map((d) => (
+              {pageItems.map((d) => (
                 <tr key={d.id} className="border-b border-slate-100">
                   <td className="px-4 py-3">{labelCategory(d.category)}</td>
                   <td className="px-4 py-3 font-medium text-[#1a2744]">{d.title}</td>
@@ -237,6 +286,15 @@ export default function PlanningDocsPage() {
             </tbody>
           </table>
         </div>
+        {docs.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </AppShell>
   );

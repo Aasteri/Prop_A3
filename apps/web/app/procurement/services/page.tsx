@@ -1,10 +1,13 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 type Artisan = {
@@ -48,6 +51,26 @@ export default function ServicesProcurementPage() {
   const router = useRouter();
   const [artisans, setArtisans] = useState<Artisan[]>([]);
   const [requests, setRequests] = useState<ServiceReq[]>([]);
+
+  const tradeOptions = useMemo(() => optionsFromValues(TRADES), []);
+
+  const artisanList = useFilteredList<Artisan>({
+    items: artisans,
+    searchKeys: ['fullName', 'phone', 'businessName', 'status', (a) => (a.trades ?? []).join(' ')],
+  });
+
+  const requestList = useFilteredList<ServiceReq>({
+    items: requests,
+    searchKeys: [
+      'number',
+      'tradeCode',
+      'description',
+      'component',
+      'workRequired',
+      'status',
+      (r) => r.artisan?.fullName ?? '',
+    ],
+  });
   const [tab, setTab] = useState<'requests' | 'artisans'>('requests');
   const [showArtisan, setShowArtisan] = useState(false);
   const [showReq, setShowReq] = useState(false);
@@ -252,11 +275,13 @@ export default function ServicesProcurementPage() {
             </div>
             <div>
               <label className={LABEL}>Trade</label>
-              <select className={INPUT} value={artisanForm.trades} onChange={(e) => setArtisanForm({ ...artisanForm, trades: e.target.value })}>
-                {TRADES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
+              <SearchableSelect
+                className={INPUT}
+                options={tradeOptions}
+                value={artisanForm.trades}
+                onChange={(v) => setArtisanForm({ ...artisanForm, trades: v })}
+                placeholder="Trade…"
+              />
             </div>
             <div>
               <label className={LABEL}>Business name</label>
@@ -281,11 +306,13 @@ export default function ServicesProcurementPage() {
           <form onSubmit={saveRequest} className={`${CARD} grid gap-3 p-6 sm:grid-cols-2`}>
             <div>
               <label className={LABEL}>Trade required</label>
-              <select className={INPUT} value={reqForm.tradeCode} onChange={(e) => setReqForm({ ...reqForm, tradeCode: e.target.value })}>
-                {TRADES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
+              <SearchableSelect
+                className={INPUT}
+                options={tradeOptions}
+                value={reqForm.tradeCode}
+                onChange={(v) => setReqForm({ ...reqForm, tradeCode: v })}
+                placeholder="Trade…"
+              />
             </div>
             <div>
               <label className={LABEL}>Component</label>
@@ -311,8 +338,16 @@ export default function ServicesProcurementPage() {
         )}
 
         {tab === 'artisans' && (
+          <>
+            {artisans.length > 0 && (
+              <ListToolbar
+                query={artisanList.query}
+                onQueryChange={artisanList.setQuery}
+                searchPlaceholder="Search artisans…"
+              />
+            )}
           <div className="space-y-3">
-            {artisans.map((a) => (
+            {artisanList.pageItems.map((a) => (
               <div key={a.id} className={`${CARD} flex flex-wrap items-center justify-between gap-3 p-4`}>
                 <div>
                   <p className="font-semibold text-[#1a2744]">{a.fullName}</p>
@@ -331,11 +366,29 @@ export default function ServicesProcurementPage() {
             ))}
             {artisans.length === 0 && <div className={`${CARD} p-6 text-center text-sm text-slate-500`}>No artisans yet.</div>}
           </div>
+            {artisans.length > 0 && (
+              <PaginationBar
+                page={artisanList.page}
+                pageCount={artisanList.pageCount}
+                pageSize={artisanList.pageSize}
+                filteredCount={artisanList.filteredCount}
+                onPageChange={artisanList.setPage}
+              />
+            )}
+          </>
         )}
 
         {tab === 'requests' && (
+          <>
+            {requests.length > 0 && (
+              <ListToolbar
+                query={requestList.query}
+                onQueryChange={requestList.setQuery}
+                searchPlaceholder="Search service requests…"
+              />
+            )}
           <div className="space-y-3">
-            {requests.map((r) => (
+            {requestList.pageItems.map((r) => (
               <div key={r.id} className={`${CARD} p-4`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -369,6 +422,16 @@ export default function ServicesProcurementPage() {
             ))}
             {requests.length === 0 && <div className={`${CARD} p-6 text-center text-sm text-slate-500`}>No service requests yet.</div>}
           </div>
+            {requests.length > 0 && (
+              <PaginationBar
+                page={requestList.page}
+                pageCount={requestList.pageCount}
+                pageSize={requestList.pageSize}
+                filteredCount={requestList.filteredCount}
+                onPageChange={requestList.setPage}
+              />
+            )}
+          </>
         )}
       </div>
     </AppShell>

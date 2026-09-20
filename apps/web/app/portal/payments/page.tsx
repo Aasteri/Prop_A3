@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PortalShell } from '@/components/PortalShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, getToken, uploadPaymentProof } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 
 type Payment = {
   id: string;
@@ -33,6 +35,20 @@ export default function PortalPaymentsPage() {
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [files, setFiles] = useState<Record<string, File | null>>({});
   const [message, setMessage] = useState<string | null>(null);
+
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<Invoice>({
+    items: invoices,
+    searchKeys: ['invoiceNumber', 'status'],
+  });
 
   const load = () => {
     api<Invoice[]>('/client-portal/invoices').then(setInvoices).catch(() => router.replace('/login'));
@@ -81,8 +97,16 @@ export default function PortalPaymentsPage() {
         <p className="mt-4 rounded-lg bg-slate-100 px-4 py-2 text-sm text-slate-700">{message}</p>
       )}
 
+      {invoices.length > 0 && (
+        <ListToolbar
+          query={query}
+          onQueryChange={setQuery}
+          searchPlaceholder="Search invoices…"
+        />
+      )}
+
       <div className="mt-6 space-y-4">
-        {invoices.map((inv) => (
+        {pageItems.map((inv) => (
           <div key={inv.id} className="rounded-xl border border-slate-200 bg-white p-5">
             <div className="flex flex-wrap justify-between gap-2">
               <div>
@@ -155,6 +179,16 @@ export default function PortalPaymentsPage() {
         ))}
         {!invoices.length && <p className="text-sm text-slate-500">No invoices on your account yet.</p>}
       </div>
+
+      {invoices.length > 0 && (
+        <PaginationBar
+          page={page}
+          pageCount={pageCount}
+          pageSize={pageSize}
+          filteredCount={filteredCount}
+          onPageChange={setPage}
+        />
+      )}
 
       <Link href="/portal" className="mt-6 inline-block text-sm text-[#e87722] hover:underline">
         ← Back to dashboard

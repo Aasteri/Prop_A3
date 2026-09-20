@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PortalShell } from '@/components/PortalShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 
 type Line = {
   monthIndex: number;
@@ -38,6 +40,20 @@ export default function PortalInstalmentsPage() {
     api<Plan[]>('/client-portal/instalments').then(setRows).catch(console.error);
   }, [router]);
 
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<Plan>({
+    items: rows,
+    searchKeys: ['number', 'unitPlotNo', 'status', 'project.name'],
+  });
+
   return (
     <PortalShell>
       <div className="space-y-6">
@@ -50,8 +66,16 @@ export default function PortalInstalmentsPage() {
         <Link href="/portal" className="text-sm font-medium text-[#e87722] hover:underline">
           ← Portal home
         </Link>
+        {rows.length > 0 && (
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search plans…"
+          />
+        )}
+
         <div className="space-y-4">
-          {rows.map((r) => (
+          {pageItems.map((r) => (
             <div key={r.id} className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
               <div>
                 <p className="text-xs font-semibold text-[#e87722]">
@@ -102,6 +126,15 @@ export default function PortalInstalmentsPage() {
             </p>
           )}
         </div>
+        {rows.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </PortalShell>
   );

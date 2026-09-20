@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, getToken } from '@/lib/api';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 
 type Invoice = {
   id: string;
@@ -44,6 +46,27 @@ export default function InvoicesPage() {
       .finally(() => setLoading(false));
   }, [router]);
 
+  const filters: FilterDef[] = useMemo(
+    () => [
+      {
+        key: 'status',
+        label: 'Status',
+        options: Object.keys(STATUS_COLORS).map((v) => ({
+          value: v,
+          label: v.replace(/_/g, ' '),
+        })),
+        getValue: (item) => (item as Invoice).status,
+      },
+    ],
+    [],
+  );
+
+  const list = useFilteredList({
+    items: invoices,
+    searchKeys: ['invoiceNumber', 'clientName', 'invoiceType', 'status'],
+    filters,
+  });
+
   return (
     <AppShell>
       <div className="mb-4 flex items-center justify-between">
@@ -66,49 +89,66 @@ export default function InvoicesPage() {
           </Link>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full min-w-[720px] text-sm">
-            <thead className="border-b bg-slate-50 text-left text-slate-600">
-              <tr>
-                <th className="px-3 py-2">Invoice No</th>
-                <th className="px-3 py-2">Client</th>
-                <th className="px-3 py-2">Date</th>
-                <th className="px-3 py-2">Total</th>
-                <th className="px-3 py-2">Outstanding</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map((inv) => (
-                <tr key={inv.id} className="border-b last:border-0">
-                  <td className="px-3 py-2 font-mono text-xs">{inv.invoiceNumber}</td>
-                  <td className="px-3 py-2">{inv.clientName}</td>
-                  <td className="px-3 py-2">
-                    {new Date(inv.issueDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-3 py-2">{formatNaira(inv.revisedTotal)}</td>
-                  <td className="px-3 py-2 font-medium">{formatNaira(inv.outstanding)}</td>
-                  <td className="px-3 py-2">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs ${STATUS_COLORS[inv.status] ?? ''}`}
-                    >
-                      {inv.status.replace(/_/g, ' ')}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2">
-                    <Link
-                      href={`/invoices/${inv.id}`}
-                      className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50"
-                    >
-                      View
-                    </Link>
-                  </td>
+        <>
+          <ListToolbar
+            query={list.query}
+            onQueryChange={list.setQuery}
+            searchPlaceholder="Search invoice no, client…"
+            filters={filters}
+            filterValues={list.filterValues}
+            onFilterChange={list.setFilter}
+          />
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead className="border-b bg-slate-50 text-left text-slate-600">
+                <tr>
+                  <th className="px-3 py-2">Invoice No</th>
+                  <th className="px-3 py-2">Client</th>
+                  <th className="px-3 py-2">Date</th>
+                  <th className="px-3 py-2">Total</th>
+                  <th className="px-3 py-2">Outstanding</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {list.pageItems.map((inv) => (
+                  <tr key={inv.id} className="border-b last:border-0">
+                    <td className="px-3 py-2 font-mono text-xs">{inv.invoiceNumber}</td>
+                    <td className="px-3 py-2">{inv.clientName}</td>
+                    <td className="px-3 py-2">
+                      {new Date(inv.issueDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-3 py-2">{formatNaira(inv.revisedTotal)}</td>
+                    <td className="px-3 py-2 font-medium">{formatNaira(inv.outstanding)}</td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs ${STATUS_COLORS[inv.status] ?? ''}`}
+                      >
+                        {inv.status.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <Link
+                        href={`/invoices/${inv.id}`}
+                        className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50"
+                      >
+                        View
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <PaginationBar
+            page={list.page}
+            pageCount={list.pageCount}
+            pageSize={list.pageSize}
+            filteredCount={list.filteredCount}
+            onPageChange={list.setPage}
+          />
+        </>
       )}
     </AppShell>
   );

@@ -1,9 +1,12 @@
 'use client';
 
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { SearchableSelect } from '@/components/SearchableSelect';
+import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 import {
   api,
   ApiError,
@@ -102,6 +105,71 @@ export default function DocumentsPage() {
     user?.role === 'CEO' ||
     user?.role === 'ADMIN';
 
+  const entityOptions = useMemo(() => {
+    if (entityType === 'PROJECT') {
+      return projects.map((p) => ({
+        value: p.id,
+        label: `${p.site.code} · ${p.name}`,
+      }));
+    }
+    return clients.map((c) => ({
+      value: c.id,
+      label: `${c.clientRef} · ${c.firstName} ${c.lastName}`,
+    }));
+  }, [entityType, projects, clients]);
+
+  const categoryOptions = useMemo(
+    () => CATEGORIES.map((c) => ({ value: c, label: labelCategory(c) })),
+    [],
+  );
+
+  const entityTypeOptions = useMemo(
+    () => [
+      { value: 'PROJECT', label: 'Project' },
+      { value: 'CLIENT', label: 'Client' },
+    ],
+    [],
+  );
+
+  const categoryFilter: FilterDef = useMemo(
+    () => ({
+      key: 'category',
+      label: 'Category',
+      options: CATEGORIES.map((c) => ({ value: c, label: labelCategory(c) })),
+      getValue: (item) => (item as DocumentRecord).category,
+    }),
+    [],
+  );
+
+  const entityTypeFilter: FilterDef = useMemo(
+    () => ({
+      key: 'entityType',
+      label: 'Entity type',
+      options: [
+        { value: 'PROJECT', label: 'Project' },
+        { value: 'CLIENT', label: 'Client' },
+      ],
+      getValue: (item) => (item as DocumentRecord).entityType,
+    }),
+    [],
+  );
+
+  const {
+    query,
+    setQuery,
+    filterValues,
+    setFilter,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+  } = useFilteredList<DocumentRecord>({
+    items: docs,
+    searchKeys: ['title', 'category', 'entityType', 'entityId', 'filename'],
+    filters: [categoryFilter, entityTypeFilter],
+  });
+
   async function onUpload(e: React.FormEvent) {
     e.preventDefault();
     const fileInput = (e.target as HTMLFormElement).elements.namedItem('file') as HTMLInputElement;
@@ -184,53 +252,38 @@ export default function DocumentsPage() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <label className="block text-sm">
               <span className="text-slate-600">Entity type</span>
-              <select
+              <SearchableSelect
+                className="mt-1"
+                options={entityTypeOptions}
                 value={entityType}
-                onChange={(e) => {
-                  setEntityType(e.target.value as 'PROJECT' | 'CLIENT');
+                onChange={(v) => {
+                  setEntityType(v as 'PROJECT' | 'CLIENT');
                   setEntityId('');
                 }}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
-              >
-                <option value="PROJECT">Project</option>
-                <option value="CLIENT">Client</option>
-              </select>
+                placeholder="Entity type…"
+              />
             </label>
             <label className="block text-sm">
               <span className="text-slate-600">{entityType === 'PROJECT' ? 'Project' : 'Client'}</span>
-              <select
-                value={entityId}
-                onChange={(e) => setEntityId(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+              <SearchableSelect
+                className="mt-1"
                 required
-              >
-                <option value="">Select…</option>
-                {entityType === 'PROJECT'
-                  ? projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.site.code} · {p.name}
-                      </option>
-                    ))
-                  : clients.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.clientRef} · {c.firstName} {c.lastName}
-                      </option>
-                    ))}
-              </select>
+                options={entityOptions}
+                value={entityId}
+                onChange={setEntityId}
+                emptyLabel="Select…"
+                placeholder={entityType === 'PROJECT' ? 'Search project…' : 'Search client…'}
+              />
             </label>
             <label className="block text-sm">
               <span className="text-slate-600">Category</span>
-              <select
+              <SearchableSelect
+                className="mt-1"
+                options={categoryOptions}
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {labelCategory(c)}
-                  </option>
-                ))}
-              </select>
+                onChange={setCategory}
+                placeholder="Category…"
+              />
             </label>
             <label className="block text-sm">
               <span className="text-slate-600">Title</span>
@@ -269,6 +322,15 @@ export default function DocumentsPage() {
       ) : docs.length === 0 ? (
         <p className="text-slate-500">No documents yet.</p>
       ) : (
+        <>
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search documents…"
+            filters={[categoryFilter, entityTypeFilter]}
+            filterValues={filterValues}
+            onFilterChange={setFilter}
+          />
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
           <table className="min-w-full text-sm">
             <thead className="bg-slate-50 text-left text-slate-600">
@@ -282,7 +344,7 @@ export default function DocumentsPage() {
               </tr>
             </thead>
             <tbody>
-              {docs.map((d) => (
+              {pageItems.map((d) => (
                 <Fragment key={d.id}>
                   <tr className="border-t border-slate-100">
                     <td className="px-4 py-3 font-medium text-[#1a2744]">{d.title}</td>
@@ -358,6 +420,14 @@ export default function DocumentsPage() {
             </tbody>
           </table>
         </div>
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={20}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        </>
       )}
     </AppShell>
   );

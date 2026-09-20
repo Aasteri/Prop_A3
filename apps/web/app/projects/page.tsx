@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { PublicShell } from '@/components/PublicShell';
 import { publicApi } from '@/lib/api';
+import { useFilteredList } from '@/lib/use-filtered-list';
 
 type Project = {
   id: string;
@@ -15,6 +17,20 @@ type Project = {
 export default function PublicProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
 
+  const {
+    query,
+    setQuery,
+    page,
+    setPage,
+    pageItems,
+    filteredCount,
+    pageCount,
+    pageSize,
+  } = useFilteredList<Project>({
+    items: projects,
+    searchKeys: ['name', 'location', 'site.code', 'site.name'],
+  });
+
   useEffect(() => {
     publicApi<Project[]>('/public/projects').then(setProjects).catch(console.error);
   }, []);
@@ -25,8 +41,16 @@ export default function PublicProjectsPage() {
         <h1 className="text-3xl font-semibold text-[#1a2744]">Our projects</h1>
         <p className="mt-1 text-slate-600">Active developments across Abuja — open-book progress for clients</p>
 
+        {projects.length > 0 && (
+          <ListToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchPlaceholder="Search projects…"
+          />
+        )}
+
         <div className="mt-8 space-y-4">
-          {projects.map((p) => (
+          {pageItems.map((p) => (
             <div key={p.id} className="rounded-xl border border-slate-200 bg-white p-6">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
@@ -44,7 +68,19 @@ export default function PublicProjectsPage() {
               </div>
             </div>
           ))}
+          {!projects.length && (
+            <p className="text-sm text-slate-500">No projects to show.</p>
+          )}
         </div>
+        {projects.length > 0 && (
+          <PaginationBar
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            filteredCount={filteredCount}
+            onPageChange={setPage}
+          />
+        )}
       </div>
     </PublicShell>
   );
