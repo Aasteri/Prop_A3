@@ -176,6 +176,13 @@ export class MarketplaceService {
           },
           assignments: true,
           payments: { orderBy: { createdAt: 'desc' }, take: 5 },
+          chatThread: {
+            select: {
+              id: true,
+              addressUnlocked: true,
+              _count: { select: { messages: true } },
+            },
+          },
         },
       });
     }

@@ -70,7 +70,7 @@ export default function MarketplaceJobPage() {
     const j = await api<Job>(`/marketplace/jobs/${id}`);
     setJob(j);
     if (
-      ['AWAITING_PAYMENT', 'IN_PROGRESS', 'AWAITING_CONFIRM', 'COMPLETED', 'SELECTED'].includes(
+      ['SELECTED', 'AWAITING_PAYMENT', 'IN_PROGRESS', 'AWAITING_CONFIRM', 'COMPLETED', 'DISPUTED'].includes(
         j.status,
       )
     ) {
@@ -79,6 +79,9 @@ export default function MarketplaceJobPage() {
       );
       setMessages(chat.messages);
       setAddressUnlocked(chat.addressUnlocked);
+    } else {
+      setMessages([]);
+      setAddressUnlocked(false);
     }
   }, [id]);
 
@@ -329,11 +332,13 @@ export default function MarketplaceJobPage() {
           )}
         </section>
 
-        {['AWAITING_PAYMENT', 'IN_PROGRESS', 'AWAITING_CONFIRM', 'COMPLETED'].includes(job.status) && (
-          <section className={`${CARD} p-5`}>
-            <h2 className="font-semibold text-[#1a2744]">Chat</h2>
+        {['SELECTED', 'AWAITING_PAYMENT', 'IN_PROGRESS', 'AWAITING_CONFIRM', 'COMPLETED', 'DISPUTED'].includes(
+          job.status,
+        ) && (
+          <section id="chat" className={`${CARD} p-5`}>
+            <h2 className="font-semibold text-[#1a2744]">Request chat</h2>
             <p className="mt-1 text-xs text-slate-500">
-              Phone numbers always blocked. Full addresses{' '}
+              This thread is only for this job. Phone numbers always blocked. Full addresses{' '}
               {addressUnlocked ? 'allowed (escrow paid)' : 'blocked until workmanship escrow is paid'}.
               Areas/landmarks OK.
             </p>

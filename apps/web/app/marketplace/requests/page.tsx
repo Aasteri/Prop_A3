@@ -16,11 +16,48 @@ type Job = {
   status: string;
   locationText: string;
   createdAt: string;
+  escrowPaidAt?: string | null;
   catalogItem?: { label: string; category?: string };
   quotes?: { id: string }[];
   assignments?: { id: string }[];
   payments?: { id: string; status: string }[];
+  chatThread?: {
+    id: string;
+    addressUnlocked: boolean;
+    _count?: { messages: number };
+  } | null;
 };
+
+const CHAT_OPEN_STATUSES = new Set([
+  'SELECTED',
+  'AWAITING_PAYMENT',
+  'IN_PROGRESS',
+  'AWAITING_CONFIRM',
+  'COMPLETED',
+  'DISPUTED',
+]);
+
+function chatHint(job: Job): { label: string; tone: string } {
+  if (!CHAT_OPEN_STATUSES.has(job.status)) {
+    return {
+      label: 'Chat opens after you select a quote',
+      tone: 'text-slate-500',
+    };
+  }
+  const msgs = job.chatThread?._count?.messages ?? 0;
+  if (job.chatThread?.addressUnlocked || job.escrowPaidAt) {
+    return {
+      label: msgs ? `Chat open · ${msgs} message${msgs === 1 ? '' : 's'} · address unlocked` : 'Chat open · address unlocked (escrow paid)',
+      tone: 'text-emerald-700',
+    };
+  }
+  return {
+    label: msgs
+      ? `Chat open · ${msgs} message${msgs === 1 ? '' : 's'} · address locked until escrow`
+      : 'Chat open · address locked until workmanship escrow',
+    tone: 'text-sky-700',
+  };
+}
 
 const STATUS_FLOW = [
   'SUBMITTED',
@@ -116,7 +153,8 @@ export default function MyRequestsPage() {
           <div>
             <h1 className={PAGE_HEADER}>My requests</h1>
             <p className="mt-1 text-sm text-slate-600">
-              Track every artisan job you submitted — status, quotes, and progress.
+              Track every artisan job you submitted — status, quotes, escrow payment, and the
+              per-request chat (phones always blocked; full address only after workmanship is paid).
             </p>
           </div>
           <Link
@@ -143,6 +181,7 @@ export default function MyRequestsPage() {
             const pct = progressPct(j.status);
             const quoteCount = j.quotes?.length ?? 0;
             const assignCount = j.assignments?.length ?? 0;
+            const chat = chatHint(j);
             return (
               <li key={j.id} className={`${CARD} p-4`}>
                 <Link href={`/marketplace/jobs/${j.id}`} className="block hover:opacity-90">
@@ -177,11 +216,17 @@ export default function MyRequestsPage() {
                     </div>
                   )}
 
-                  <p className="mt-2 text-xs text-slate-500">
-                    {assignCount > 0 ? `${assignCount} artisan${assignCount === 1 ? '' : 's'} assigned` : 'Awaiting assignment'}
-                    {quoteCount > 0 ? ` · ${quoteCount} quote${quoteCount === 1 ? '' : 's'}` : ''}
+                  <p className={`mt-2 text-xs font-medium ${chat.tone}`}>{chat.label}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {assignCount > 0
+                      ? `${assignCount} artisan${assignCount === 1 ? '' : 's'} assigned`
+                      : 'Awaiting assignment'}
+                    {quoteCount > 0
+                      ? ` · ${quoteCount} quote${quoteCount === 1 ? '' : 's'}`
+                      : ''}
                     {' · '}
                     {new Date(j.createdAt).toLocaleDateString()}
+                    {' · Open request for quotes, payment & chat'}
                   </p>
                 </Link>
               </li>
