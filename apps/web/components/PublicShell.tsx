@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { AccountMenu } from '@/components/AccountMenu';
-import { clearToken, getToken, getUser, publicApi, type AuthUser } from '@/lib/api';
+import { clearToken, fetchMe, getToken, getUser, publicApi, type AuthUser } from '@/lib/api';
 
 type Company = {
   name: string;
@@ -20,8 +20,18 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
   const [authed, setAuthed] = useState(false);
 
   const refreshAuth = useCallback(() => {
+    const token = getToken();
+    setAuthed(Boolean(token));
+    if (!token) {
+      setUser(null);
+      return;
+    }
     setUser(getUser<AuthUser>());
-    setAuthed(Boolean(getToken()));
+    fetchMe()
+      .then((u) => setUser(u))
+      .catch(() => {
+        /* keep cached user */
+      });
   }, []);
 
   useEffect(() => {

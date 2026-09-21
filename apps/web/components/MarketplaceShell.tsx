@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { AccountMenu } from '@/components/AccountMenu';
-import { clearToken, getToken, getUser, publicApi, type AuthUser } from '@/lib/api';
+import { clearToken, fetchMe, getToken, getUser, publicApi, type AuthUser } from '@/lib/api';
 
 type Company = {
   name: string;
@@ -33,8 +33,18 @@ export function MarketplaceShell({
   const [authed, setAuthed] = useState(false);
 
   const refreshAuth = useCallback(() => {
+    const token = getToken();
+    setAuthed(Boolean(token));
+    if (!token) {
+      setUser(null);
+      return;
+    }
     setUser(getUser<AuthUser>());
-    setAuthed(Boolean(getToken()));
+    fetchMe()
+      .then((u) => setUser(u))
+      .catch(() => {
+        /* keep cached user */
+      });
   }, []);
 
   useEffect(() => {
@@ -67,7 +77,7 @@ export function MarketplaceShell({
 
   const accountExtras: { href: string; label: string }[] = [];
   if (user && (user.role === 'CLIENT' || user.role === 'MARKETPLACE_SEEKER')) {
-    accountExtras.push({ href: '/marketplace', label: 'My requests' });
+    accountExtras.push({ href: '/marketplace/requests', label: 'My requests' });
   }
 
   return (

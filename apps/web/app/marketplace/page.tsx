@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MarketplaceShell } from '@/components/MarketplaceShell';
@@ -211,6 +212,13 @@ export default function MarketplacePage() {
             typically 2.5%). Materials are paid directly to the worker. Property clients use the same
             login — no second account.
           </p>
+          {authed && (
+            <p className="mt-2 text-sm">
+              <Link href="/marketplace/requests" className="font-medium text-[#e87722] hover:underline">
+                View my requests →
+              </Link>
+            </p>
+          )}
           {draftPending && !authed && (
             <p className="mt-2 text-sm text-amber-800">
               Your request draft is saved. Sign up or log in and we’ll submit it for you.

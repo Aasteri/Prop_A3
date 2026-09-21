@@ -1,10 +1,12 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { LeadSource, LeadStage, ListingStatus, NotificationType, UserRole } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
@@ -14,6 +16,7 @@ import {
   UpdateLeadDto,
   UpdateLeadStageDto,
 } from './dto/lead.dto';
+import { CreateClientDto, LinkPortalUserDto } from './dto/client.dto';
 import {
   generateClientRef,
   generateLeadRef,
@@ -23,6 +26,26 @@ import {
 } from './crm.utils';
 import { SalesInspectionsService } from '../sales-inspections/sales-inspections.service';
 import { SalesOffersService } from '../sales-offers/sales-offers.service';
+
+const portalUserSelect = {
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  phone: true,
+  role: true,
+} as const;
+
+const clientInclude = {
+  lead: {
+    select: {
+      id: true,
+      leadRef: true,
+      listing: { select: { listingRef: true, location: true } },
+    },
+  },
+  portalUser: { select: portalUserSelect },
+} as const;
 
 const leadInclude = {
   listing: {
@@ -117,17 +140,192 @@ export class CrmService {
   listClients(user: AuthUser) {
     this.assertCanView(user);
     return this.prisma.client.findMany({
-      include: {
-        lead: {
-          select: {
-            id: true,
-            leadRef: true,
-            listing: { select: { listingRef: true, location: true } },
-          },
-        },
-      },
+      include: clientInclude,
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  /** Users that can be linked/upgraded to a property CLIENT (seekers, or CLIENT with no portal row). */
+  async searchLinkableUsers(user: AuthUser, q?: string) {
+    this.assertCanCreate(user);
+    const query = (q ?? '').trim();
+    const linkedIds = (
+      await this.prisma.client.findMany({
+        where: { portalUserId: { not: null } },
+        select: { portalUserId: true },
+      })
+    )
+      .map((c) => c.portalUserId!)
+      .filter(Boolean);
+
+    const users = await this.prisma.user.findMany({
+      where: {
+        isActive: true,
+        id: linkedIds.length ? { notIn: linkedIds } : undefined,
+        role: { in: [UserRole.MARKETPLACE_SEEKER, UserRole.CLIENT] },
+        ...(query
+          ? {
+              OR: [
+                { email: { contains: query } },
+                { firstName: { contains: query } },
+                { lastName: { contains: query } },
+                { phone: { contains: query } },
+              ],
+            }
+          : {}),
+      },
+      select: portalUserSelect,
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      take: 40,
+    });
+    return users;
+  }
+
+  async createClient(dto: CreateClientDto, user: AuthUser) {
+    this.assertCanCreate(user);
+
+    return this.prisma.$transaction(async (tx) => {
+      const clientRef = await generateClientRef(tx);
+      let portalUserId: string | undefined;
+      let temporaryPassword: string | undefined;
+      let firstName = dto.firstName?.trim() ?? '';
+      let lastName = dto.lastName?.trim() ?? '';
+      let phone = dto.phone?.trim() ?? '';
+      let email = dto.email?.toLowerCase().trim() || null;
+
+      if (dto.existingUserId) {
+        const existing = await tx.user.findUnique({ where: { id: dto.existingUserId } });
+        if (!existing || !existing.isActive) throw new NotFoundException('User not found');
+        await this.assertUserLinkable(tx, existing);
+        firstName = existing.firstName;
+        lastName = existing.lastName;
+        phone = existing.phone?.trim() || phone || 'N/A';
+        email = existing.email;
+        await tx.user.update({
+          where: { id: existing.id },
+          data: { role: UserRole.CLIENT },
+        });
+        portalUserId = existing.id;
+      } else {
+        if (!firstName || !lastName || !phone) {
+          throw new BadRequestException('firstName, lastName, and phone are required');
+        }
+        if (dto.createLogin) {
+          if (!email) throw new BadRequestException('Email is required to create a login');
+          if (!dto.password || dto.password.length < 8) {
+            throw new BadRequestException('Password must be at least 8 characters');
+          }
+          const clash = await tx.user.findUnique({ where: { email } });
+          if (clash) {
+            throw new ConflictException(
+              'That email already has a Propa3 login. Select them under “Existing user” instead.',
+            );
+          }
+          const passwordHash = await bcrypt.hash(dto.password, 10);
+          const created = await tx.user.create({
+            data: {
+              email,
+              passwordHash,
+              firstName,
+              lastName,
+              phone,
+              role: UserRole.CLIENT,
+              isActive: true,
+            },
+          });
+          portalUserId = created.id;
+          temporaryPassword = dto.password;
+        } else if (email) {
+          const match = await tx.user.findUnique({ where: { email } });
+          if (match) {
+            await this.assertUserLinkable(tx, match);
+            await tx.user.update({
+              where: { id: match.id },
+              data: { role: UserRole.CLIENT },
+            });
+            portalUserId = match.id;
+            firstName = match.firstName;
+            lastName = match.lastName;
+            phone = match.phone?.trim() || phone;
+          }
+        }
+      }
+
+      const client = await tx.client.create({
+        data: {
+          clientRef,
+          firstName,
+          lastName,
+          phone,
+          email,
+          address: dto.address?.trim() || null,
+          preferences: dto.preferences?.trim() || null,
+          portalUserId: portalUserId ?? null,
+        },
+        include: clientInclude,
+      });
+
+      return {
+        client,
+        portalLinked: Boolean(portalUserId),
+        upgradedFromSeeker: Boolean(dto.existingUserId || portalUserId),
+        temporaryPassword,
+      };
+    });
+  }
+
+  async linkPortalUser(clientId: string, dto: LinkPortalUserDto, user: AuthUser) {
+    this.assertCanCreate(user);
+    const client = await this.prisma.client.findUnique({ where: { id: clientId } });
+    if (!client) throw new NotFoundException('Client not found');
+    if (client.portalUserId) {
+      throw new BadRequestException('Client already has a portal login linked');
+    }
+
+    let target =
+      dto.userId
+        ? await this.prisma.user.findUnique({ where: { id: dto.userId } })
+        : dto.email
+          ? await this.prisma.user.findUnique({ where: { email: dto.email.toLowerCase().trim() } })
+          : null;
+
+    if (!target && client.email) {
+      target = await this.prisma.user.findUnique({
+        where: { email: client.email.toLowerCase().trim() },
+      });
+    }
+    if (!target) throw new NotFoundException('No matching user to link');
+
+    await this.assertUserLinkable(this.prisma, target);
+
+    await this.prisma.user.update({
+      where: { id: target.id },
+      data: { role: UserRole.CLIENT },
+    });
+
+    return this.prisma.client.update({
+      where: { id: clientId },
+      data: { portalUserId: target.id },
+      include: clientInclude,
+    });
+  }
+
+  private async assertUserLinkable(
+    db: {
+      client: { findUnique: PrismaService['client']['findUnique'] };
+    },
+    existing: { id: string; role: UserRole; email: string },
+  ) {
+    const already = await db.client.findUnique({ where: { portalUserId: existing.id } });
+    if (already) {
+      throw new ConflictException(`User ${existing.email} is already linked to ${already.clientRef}`);
+    }
+    const linkable: UserRole[] = [UserRole.MARKETPLACE_SEEKER, UserRole.CLIENT];
+    if (!linkable.includes(existing.role)) {
+      throw new BadRequestException(
+        `Cannot promote ${existing.role} to CLIENT. Link marketplace seekers (or unlinked CLIENT accounts) only.`,
+      );
+    }
   }
 
   async createLead(dto: CreateLeadDto, user: AuthUser | null, source: LeadSource = LeadSource.MANUAL) {
@@ -314,6 +512,26 @@ export class CrmService {
     return this.prisma.$transaction(async (tx) => {
       const clientRef = await generateClientRef(tx);
 
+      let portalUserId: string | null = null;
+      if (lead.email) {
+        const match = await tx.user.findUnique({
+          where: { email: lead.email.toLowerCase().trim() },
+        });
+        if (match?.isActive) {
+          const already = await tx.client.findUnique({ where: { portalUserId: match.id } });
+          if (
+            !already &&
+            (match.role === UserRole.MARKETPLACE_SEEKER || match.role === UserRole.CLIENT)
+          ) {
+            await tx.user.update({
+              where: { id: match.id },
+              data: { role: UserRole.CLIENT },
+            });
+            portalUserId = match.id;
+          }
+        }
+      }
+
       const client = await tx.client.create({
         data: {
           clientRef,
@@ -323,6 +541,7 @@ export class CrmService {
           email: lead.email,
           preferences: lead.preferences,
           convertedFromLeadId: lead.id,
+          portalUserId,
         },
       });
 
@@ -346,7 +565,14 @@ export class CrmService {
         include: {
           ...leadInclude,
           client: {
-            select: { id: true, clientRef: true, firstName: true, lastName: true },
+            select: {
+              id: true,
+              clientRef: true,
+              firstName: true,
+              lastName: true,
+              portalUserId: true,
+              portalUser: { select: portalUserSelect },
+            },
           },
         },
       });

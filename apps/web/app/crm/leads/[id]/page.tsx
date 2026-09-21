@@ -108,8 +108,20 @@ export default function LeadDetailPage() {
     setError('');
     setBusy('convert');
     try {
-      await api(`/crm/leads/${id}/convert`, { method: 'POST' });
+      const res = await api<{
+        client?: {
+          clientRef: string;
+          portalUserId?: string | null;
+          portalUser?: { email: string } | null;
+        } | null;
+      }>(`/crm/leads/${id}/convert`, { method: 'POST' });
       await load();
+      if (res.client?.portalUser) {
+        setError('');
+        alert(
+          `Converted to ${res.client.clientRef}. Existing login ${res.client.portalUser.email} was upgraded to CLIENT — same account for portal and marketplace.`,
+        );
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Convert failed');
     } finally {

@@ -7,7 +7,7 @@ import type { AuthUser } from '@/lib/api';
 export function homeForRole(role: string): { href: string; label: string } {
   if (role === 'CLIENT') return { href: '/portal', label: 'Client portal' };
   if (role === 'ARTISAN') return { href: '/artisan', label: 'Artisan jobs' };
-  if (role === 'MARKETPLACE_SEEKER') return { href: '/marketplace', label: 'My requests' };
+  if (role === 'MARKETPLACE_SEEKER') return { href: '/marketplace/requests', label: 'My requests' };
   return { href: '/dashboard', label: 'Dashboard' };
 }
 
@@ -97,7 +97,21 @@ export function AccountMenu({ user, onSignOut, extraLinks = [] }: AccountMenuPro
                 </Link>
               </li>
             ))}
-            {(user.role === 'CLIENT' || user.role === 'ARTISAN') && home.href !== '/marketplace' && (
+            {user.role === 'CLIENT' ? (
+              <li>
+                <Link
+                  href="/marketplace/requests"
+                  role="menuitem"
+                  className="block px-3 py-2 hover:bg-slate-50"
+                  onClick={() => setOpen(false)}
+                >
+                  My requests
+                </Link>
+              </li>
+            ) : null}
+            {(user.role === 'CLIENT' ||
+              user.role === 'ARTISAN' ||
+              user.role === 'MARKETPLACE_SEEKER') && (
               <li>
                 <Link
                   href="/marketplace"

@@ -3,6 +3,7 @@ import { LeadStage } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorator';
 import { CreateLeadDto, UpdateLeadDto, UpdateLeadStageDto } from './dto/lead.dto';
+import { CreateClientDto, LinkPortalUserDto } from './dto/client.dto';
 import { CrmService } from './crm.service';
 
 @Controller('crm')
@@ -23,6 +24,25 @@ export class CrmController {
   @Get('clients')
   listClients(@CurrentUser() user: AuthUser) {
     return this.crm.listClients(user);
+  }
+
+  @Get('users/linkable')
+  searchLinkableUsers(@CurrentUser() user: AuthUser, @Query('q') q?: string) {
+    return this.crm.searchLinkableUsers(user, q);
+  }
+
+  @Post('clients')
+  createClient(@Body() dto: CreateClientDto, @CurrentUser() user: AuthUser) {
+    return this.crm.createClient(dto, user);
+  }
+
+  @Post('clients/:id/link-portal')
+  linkPortal(
+    @Param('id') id: string,
+    @Body() dto: LinkPortalUserDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.crm.linkPortalUser(id, dto, user);
   }
 
   @Get('leads')
