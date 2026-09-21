@@ -39,7 +39,8 @@ export function AccountMenu({ user, onSignOut, extraLinks = [] }: AccountMenuPro
   const links = [
     { href: '/account', label: 'Profile & account' },
     { href: home.href, label: home.label },
-    ...extraLinks.filter((l) => l.href !== home.href && l.href !== '/account'),
+    { href: '/user-guide', label: 'Help / user guide' },
+    ...extraLinks.filter((l) => l.href !== home.href && l.href !== '/account' && l.href !== '/user-guide'),
   ];
 
   // Dedupe by href

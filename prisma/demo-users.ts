@@ -135,4 +135,12 @@ export const DEMO_USERS: DemoUserDef[] = [
     role: UserRole.ARTISAN,
     phone: '+2348097777777',
   },
+  {
+    email: 'artisan.elec@propa3.com',
+    password: 'ArtisanElec@Propa3!',
+    firstName: 'Bola',
+    lastName: 'Electrician',
+    role: UserRole.ARTISAN,
+    phone: '+2348096666666',
+  },
 ];

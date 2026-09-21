@@ -99,6 +99,26 @@ export const GLOSSARY: GuideTerm[] = [
     definition:
       'Staff score four parameters 1–10; the system averages them and converts to 1–5 stars (average ÷ 2). Accept/reject is a human decision after seeing the stars — no automatic pass bands.',
   },
+  {
+    term: 'Artisan marketplace',
+    definition:
+      'Public /marketplace flow: seekers (or property CLIENT accounts) request a catalog job; staff assign approved artisans; artisans quote workmanship; seeker selects; escrow holds the job fee; gated chat; seeker confirms completion.',
+  },
+  {
+    term: 'Workmanship vs materials',
+    definition:
+      'Only the job/workmanship fee is paid into Propa3 escrow (platform fee usually 2.5% of that). Materials estimates are informational — pay the artisan directly outside the system.',
+  },
+  {
+    term: 'Escrow (marketplace)',
+    definition:
+      'Workmanship amount held after bank-proof verify or Paystack. Chat unlocks full street addresses only after escrow is held. Phones/emails stay blocked forever in chat.',
+  },
+  {
+    term: 'Marketplace seeker',
+    definition:
+      'MARKETPLACE_SEEKER role — registered only for artisan requests. Staff can later promote the same email to CLIENT (CRM → Add client → Existing user) without a second signup.',
+  },
 ];
 
 export const GUIDE_SECTIONS: GuideSection[] = [
@@ -114,7 +134,11 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       },
       {
         title: 'Use the hubs',
-        body: 'Projects hub, Properties hub, and Procurement hub group related screens. Prefer hubs when you are unsure where a feature lives.',
+        body: 'Projects hub, Properties hub, and Procurement hub group related screens. Prefer hubs when you are unsure where a feature lives. Public artisan marketplace is separate at /marketplace (seekers, clients, artisans).',
+      },
+      {
+        title: 'User guide roles',
+        body: 'Filter this page by role chip (including ARTISAN and MARKETPLACE_SEEKER). Demo passwords live in docs/TEST_USERS.md.',
       },
       {
         title: 'Notifications',
@@ -399,8 +423,62 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         title: 'Maintenance & documents',
         body: 'Raise maintenance where enabled; download shared documents.',
       },
+      {
+        title: 'Same login → Artisan marketplace',
+        body: 'CLIENT accounts also use /marketplace and /marketplace/requests. No second signup. Staff can promote a marketplace seeker to CLIENT from CRM when they buy/rent.',
+      },
     ],
-    related: ['/portal'],
+    related: ['/portal', '/marketplace', '/marketplace/requests'],
+  },
+  {
+    id: 'artisan-marketplace',
+    title: 'Artisan marketplace',
+    summary:
+      'End-to-end trades requests: catalog → assign → quote → select → gated chat → escrow → complete. Demo jobs DEMO-MKT-01…06 are seeded for UAT.',
+    who: 'Seekers, Clients, Artisans, CEO/Admin, Finance',
+    steps: [
+      {
+        title: 'Request a job (seeker or client)',
+        body: 'Open /marketplace, search the catalog, describe the need, submit. Track everything on /marketplace/requests (status, progress, chat hint). Property clients use the same login as /portal.',
+      },
+      {
+        title: 'Admin assigns artisans',
+        body: '/marketplace-admin — approve applications, multi-assign approved artisans to SUBMITTED jobs. Demo: DEMO-MKT-01 is waiting assignment; pending painter “Tunde” is awaiting approve.',
+      },
+      {
+        title: 'Artisan quotes',
+        body: '/artisan — see assigned jobs, submit workmanship (+ optional materials estimate). Demo: DEMO-MKT-02 is ASSIGNED to Chidi for quoting; DEMO-MKT-03 already has two quotes.',
+      },
+      {
+        title: 'Select quote → chat opens',
+        body: 'Seeker opens the job, selects a quote. Status becomes AWAITING_PAYMENT. Per-job chat opens: phones/emails always blocked; full addresses blocked until escrow.',
+      },
+      {
+        title: 'Pay workmanship (escrow)',
+        body: 'Seeker uploads bank proof (or Paystack when configured). Finance/Admin verifies → escrow HELD, address unlocks in that job’s chat only. Demo: DEMO-MKT-04 (client@) awaiting payment; DEMO-MKT-05 already IN_PROGRESS with unlocked chat.',
+      },
+      {
+        title: 'Confirm complete',
+        body: 'When work is done, seeker confirms on the job page → escrow RELEASED and platform fee recorded. Demo: DEMO-MKT-06 is a completed history row.',
+      },
+      {
+        title: 'Promote seeker → CLIENT',
+        body: 'CRM → Clients → Add client → Existing user (or convert lead with matching email). Upgrades MARKETPLACE_SEEKER to CLIENT and links portal — one account keeps marketplace access.',
+      },
+    ],
+    tips: [
+      'Demo accounts: seeker@, artisan@, artisan.elec@, client@ — passwords in docs/TEST_USERS.md.',
+      'Materials never go through Propa3 escrow.',
+      'Each request has its own chat thread — not a global inbox.',
+    ],
+    related: [
+      '/marketplace',
+      '/marketplace/requests',
+      '/marketplace-admin',
+      '/artisan',
+      '/crm',
+      '/account',
+    ],
   },
 ];
 
@@ -415,7 +493,9 @@ export type UserRole =
   | 'FINANCE'
   | 'SALES'
   | 'CLIENT'
-  | 'ADMIN';
+  | 'ADMIN'
+  | 'ARTISAN'
+  | 'MARKETPLACE_SEEKER';
 
 export const ALL_ROLES: UserRole[] = [
   'CEO',
@@ -428,6 +508,8 @@ export const ALL_ROLES: UserRole[] = [
   'SALES',
   'CLIENT',
   'ADMIN',
+  'ARTISAN',
+  'MARKETPLACE_SEEKER',
 ];
 
 export type RoleGuideAction = {
@@ -484,6 +566,11 @@ export const ROLE_GUIDES: RoleGuide[] = [
         title: 'Use audit when something looks wrong',
         href: '/audit-log',
         body: 'Check who changed scores, approvals, or fee schedules before escalating.',
+      },
+      {
+        title: 'Marketplace oversight',
+        href: '/marketplace-admin',
+        body: 'Approve artisans, assign jobs, and spot-check escrow disputes. Demo jobs DEMO-MKT-01…06 after seed.',
       },
     ],
     neverDo: [
@@ -782,6 +869,11 @@ export const ROLE_GUIDES: RoleGuide[] = [
         href: '/audit-log',
         body: 'Fee schedule changes, overrides, and payment verifies belong in the audit trail.',
       },
+      {
+        title: 'Verify marketplace escrow proofs',
+        href: '/marketplace-admin',
+        body: 'When seekers upload bank proof on a job, Finance/Admin verify → escrow HELD and chat address unlocks. Platform fee is usually 2.5% of workmanship only.',
+      },
     ],
     neverDo: [
       'Do not pay works on verbal % — require IVC measurement trail.',
@@ -792,6 +884,7 @@ export const ROLE_GUIDES: RoleGuide[] = [
       'projects-monitoring',
       'property-management',
       'property-sales',
+      'artisan-marketplace',
     ],
   },
   {
@@ -848,18 +941,19 @@ export const ROLE_GUIDES: RoleGuide[] = [
     role: 'CLIENT',
     title: 'Client portal playbook',
     summary:
-      'External client/purchaser/tenant user. Use the portal only — not staff hubs.',
+      'External client/purchaser/tenant user. Use the portal for property; the same login also works on the artisan marketplace.',
     dailyFocus: [
       'Check invoices and upload payment proof',
       'Review instalment balance if purchasing',
       'Track maintenance tickets',
       'Download shared documents',
+      'Artisan requests (optional) on /marketplace/requests',
     ],
     doThis: [
       {
         title: 'Open the portal home',
         href: '/portal',
-        body: 'This is your dashboard. Staff menus do not apply to CLIENT accounts.',
+        body: 'This is your property dashboard. Staff menus do not apply to CLIENT accounts.',
       },
       {
         title: 'Pay / prove payment',
@@ -881,12 +975,100 @@ export const ROLE_GUIDES: RoleGuide[] = [
         href: '/portal/documents',
         body: 'Download offers, statements, or files shared with you.',
       },
+      {
+        title: 'Request an artisan (same login)',
+        href: '/marketplace',
+        body: 'No second account. Demo rows DEMO-MKT-04/06 are yours after seed. Track on My requests.',
+      },
     ],
     neverDo: [
       'Do not expect to score your own tenant application — FM/Sales does that.',
       'Do not assume instant payment clearance — Finance verifies proofs.',
     ],
-    relatedGuideSectionIds: ['portal'],
+    relatedGuideSectionIds: ['portal', 'artisan-marketplace'],
+  },
+  {
+    role: 'MARKETPLACE_SEEKER',
+    title: 'Marketplace seeker playbook',
+    summary:
+      'Request tradespeople, compare quotes, pay workmanship into escrow, and chat safely on each job. No staff hubs.',
+    dailyFocus: [
+      'My requests — status and progress',
+      'Jobs waiting for your quote selection',
+      'Jobs awaiting escrow payment',
+      'Confirm completion when work is done',
+    ],
+    doThis: [
+      {
+        title: 'Submit a request',
+        href: '/marketplace',
+        body: 'Search the catalog, describe the job, submit. Drafts survive signup/login.',
+      },
+      {
+        title: 'Track My requests',
+        href: '/marketplace/requests',
+        body: 'See DEMO-MKT-* demo rows after seed. Open a job for quotes, payment, and that job’s chat.',
+      },
+      {
+        title: 'Select a quote',
+        href: '/marketplace/requests',
+        body: 'When status is QUOTED, open the job and Select. Chat opens; full address stays locked until escrow.',
+      },
+      {
+        title: 'Pay workmanship',
+        href: '/marketplace/requests',
+        body: 'Upload bank proof on AWAITING_PAYMENT jobs (or Paystack when live). Materials are paid to the artisan outside Propa3.',
+      },
+      {
+        title: 'Profile',
+        href: '/account',
+        body: 'Update name/phone/password. One account can later become CLIENT via CRM without re-registering.',
+      },
+    ],
+    neverDo: [
+      'Do not share phone numbers or WhatsApp in chat — the system blocks them.',
+      'Do not expect a staff dashboard — use marketplace + account menu only.',
+    ],
+    relatedGuideSectionIds: ['artisan-marketplace', 'getting-started'],
+  },
+  {
+    role: 'ARTISAN',
+    title: 'Artisan playbook',
+    summary:
+      'Receive assignments, quote workmanship, chat on selected jobs, and complete paid work. Phones stay private.',
+    dailyFocus: [
+      'New assignments on /artisan',
+      'Quotes to submit or update',
+      'Active job chats after selection',
+      'Jobs in progress until seeker confirms',
+    ],
+    doThis: [
+      {
+        title: 'Open Artisan jobs',
+        href: '/artisan',
+        body: 'Only Admin-assigned jobs appear. Demo: DEMO-MKT-02 needs a quote; others may already include you.',
+      },
+      {
+        title: 'Submit a quote',
+        href: '/artisan',
+        body: 'Enter workmanship (escrowed). Materials estimate is optional and paid directly by the seeker to you.',
+      },
+      {
+        title: 'Chat on the job',
+        href: '/artisan',
+        body: 'After the seeker selects your quote, use the job page chat. No phones; address unlocks after escrow.',
+      },
+      {
+        title: 'Profile & account',
+        href: '/account',
+        body: 'Keep contact details current. Public apply is /marketplace/apply for new artisans.',
+      },
+    ],
+    neverDo: [
+      'Do not ask seekers for phone numbers in chat.',
+      'Do not expect materials payment through Propa3.',
+    ],
+    relatedGuideSectionIds: ['artisan-marketplace'],
   },
   {
     role: 'ADMIN',
@@ -898,12 +1080,23 @@ export const ROLE_GUIDES: RoleGuide[] = [
       'Sites / estates ready for projects and terrier',
       'Settlement entities and PM fee schedules accurate',
       'Point staff to role playbooks and ethics acknowledgement',
+      'Marketplace admin — approve artisans and assign jobs',
     ],
     doThis: [
       {
         title: 'Manage users and sites',
         href: '/admin',
         body: 'Create accounts, assign roles, attach primary sites, deactivate leavers.',
+      },
+      {
+        title: 'Marketplace admin',
+        href: '/marketplace-admin',
+        body: 'Approve pending artisans (demo: Tunde Painter), assign approved trades to SUBMITTED jobs (demo: DEMO-MKT-01).',
+      },
+      {
+        title: 'Promote seekers to clients',
+        href: '/crm',
+        body: 'CRM → Add client → Existing user upgrades MARKETPLACE_SEEKER to CLIENT with portal link.',
       },
       {
         title: 'Keep documents organised',
@@ -927,9 +1120,15 @@ export const ROLE_GUIDES: RoleGuide[] = [
       },
     ],
     neverDo: [
-      'Do not give CLIENT accounts staff-hub expectations — clients use /portal.',
+      'Do not give CLIENT accounts staff-hub expectations — clients use /portal (and marketplace with the same login).',
       'Do not hard-code fee myths; always use engagement schedule values.',
     ],
-    relatedGuideSectionIds: ['getting-started', 'platform', 'property-management', 'finance'],
-  }
+    relatedGuideSectionIds: [
+      'getting-started',
+      'platform',
+      'property-management',
+      'finance',
+      'artisan-marketplace',
+    ],
+  },
 ];

@@ -479,38 +479,11 @@ async function main() {
     data: { marketplacePlatformFeePct: 2.5 },
   }).catch(() => undefined);
 
-  const artisanUser = userByEmail['artisan@propa3.com'];
-  if (artisanUser) {
-    await prisma.artisanProfile.upsert({
-      where: { userId: artisanUser.id },
-      update: {
-        fullName: 'Chidi Plumber',
-        businessName: 'Chidi Plumbing Services',
-        phone: artisanUser.phone ?? '+2348097777777',
-        email: artisanUser.email,
-        trades: ['Plumbing', 'Water heaters'],
-        serviceAreas: 'Guzape, Apo, Jabi',
-        source: 'EXTERNAL',
-        status: 'APPROVED',
-        approvedAt: new Date(),
-      },
-      create: {
-        userId: artisanUser.id,
-        fullName: 'Chidi Plumber',
-        businessName: 'Chidi Plumbing Services',
-        phone: artisanUser.phone ?? '+2348097777777',
-        email: artisanUser.email,
-        trades: ['Plumbing', 'Water heaters'],
-        serviceAreas: 'Guzape, Apo, Jabi',
-        source: 'EXTERNAL',
-        status: 'APPROVED',
-        approvedAt: new Date(),
-      },
-    });
-  }
+  const { seedMarketplaceDemo } = await import('./marketplace-demo');
+  await seedMarketplaceDemo(prisma, userByEmail);
 
   console.log('Seeded sites, users (@propa3.com), projects, listings, client portal, Dawaki Terrier');
-  console.log(`Marketplace catalog: ${MARKETPLACE_CATALOG.length} job types`);
+  console.log(`Marketplace catalog: ${MARKETPLACE_CATALOG.length} job types + DEMO-MKT-01…06`);
   console.log('Login accounts — see docs/TEST_USERS.md and demo-users-list.md');
 }
 
