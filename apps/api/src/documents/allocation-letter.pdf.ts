@@ -80,7 +80,7 @@ export function buildAllocationLetterPdf(data: AllocationLetterData): Promise<Bu
     doc.text('Yours faithfully,');
     doc.moveDown(3);
     doc.text('_________________________');
-    doc.text('Abraham Ahmed');
+    doc.text('Ahmed Abraham Laucarie');
     doc.text('Founder & CEO');
     doc.text('TRIPLE A REALTY PROJECTS LTD');
     doc.moveDown();
