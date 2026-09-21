@@ -76,10 +76,18 @@ export async function api<T>(
     (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_URL}/api${path}`, {
-    ...options,
-    headers,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api${path}`, {
+      ...options,
+      headers,
+    });
+  } catch {
+    throw new ApiError(
+      'Server unreachable — it may be restarting. Wait a moment and try again.',
+      503,
+    );
+  }
 
   if (!res.ok) {
     let message = res.statusText;
@@ -88,9 +96,12 @@ export async function api<T>(
       message = body.message ?? message;
       if (Array.isArray(message)) message = message.join(', ');
     } catch {
-      /* ignore */
+      if (res.status === 502 || res.status === 503 || res.status === 504) {
+        message =
+          'Server temporarily unavailable (Bad Gateway). Wait ~30 seconds and try again.';
+      }
     }
-    throw new ApiError(message, res.status);
+    throw new ApiError(typeof message === 'string' ? message : 'Request failed', res.status);
   }
 
   if (res.status === 204) return undefined as T;

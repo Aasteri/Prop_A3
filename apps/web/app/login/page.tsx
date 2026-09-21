@@ -29,7 +29,17 @@ function LoginForm() {
       else if (role === 'MARKETPLACE_SEEKER') router.push('/marketplace');
       else router.push('/dashboard');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Login failed');
+      if (err instanceof ApiError) {
+        if (err.status === 502 || err.status === 503 || err.status === 504) {
+          setError(
+            'Server is briefly restarting (deploy). Wait ~30 seconds and try Sign in again.',
+          );
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError('Login failed — check your connection and try again.');
+      }
     } finally {
       setLoading(false);
     }
