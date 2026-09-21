@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { AccountMenu } from '@/components/AccountMenu';
 import { clearToken, getToken, getUser, publicApi, type AuthUser } from '@/lib/api';
 
 type Company = {
@@ -14,11 +15,8 @@ type Company = {
 
 type MarketplaceShellProps = {
   children: React.ReactNode;
-  /** Called before guest register navigation (e.g. persist form draft). */
   onBeforeRegister?: () => void;
-  /** Called before guest login navigation. */
   onBeforeLogin?: () => void;
-  /** Extra refresh after sign-out (parent local auth state). */
   onAuthChange?: () => void;
 };
 
@@ -67,19 +65,24 @@ export function MarketplaceShell({
   const wa = company?.whatsapp?.replace(/\D/g, '') ?? '2348000000000';
   const onMarketplace = pathname === '/marketplace' || pathname.startsWith('/marketplace/');
 
+  const accountExtras: { href: string; label: string }[] = [];
+  if (user && (user.role === 'CLIENT' || user.role === 'MARKETPLACE_SEEKER')) {
+    accountExtras.push({ href: '/marketplace', label: 'My requests' });
+  }
+
   return (
     <div className="flex min-h-full flex-col bg-slate-50 text-slate-900">
       <header className="border-b border-slate-200 bg-[#1a2744] text-white">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
           <div className="min-w-0">
             <Link href="/" className="text-xl font-semibold tracking-tight">
               Propa<span className="text-[#e87722]">3</span>
             </Link>
-            <p className="mt-0.5 text-sm text-slate-300">
+            <p className="mt-0.5 hidden text-sm text-slate-300 sm:block">
               Artisan marketplace · Find trades · Quotes · Escrow
             </p>
           </div>
-          <nav className="flex flex-wrap items-center gap-2 text-sm sm:justify-end">
+          <nav className="flex flex-wrap items-center justify-end gap-1 text-sm sm:gap-2">
             <ShellNavLink href="/" active={pathname === '/'}>
               Home
             </ShellNavLink>
@@ -93,72 +96,16 @@ export function MarketplaceShell({
             {!authed || user?.role === 'ARTISAN' ? (
               <Link
                 href="/marketplace/apply"
-                className="rounded-md bg-white/10 px-3 py-1.5 hover:bg-white/20"
+                className="rounded-md px-2 py-1.5 text-slate-200 hover:text-white sm:px-3"
               >
                 Join as artisan
               </Link>
             ) : null}
 
             {authed && user ? (
-              <>
-                <span className="hidden text-slate-300 lg:inline">
-                  {user.firstName} {user.lastName}
-                </span>
-                {(user.role === 'MARKETPLACE_SEEKER' ||
-                  user.role === 'CLIENT' ||
-                  user.role === 'CEO' ||
-                  user.role === 'ADMIN') && (
-                  <Link
-                    href="/marketplace"
-                    className="rounded-md bg-white/10 px-3 py-1.5 hover:bg-white/20"
-                  >
-                    My requests
-                  </Link>
-                )}
-                {user.role === 'CLIENT' && (
-                  <Link
-                    href="/portal"
-                    className="rounded-md bg-white/10 px-3 py-1.5 hover:bg-white/20"
-                  >
-                    Client portal
-                  </Link>
-                )}
-                {user.role === 'ARTISAN' && (
-                  <Link
-                    href="/artisan"
-                    className="rounded-md bg-white/10 px-3 py-1.5 hover:bg-white/20"
-                  >
-                    Artisan jobs
-                  </Link>
-                )}
-                {(user.role === 'CEO' ||
-                  user.role === 'ADMIN' ||
-                  user.role === 'FINANCE' ||
-                  user.role === 'PROJECT_MANAGER') && (
-                  <Link
-                    href="/marketplace-admin"
-                    className="rounded-md bg-white/10 px-3 py-1.5 hover:bg-white/20"
-                  >
-                    Admin
-                  </Link>
-                )}
-                <button
-                  type="button"
-                  onClick={onSignOut}
-                  className="rounded-md bg-white/10 px-3 py-1.5 hover:bg-white/20"
-                >
-                  Sign out
-                </button>
-              </>
+              <AccountMenu user={user} onSignOut={onSignOut} extraLinks={accountExtras} />
             ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={goRegister}
-                  className="rounded-md bg-[#e87722] px-3 py-1.5 font-medium text-white hover:bg-[#d06818]"
-                >
-                  Sign up to request
-                </button>
+              <div className="ml-1 flex items-center gap-2">
                 <button
                   type="button"
                   onClick={goLogin}
@@ -166,7 +113,14 @@ export function MarketplaceShell({
                 >
                   Log in
                 </button>
-              </>
+                <button
+                  type="button"
+                  onClick={goRegister}
+                  className="rounded-md bg-[#e87722] px-3 py-1.5 font-medium text-white hover:bg-[#d06818]"
+                >
+                  Sign up
+                </button>
+              </div>
             )}
           </nav>
         </div>

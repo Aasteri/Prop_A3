@@ -103,6 +103,7 @@ export type AuthUser = {
   firstName: string;
   lastName: string;
   role: string;
+  phone?: string | null;
   primarySite?: { code: string; name: string } | null;
 };
 
@@ -119,6 +120,32 @@ export async function login(email: string, password: string) {
   setToken(data.accessToken);
   setUser(data.user);
   return data;
+}
+
+export async function fetchMe() {
+  const user = await api<AuthUser>('/auth/me');
+  setUser(user);
+  return user;
+}
+
+export async function updateProfile(body: {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+}) {
+  const user = await api<AuthUser>('/auth/me', {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  setUser(user);
+  return user;
+}
+
+export async function changePassword(currentPassword: string, newPassword: string) {
+  return api<{ message: string }>('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
 }
 
 export function logout() {

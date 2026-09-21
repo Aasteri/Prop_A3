@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { AccountMenu } from '@/components/AccountMenu';
 import { clearToken, getToken, getUser, publicApi, type AuthUser } from '@/lib/api';
 
 type Company = {
@@ -46,7 +47,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
           <Link href="/" className="shrink-0 text-xl font-semibold">
             Propa<span className="text-[#e87722]">3</span>
           </Link>
-          <nav className="flex flex-wrap items-center justify-end gap-2 text-sm sm:gap-3">
+          <nav className="flex flex-wrap items-center justify-end gap-1 text-sm sm:gap-2">
             <NavLink href="/" active={pathname === '/'}>
               Home
             </NavLink>
@@ -64,54 +65,11 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
             </NavLink>
 
             {authed && user ? (
-              <>
-                <span className="hidden text-slate-300 lg:inline">
-                  {user.firstName} {user.lastName}
-                </span>
-                {user.role === 'CLIENT' && (
-                  <Link
-                    href="/portal"
-                    className="rounded-md bg-[#e87722] px-3 py-1.5 font-medium hover:bg-[#d06818]"
-                  >
-                    Client portal
-                  </Link>
-                )}
-                {(user.role === 'MARKETPLACE_SEEKER' || user.role === 'CLIENT') && (
-                  <Link
-                    href="/marketplace"
-                    className="rounded-md bg-white/10 px-3 py-1.5 hover:bg-white/20"
-                  >
-                    My requests
-                  </Link>
-                )}
-                {user.role === 'ARTISAN' && (
-                  <Link
-                    href="/artisan"
-                    className="rounded-md bg-[#e87722] px-3 py-1.5 font-medium hover:bg-[#d06818]"
-                  >
-                    Artisan jobs
-                  </Link>
-                )}
-                {!['CLIENT', 'MARKETPLACE_SEEKER', 'ARTISAN'].includes(user.role) && (
-                  <Link
-                    href="/dashboard"
-                    className="rounded-md bg-[#e87722] px-3 py-1.5 font-medium hover:bg-[#d06818]"
-                  >
-                    Dashboard
-                  </Link>
-                )}
-                <button
-                  type="button"
-                  onClick={onSignOut}
-                  className="rounded-md bg-white/10 px-3 py-1.5 hover:bg-white/20"
-                >
-                  Sign out
-                </button>
-              </>
+              <AccountMenu user={user} onSignOut={onSignOut} />
             ) : (
               <Link
                 href="/login"
-                className="rounded-md bg-[#e87722] px-3 py-1.5 font-medium hover:bg-[#d06818]"
+                className="ml-1 rounded-md bg-[#e87722] px-3 py-1.5 font-medium hover:bg-[#d06818]"
               >
                 Log in
               </Link>

@@ -11,6 +11,7 @@ import { MailService } from '../mail/mail.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto, UpdateProfileDto } from './dto/profile.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
@@ -64,6 +65,38 @@ export class AuthService {
 
     const { passwordHash: _, ...safeUser } = user;
     return safeUser;
+  }
+
+  async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(dto.firstName !== undefined ? { firstName: dto.firstName.trim() } : {}),
+        ...(dto.lastName !== undefined ? { lastName: dto.lastName.trim() } : {}),
+        ...(dto.phone !== undefined ? { phone: dto.phone.trim() || null } : {}),
+      },
+      include: {
+        primarySite: true,
+        siteAssignments: { include: { site: true } },
+      },
+    });
+    const { passwordHash: _, ...safeUser } = user;
+    return safeUser;
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException();
+
+    const valid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!valid) throw new BadRequestException('Current password is incorrect');
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+    return { message: 'Password updated' };
   }
 
   /** Always returns success to avoid email enumeration. */
