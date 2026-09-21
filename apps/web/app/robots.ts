@@ -30,6 +30,7 @@ export default function robots(): MetadataRoute.Robots {
           '/settings',
           '/site-tracker',
           '/user-guide',
+          '/workflow',
         ],
       },
       {

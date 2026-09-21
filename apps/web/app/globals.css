@@ -38,14 +38,8 @@ select {
   border-color: #cbd5e1;
 }
 
-/* Buttons inherit surrounding text color (so navy headers stay white).
-   UA stylesheets otherwise force dark "buttontext" → invisible on dark CTAs. */
-button,
-[type='button'],
-[type='submit'],
-[type='reset'] {
-  color: inherit;
-}
+/* Do NOT set button { color: inherit } here — it overrides Tailwind
+   text-white / text-slate-* utilities and makes navy/orange CTAs unreadable. */
 
 input::placeholder,
 textarea::placeholder {
