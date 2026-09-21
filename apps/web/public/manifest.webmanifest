@@ -1,10 +1,11 @@
 {
-  "name": "Propa3 — Triple A Site Tracker",
+  "name": "Propa3 — Triple A Realty",
   "short_name": "Propa3",
-  "description": "Daily site activities tracker for Triple A Realty",
-  "start_url": "/site-tracker",
+  "description": "Property development, sales, construction delivery & artisan marketplace for Triple A Realty Projects Ltd.",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#1a2744",
   "theme_color": "#1a2744",
-  "orientation": "portrait-primary"
+  "orientation": "any",
+  "categories": ["business", "productivity"]
 }
