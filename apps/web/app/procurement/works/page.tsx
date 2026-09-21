@@ -144,7 +144,7 @@ export default function WorksProcurementPage() {
               </p>
             </div>
             <div className="flex gap-2">
-              <Link href="/procurement" className="rounded-lg border border-white/20 px-4 py-2 text-sm">
+              <Link href="/procurement" className="rounded-lg border border-white/20 px-4 py-2 text-sm text-white">
                 Hub
               </Link>
               <button

@@ -256,7 +256,7 @@ export default function ProjectMilestonesPage() {
                           [m.id]: Number(e.target.value),
                         }))
                       }
-                      className="mt-1 block w-24 rounded-md border border-slate-300 px-2 py-1.5"
+                      className="mt-1 block w-24 rounded-md border border-slate-300 px-2 py-1.5 text-slate-900"
                     />
                   </label>
                   <button

@@ -180,7 +180,7 @@ export default function MarketplaceAdminPage() {
                 </button>
                 <button
                   type="button"
-                  className="rounded bg-slate-200 px-2 py-1"
+                  className="rounded bg-slate-200 px-2 py-1 text-slate-900"
                   onClick={() => setStatus(a.id, 'REJECTED')}
                 >
                   Reject

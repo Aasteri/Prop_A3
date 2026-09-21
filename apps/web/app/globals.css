@@ -38,6 +38,15 @@ select {
   border-color: #cbd5e1;
 }
 
+/* Buttons inherit surrounding text color (so navy headers stay white).
+   UA stylesheets otherwise force dark "buttontext" → invisible on dark CTAs. */
+button,
+[type='button'],
+[type='submit'],
+[type='reset'] {
+  color: inherit;
+}
+
 input::placeholder,
 textarea::placeholder {
   color: #64748b;

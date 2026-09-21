@@ -264,7 +264,7 @@ export default function CrmPipelinePage() {
               setErr('');
               setMsg('');
             }}
-            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm hover:bg-slate-50"
+            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 text-slate-900"
           >
             {showAdd ? 'Cancel' : 'Add client'}
           </button>
@@ -283,7 +283,9 @@ export default function CrmPipelinePage() {
                 type="button"
                 onClick={() => setMode('existing')}
                 className={`rounded-md px-3 py-1.5 ${
-                  mode === 'existing' ? 'bg-[#1a2744] text-white' : 'border border-slate-300'
+                  mode === 'existing'
+                    ? 'bg-[#1a2744] text-white'
+                    : 'border border-slate-300 text-slate-900'
                 }`}
               >
                 Existing user
@@ -292,7 +294,9 @@ export default function CrmPipelinePage() {
                 type="button"
                 onClick={() => setMode('manual')}
                 className={`rounded-md px-3 py-1.5 ${
-                  mode === 'manual' ? 'bg-[#1a2744] text-white' : 'border border-slate-300'
+                  mode === 'manual'
+                    ? 'bg-[#1a2744] text-white'
+                    : 'border border-slate-300 text-slate-900'
                 }`}
               >
                 Add manually
@@ -421,7 +425,7 @@ export default function CrmPipelinePage() {
                       type="button"
                       disabled={linkBusyId === c.id}
                       onClick={() => linkPortal(c.id)}
-                      className="rounded-md border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-50 disabled:opacity-60"
+                      className="rounded-md border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-50 disabled:opacity-60 text-slate-900"
                       title="Match by client email to an existing user"
                     >
                       {linkBusyId === c.id ? 'Linking…' : 'Link portal by email'}

@@ -70,19 +70,19 @@ export function HomeClient({
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href="/properties"
-              className="rounded-lg bg-[#e87722] px-6 py-3 font-medium hover:bg-[#d06818]"
+              className="rounded-lg bg-[#e87722] px-6 py-3 font-medium hover:bg-[#d06818] text-white"
             >
               Browse properties
             </Link>
             <Link
               href="/projects"
-              className="rounded-lg border border-white/30 px-6 py-3 font-medium hover:bg-white/10"
+              className="rounded-lg border border-white/30 px-6 py-3 font-medium hover:bg-white/10 text-white"
             >
               View our projects
             </Link>
             <Link
               href="/marketplace"
-              className="rounded-lg border border-white/30 px-6 py-3 font-medium hover:bg-white/10"
+              className="rounded-lg border border-white/30 px-6 py-3 font-medium hover:bg-white/10 text-white"
             >
               Need a tradesperson?
             </Link>
@@ -159,7 +159,7 @@ export function HomeClient({
               </a>
               <a
                 href={`tel:${company?.phone?.replace(/\s/g, '') ?? '+2348000000000'}`}
-                className="rounded-lg border border-slate-300 px-4 py-2 hover:bg-white"
+                className="rounded-lg border border-slate-300 px-4 py-2 hover:bg-white text-slate-900"
               >
                 Call us
               </a>

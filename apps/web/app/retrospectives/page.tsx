@@ -357,7 +357,7 @@ export default function RetrospectivesPage() {
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    className="rounded-md border border-slate-300 px-3 py-1.5 text-xs"
+                    className="rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-900"
                     onClick={() => downloadPdf(`/retrospectives/${r.id}/pdf`, `${r.number}.pdf`)}
                   >
                     PDF

@@ -79,7 +79,7 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
             ) : (
               <Link
                 href="/login"
-                className="ml-1 rounded-md bg-[#e87722] px-3 py-1.5 font-medium hover:bg-[#d06818]"
+                className="ml-1 rounded-md bg-[#e87722] px-3 py-1.5 font-medium hover:bg-[#d06818] text-white"
               >
                 Log in
               </Link>

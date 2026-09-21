@@ -241,7 +241,7 @@ export default function ViewingsPage() {
               <button
                 type="button"
                 onClick={() => setResponseFor(null)}
-                className="rounded-lg border px-4 py-2 text-sm"
+                className="rounded-lg border px-4 py-2 text-sm text-slate-900"
               >
                 Cancel
               </button>

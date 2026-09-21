@@ -144,7 +144,7 @@ export default function MaterialRequestsPage() {
                   </span>
                   <Link
                     href={`/material-requests/${r.id}`}
-                    className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+                    className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 text-slate-900"
                   >
                     {r.status === 'PENDING_APPROVAL' && canApprove
                       ? 'Review'

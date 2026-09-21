@@ -58,7 +58,7 @@ export function AccountMenu({ user, onSignOut, extraLinks = [] }: AccountMenuPro
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 py-1 pl-1 pr-2.5 hover:bg-white/20"
+        className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 py-1 pl-1 pr-2.5 hover:bg-white/20 text-white"
       >
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e87722] text-xs font-semibold text-white">
           {initials}

@@ -143,7 +143,7 @@ export default function EthicsPage() {
                 builders, and project managers.
               </p>
             </div>
-            <Link href="/projects-hub" className="rounded-lg border border-white/20 px-4 py-2 text-sm">
+            <Link href="/projects-hub" className="rounded-lg border border-white/20 px-4 py-2 text-sm text-white">
               Hub
             </Link>
           </div>

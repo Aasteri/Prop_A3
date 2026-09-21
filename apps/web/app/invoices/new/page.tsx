@@ -279,7 +279,7 @@ export default function NewInvoicePage() {
         {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
         <div className="flex gap-3">
-          <button type="button" disabled={loading} onClick={(e) => onSubmit(e, false)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 disabled:opacity-60">
+          <button type="button" disabled={loading} onClick={(e) => onSubmit(e, false)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 disabled:opacity-60 text-slate-900">
             Save draft
           </button>
           <button type="button" disabled={loading} onClick={(e) => onSubmit(e, true)} className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white hover:bg-[#d06818] disabled:opacity-60">

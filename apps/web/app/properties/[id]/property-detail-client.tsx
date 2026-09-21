@@ -77,7 +77,7 @@ export function PropertyDetailClient({ listing }: { listing: PublicListing }) {
               </a>
               <a
                 href="tel:+2348000000000"
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50 text-slate-900"
               >
                 Call now
               </a>

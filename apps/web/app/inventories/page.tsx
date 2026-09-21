@@ -330,7 +330,7 @@ export default function InventoriesPage() {
                 <div className="flex gap-2">
                   <Link
                     href={`/inventories/${r.id}`}
-                    className="rounded-md border border-slate-300 px-3 py-1.5 text-xs hover:bg-slate-50"
+                    className="rounded-md border border-slate-300 px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-900"
                   >
                     Room matrix
                   </Link>

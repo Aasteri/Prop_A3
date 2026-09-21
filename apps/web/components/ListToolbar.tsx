@@ -91,7 +91,7 @@ export function PaginationBar({
           type="button"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 disabled:opacity-40"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 disabled:opacity-40 text-slate-900"
         >
           Previous
         </button>
@@ -102,7 +102,7 @@ export function PaginationBar({
           type="button"
           disabled={page >= pageCount}
           onClick={() => onPageChange(page + 1)}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 disabled:opacity-40"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 disabled:opacity-40 text-slate-900"
         >
           Next
         </button>

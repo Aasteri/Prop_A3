@@ -318,7 +318,7 @@ export default function MoneyInflowsPage() {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm"
+                  className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-900"
                   onClick={() =>
                     setEditLines([
                       ...editLines,

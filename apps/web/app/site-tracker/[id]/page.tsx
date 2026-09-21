@@ -109,7 +109,7 @@ export default function SiteLogDetailPage() {
         <button
           type="button"
           onClick={() => downloadPdf(`/site-tracker/logs/${log.id}/pdf`, `${log.refCode.replace(/\//g, '-')}.pdf`)}
-          className="mt-2 rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+          className="mt-2 rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 text-slate-900"
         >
           Download PDF
         </button>

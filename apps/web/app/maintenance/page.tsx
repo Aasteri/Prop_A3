@@ -349,7 +349,7 @@ export default function MaintenancePage() {
                     <button
                       type="button"
                       onClick={() => triage(r.id, 'TRIAGING')}
-                      className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
+                      className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50 text-slate-900"
                     >
                       Start triage
                     </button>
@@ -370,7 +370,7 @@ export default function MaintenancePage() {
                     <button
                       type="button"
                       onClick={() => triage(r.id, 'IN_PROGRESS')}
-                      className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
+                      className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50 text-slate-900"
                     >
                       Mark in progress
                     </button>
@@ -391,7 +391,7 @@ export default function MaintenancePage() {
                     <button
                       type="button"
                       onClick={() => triage(r.id, 'CLOSED')}
-                      className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
+                      className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50 text-slate-900"
                     >
                       Close request
                     </button>

@@ -290,7 +290,7 @@ export default function TenanciesPage() {
                   alert(`Renewal scan: ${r.created} notice(s) created`);
                   load();
                 }}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50"
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50 text-slate-900"
               >
                 Run renewal scan
               </button>

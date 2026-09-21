@@ -334,7 +334,7 @@ export default function CloseoutsPage() {
                   <button
                     type="button"
                     onClick={() => downloadPdf(`/closeouts/${r.id}/pdf`, `${r.number}.pdf`)}
-                    className="rounded-md border border-slate-300 px-3 py-1.5 text-xs"
+                    className="rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-900"
                   >
                     PDF
                   </button>

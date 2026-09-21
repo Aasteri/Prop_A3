@@ -223,7 +223,7 @@ export default function ServicesProcurementPage() {
                   setTab('artisans');
                   setShowArtisan(true);
                 }}
-                className="rounded-lg border border-white/30 px-3 py-2 text-sm"
+                className="rounded-lg border border-white/30 px-3 py-2 text-sm text-white"
               >
                 Add artisan
               </button>
@@ -297,7 +297,7 @@ export default function ServicesProcurementPage() {
             </div>
             <div className="sm:col-span-2 flex gap-2">
               <button type="submit" className="rounded-lg bg-[#1a2744] px-4 py-2 text-sm text-white">Save KYC</button>
-              <button type="button" onClick={() => setShowArtisan(false)} className="rounded-lg border px-4 py-2 text-sm">Cancel</button>
+              <button type="button" onClick={() => setShowArtisan(false)} className="rounded-lg border px-4 py-2 text-sm text-slate-900">Cancel</button>
             </div>
           </form>
         )}
@@ -332,7 +332,7 @@ export default function ServicesProcurementPage() {
             </div>
             <div className="sm:col-span-2 flex gap-2">
               <button type="submit" className="rounded-lg bg-[#1a2744] px-4 py-2 text-sm text-white">Submit</button>
-              <button type="button" onClick={() => setShowReq(false)} className="rounded-lg border px-4 py-2 text-sm">Cancel</button>
+              <button type="button" onClick={() => setShowReq(false)} className="rounded-lg border px-4 py-2 text-sm text-slate-900">Cancel</button>
             </div>
           </form>
         )}

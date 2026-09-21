@@ -127,7 +127,7 @@ export default function ChangeLogListPage() {
                 key={pid}
                 type="button"
                 onClick={() => exportProject(pid, entry.project.name)}
-                className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs hover:bg-slate-50"
+                className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-900"
               >
                 Export {entry.site.code} CSV
               </button>
@@ -189,7 +189,7 @@ export default function ChangeLogListPage() {
                       <div className="flex gap-1">
                         <Link
                           href={`/change-log/${e.id}`}
-                          className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50"
+                          className="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50 text-slate-900"
                         >
                           View
                         </Link>

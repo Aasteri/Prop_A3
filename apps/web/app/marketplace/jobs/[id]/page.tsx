@@ -407,7 +407,7 @@ export default function MarketplaceJobPage() {
                   type="button"
                   onClick={payPaystack}
                   disabled={!payMethods?.paystack.available}
-                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50 text-slate-900"
                 >
                   {payMethods?.paystack.label ?? 'Paystack'}
                 </button>

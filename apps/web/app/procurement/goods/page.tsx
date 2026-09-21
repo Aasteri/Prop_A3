@@ -342,7 +342,7 @@ export default function GoodsProcurementPage() {
                   <button
                     type="button"
                     onClick={() => receivePo(o)}
-                    className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
+                    className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50 text-slate-900"
                   >
                     Record GRN
                   </button>

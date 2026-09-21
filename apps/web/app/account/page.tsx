@@ -129,14 +129,14 @@ export default function AccountPage() {
                 )}
                 <Link
                   href="/marketplace"
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 text-slate-900"
                 >
                   Marketplace
                 </Link>
                 {user.role === 'CLIENT' && (
                   <Link
                     href="/portal"
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 text-slate-900"
                   >
                     Client portal
                   </Link>
@@ -144,7 +144,7 @@ export default function AccountPage() {
                 {!['CLIENT', 'MARKETPLACE_SEEKER', 'ARTISAN'].includes(user.role) && (
                   <Link
                     href="/dashboard"
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 text-slate-900"
                   >
                     Staff dashboard
                   </Link>

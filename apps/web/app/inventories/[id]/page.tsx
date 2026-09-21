@@ -221,7 +221,7 @@ export default function InventoryDetailPage() {
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/inventories"
-                className="rounded-lg border border-white/20 px-4 py-2 text-sm"
+                className="rounded-lg border border-white/20 px-4 py-2 text-sm text-white"
               >
                 ← List
               </Link>
@@ -231,7 +231,7 @@ export default function InventoryDetailPage() {
                     type="button"
                     disabled={busy}
                     onClick={() => save()}
-                    className="rounded-lg border border-white/30 px-4 py-2 text-sm"
+                    className="rounded-lg border border-white/30 px-4 py-2 text-sm text-white"
                   >
                     Save draft
                   </button>
@@ -612,7 +612,7 @@ function DepositSettlementPanel({
           {settlement && (
             <button
               type="button"
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-xs"
+              className="rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-900"
               onClick={() =>
                 downloadPdf(`/deposit-settlements/${settlement.id}/pdf`, `${settlement.number}.pdf`)
               }
@@ -628,7 +628,7 @@ function DepositSettlementPanel({
                 type="button"
                 disabled={busy}
                 onClick={close}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs"
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-900"
               >
                 Close & terminate tenancy
               </button>
@@ -704,7 +704,7 @@ function DepositSettlementPanel({
                 type="button"
                 disabled={busy}
                 onClick={saveRefundPayout}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs"
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-900"
               >
                 Save payout details
               </button>
