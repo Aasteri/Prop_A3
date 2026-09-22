@@ -114,6 +114,11 @@ export class MaterialRequestsService {
               specification: line.specification,
               quantityRequested: line.quantityRequested,
               unit: line.unit,
+              unitCost: line.unitCost,
+              amount:
+                line.unitCost != null
+                  ? Number(line.quantityRequested) * Number(line.unitCost)
+                  : undefined,
               urgency: line.urgency ?? 'NORMAL',
               remark: line.remark,
               sortOrder: i,
@@ -147,6 +152,11 @@ export class MaterialRequestsService {
               specification: line.specification,
               quantityRequested: line.quantityRequested,
               unit: line.unit,
+              unitCost: line.unitCost,
+              amount:
+                line.unitCost != null
+                  ? Number(line.quantityRequested) * Number(line.unitCost)
+                  : undefined,
               urgency: line.urgency ?? 'NORMAL',
               remark: line.remark,
               sortOrder: i,

@@ -12,8 +12,8 @@ export type NavGroup = {
 };
 
 /**
- * Staff IA aligned to Master BRD pillars:
- * Projects · Properties (Management + Sales) · Procurement · Finance · Platform
+ * Staff IA: process-group stages for Projects · Property · Procurement,
+ * plus Sales & CRM (cross-cutting), Finance, and Platform.
  */
 export const STAFF_NAV: NavGroup[] = [
   {
@@ -25,165 +25,94 @@ export const STAFF_NAV: NavGroup[] = [
         icon: 'dashboard',
         match: (p) => p === '/dashboard',
       },
+      {
+        href: '/projects-hub',
+        label: 'Project pulse',
+        icon: 'flag',
+        match: (p) => p === '/projects-hub' || p.startsWith('/projects-hub/'),
+      },
     ],
   },
   {
     title: 'Projects',
     items: [
       {
-        href: '/projects-hub',
-        label: 'Projects hub',
+        href: '/projects/initiate',
+        label: 'Initiate',
         icon: 'flag',
-        match: (p) => p === '/projects-hub' || p.startsWith('/projects-hub/'),
+        match: (p) => p.startsWith('/projects/initiate') || p.startsWith('/projects/coming-soon/feasibility'),
       },
       {
-        href: '/site-tracker',
-        label: 'Site tracker',
+        href: '/projects/plan',
+        label: 'Plan',
+        icon: 'calendar',
+        match: (p) =>
+          p.startsWith('/projects/plan') ||
+          p.startsWith('/qc-plans') ||
+          p.startsWith('/projects/coming-soon/qc-planning'),
+      },
+      {
+        href: '/projects/execute',
+        label: 'Execute',
+        icon: 'hardhat',
+        match: (p) =>
+          p.startsWith('/projects/execute') ||
+          p.startsWith('/workforce') ||
+          p.startsWith('/cost-trackers') ||
+          p.startsWith('/projects/coming-soon/workforce') ||
+          p.startsWith('/projects/coming-soon/qc-execution'),
+      },
+      {
+        href: '/projects/monitor',
+        label: 'Monitor & Control',
         icon: 'clipboard',
-        match: (p) => p.startsWith('/site-tracker'),
+        match: (p) =>
+          p.startsWith('/projects/monitor') ||
+          p.startsWith('/project-finance') ||
+          p.startsWith('/project-analysis') ||
+          p.startsWith('/field-map'),
       },
       {
-        href: '/milestones',
-        label: 'Schedule & milestones',
-        icon: 'calendar',
-        match: (p) => p.startsWith('/milestones'),
-      },
-      {
-        href: '/work-schedule',
-        label: 'Work schedule (WBS)',
-        icon: 'calendar',
-        match: (p) => p.startsWith('/work-schedule'),
-      },
-      {
-        href: '/labour-schedules',
-        label: 'Labour schedules',
-        icon: 'users',
-        match: (p) => p.startsWith('/labour-schedules'),
-      },
-      {
-        href: '/change-log',
-        label: 'Change control',
-        icon: 'changes',
-        match: (p) => p.startsWith('/change-log'),
-      },
-      {
-        href: '/inspections',
-        label: 'Inspections & QC',
+        href: '/projects/close',
+        label: 'Close',
         icon: 'check',
-        match: (p) => p.startsWith('/inspections'),
-      },
-      {
-        href: '/planning-docs',
-        label: 'Planning documents',
-        icon: 'file',
-        match: (p) => p.startsWith('/planning-docs'),
-      },
-      {
-        href: '/progress-reports',
-        label: 'Progress reports',
-        icon: 'clipboard',
-        match: (p) => p.startsWith('/progress-reports'),
-      },
-      {
-        href: '/planning-cycles',
-        label: 'Planning cycles',
-        icon: 'calendar',
-        match: (p) => p.startsWith('/planning-cycles'),
-      },
-      {
-        href: '/closeouts',
-        label: 'Project closeouts',
-        icon: 'check',
-        match: (p) => p.startsWith('/closeouts'),
-      },
-      {
-        href: '/charters',
-        label: 'Charters & kick-off',
-        icon: 'flag',
-        match: (p) => p.startsWith('/charters') || p.startsWith('/kickoffs'),
-      },
-      {
-        href: '/retrospectives',
-        label: 'Retrospectives',
-        icon: 'clipboard',
-        match: (p) => p.startsWith('/retrospectives'),
-      },
-      {
-        href: '/ivcs',
-        label: 'IVC certificates',
-        icon: 'invoice',
-        match: (p) => p.startsWith('/ivcs'),
+        match: (p) => p.startsWith('/projects/close'),
       },
     ],
   },
   {
-    title: 'Properties',
+    title: 'Property',
     items: [
       {
-        href: '/properties-hub',
-        label: 'Properties hub',
+        href: '/property/onboard',
+        label: 'Onboard',
         icon: 'building',
-        match: (p) => p === '/properties-hub',
+        match: (p) => p.startsWith('/property/onboard'),
       },
       {
-        href: '/property-management',
-        label: 'Property management',
-        icon: 'home',
-        match: (p) => p.startsWith('/property-management'),
-      },
-      {
-        href: '/tenant-applications',
-        label: 'Tenant applications',
+        href: '/property/let',
+        label: 'Let',
         icon: 'key',
-        match: (p) => p.startsWith('/tenant-applications'),
+        match: (p) => p.startsWith('/property/let'),
       },
       {
-        href: '/tenancies',
-        label: 'Tenancies',
-        icon: 'contract',
-        match: (p) => p.startsWith('/tenancies'),
+        href: '/property/occupy',
+        label: 'Occupy & Collect',
+        icon: 'home',
+        match: (p) => p.startsWith('/property/occupy'),
       },
       {
-        href: '/pm-engagements',
-        label: 'PM fee schedules',
-        icon: 'contract',
-        match: (p) => p.startsWith('/pm-engagements'),
-      },
-      {
-        href: '/inventories',
-        label: 'Inventories',
-        icon: 'clipboard',
-        match: (p) => p.startsWith('/inventories'),
-      },
-      {
-        href: '/maintenance',
-        label: 'Maintenance',
+        href: '/property/maintain',
+        label: 'Maintain',
         icon: 'wrench',
-        match: (p) => p.startsWith('/maintenance'),
+        match: (p) => p.startsWith('/property/maintain'),
       },
       {
-        href: '/estate-terrier',
-        label: 'Estate terrier',
-        icon: 'map',
-        match: (p) => p.startsWith('/estate-terrier'),
-      },
-      {
-        href: '/listings',
-        label: 'Sales listings',
-        icon: 'tag',
-        match: (p) => p.startsWith('/listings'),
-      },
-      {
-        href: '/crm',
-        label: 'Sales CRM',
-        icon: 'users',
-        match: (p) => p.startsWith('/crm'),
-      },
-      {
-        href: '/viewings',
-        label: 'Viewings & inspections',
-        icon: 'eye',
-        match: (p) => p.startsWith('/viewings'),
+        href: '/property/exit',
+        label: 'Exit',
+        icon: 'contract',
+        match: (p) =>
+          p.startsWith('/property/exit') || p.startsWith('/property/coming-soon'),
       },
     ],
   },
@@ -191,40 +120,57 @@ export const STAFF_NAV: NavGroup[] = [
     title: 'Procurement',
     items: [
       {
-        href: '/procurement',
-        label: 'Procurement hub',
-        icon: 'cart',
-        match: (p) => p === '/procurement',
-      },
-      {
-        href: '/procurement/goods',
-        label: 'Goods (PR → PO → GRN)',
-        icon: 'package',
-        match: (p) => p.startsWith('/procurement/goods'),
-      },
-      {
-        href: '/material-requests',
-        label: 'Site material issues',
-        icon: 'package',
-        match: (p) => p.startsWith('/material-requests'),
-      },
-      {
-        href: '/procurement/services',
-        label: 'Services & artisans',
-        icon: 'users',
-        match: (p) => p.startsWith('/procurement/services'),
-      },
-      {
-        href: '/procurement/works',
-        label: 'Works / subcontractors',
-        icon: 'hardhat',
-        match: (p) => p.startsWith('/procurement/works'),
-      },
-      {
-        href: '/vendors',
-        label: 'Vendors & suppliers',
+        href: '/procurement/plan',
+        label: 'Plan',
         icon: 'store',
-        match: (p) => p.startsWith('/vendors'),
+        match: (p) => p === '/procurement/plan' || p.startsWith('/procurement/plan/'),
+      },
+      {
+        href: '/procurement/request',
+        label: 'Request',
+        icon: 'package',
+        match: (p) => p.startsWith('/procurement/request'),
+      },
+      {
+        href: '/procurement/source',
+        label: 'Source',
+        icon: 'cart',
+        match: (p) => p.startsWith('/procurement/source'),
+      },
+      {
+        href: '/procurement/fulfil',
+        label: 'Fulfil',
+        icon: 'package',
+        match: (p) => p.startsWith('/procurement/fulfil'),
+      },
+      {
+        href: '/procurement/close',
+        label: 'Close & Pay',
+        icon: 'invoice',
+        match: (p) => p === '/procurement/close' || p.startsWith('/procurement/close/'),
+      },
+    ],
+  },
+  {
+    title: 'Sales & CRM',
+    items: [
+      {
+        href: '/listings',
+        label: 'Listings',
+        icon: 'tag',
+        match: (p) => p.startsWith('/listings'),
+      },
+      {
+        href: '/crm',
+        label: 'CRM',
+        icon: 'users',
+        match: (p) => p.startsWith('/crm'),
+      },
+      {
+        href: '/viewings',
+        label: 'Viewings',
+        icon: 'eye',
+        match: (p) => p.startsWith('/viewings'),
       },
     ],
   },
@@ -236,6 +182,13 @@ export const STAFF_NAV: NavGroup[] = [
         label: 'Invoices & payments',
         icon: 'invoice',
         match: (p) => p.startsWith('/invoices'),
+      },
+      {
+        href: '/project-finance',
+        label: 'Project finance',
+        icon: 'wallet',
+        match: (p) => p.startsWith('/project-finance') || p.startsWith('/project-analysis'),
+        roles: ['CEO', 'FINANCE', 'ADMIN', 'PROJECT_MANAGER'],
       },
       {
         href: '/money-inflows',

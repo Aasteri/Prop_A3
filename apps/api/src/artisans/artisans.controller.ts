@@ -5,6 +5,7 @@ import {
   CreateArtisanDto,
   ListArtisansQueryDto,
   PublicArtisanApplyDto,
+  UpdateArtisanLocationDto,
   UpdateArtisanStatusDto,
 } from './dto/artisan.dto';
 import { ArtisansService } from './artisans.service';
@@ -45,5 +46,15 @@ export class ArtisansController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.artisans.updateStatus(id, dto, user);
+  }
+
+  @Patch(':id/location')
+  @UseGuards(JwtAuthGuard)
+  updateLocation(
+    @Param('id') id: string,
+    @Body() dto: UpdateArtisanLocationDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.artisans.updateLocation(id, dto, user);
   }
 }

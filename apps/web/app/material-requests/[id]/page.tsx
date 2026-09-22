@@ -14,6 +14,8 @@ type Line = {
   quantityApproved: string | number | null;
   quantityIssued: string | number;
   unit: string | null;
+  unitCost: string | number | null;
+  amount: string | number | null;
   urgency: string;
 };
 
@@ -150,6 +152,8 @@ export default function MaterialRequestDetailPage() {
                 <th className="px-3 py-2">Material</th>
                 <th className="px-3 py-2">Spec</th>
                 <th className="px-3 py-2">Requested</th>
+                <th className="px-3 py-2">Unit cost</th>
+                <th className="px-3 py-2">Amount</th>
                 <th className="px-3 py-2">Approved</th>
                 <th className="px-3 py-2">Issued</th>
                 <th className="px-3 py-2">Urgency</th>
@@ -162,6 +166,16 @@ export default function MaterialRequestDetailPage() {
                   <td className="px-3 py-2">{line.specification ?? '—'}</td>
                   <td className="px-3 py-2">
                     {line.quantityRequested} {line.unit}
+                  </td>
+                  <td className="px-3 py-2">
+                    {line.unitCost != null
+                      ? `₦${Number(line.unitCost).toLocaleString()}`
+                      : '—'}
+                  </td>
+                  <td className="px-3 py-2">
+                    {line.amount != null
+                      ? `₦${Number(line.amount).toLocaleString()}`
+                      : '—'}
                   </td>
                   <td className="px-3 py-2">
                     {req.status === 'PENDING_APPROVAL' && canApprove ? (

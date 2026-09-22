@@ -32,11 +32,11 @@ export function ModuleHub({
       </header>
 
       <section>
-        <h2 className={SECTION_TITLE}>Modules</h2>
+        <h2 className={SECTION_TITLE}>In chronological order</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {links.map((link) => (
+          {links.map((link, index) => (
             <Link
-              key={link.href}
+              key={`${link.href}-${link.title}-${index}`}
               href={link.href}
               className={`${CARD} flex gap-4 p-5 transition hover:border-[#e87722]/50 hover:shadow-md`}
             >

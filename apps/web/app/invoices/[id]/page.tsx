@@ -139,10 +139,23 @@ export default function InvoiceDetailPage() {
       <Link href="/invoices" className="text-sm text-[#e87722]">
         ← Back to invoices
       </Link>
-      <h1 className="mt-2 text-2xl font-semibold text-[#1a2744]">{invoice.invoiceNumber}</h1>
-      <p className="text-slate-600">
-        {invoice.clientName} · {invoice.status.replace(/_/g, ' ')}
-      </p>
+      <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-[#1a2744]">{invoice.invoiceNumber}</h1>
+          <p className="text-slate-600">
+            {invoice.clientName} · {invoice.status.replace(/_/g, ' ')}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() =>
+            downloadPdf(`/invoices/${invoice.id}/pdf`, `${invoice.invoiceNumber}.pdf`)
+          }
+          className="rounded-lg bg-[#1a2744] px-4 py-2 text-sm font-medium text-white hover:bg-[#243a5e]"
+        >
+          Download invoice PDF
+        </button>
+      </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <section className="rounded-xl border border-slate-200 bg-white p-4 lg:col-span-2">

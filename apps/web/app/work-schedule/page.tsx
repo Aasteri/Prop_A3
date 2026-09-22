@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { SearchableSelect } from '@/components/SearchableSelect';
-import { api, getToken, getUser, type AuthUser } from '@/lib/api';
+import { api, downloadFile, getToken, getUser, type AuthUser } from '@/lib/api';
 import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
@@ -189,6 +189,20 @@ export default function WorkSchedulePage() {
               >
                 Projects hub
               </Link>
+              {projectId && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    downloadFile(
+                      `/work-tasks/export.csv?projectId=${encodeURIComponent(projectId)}`,
+                      `work-schedule-${projectId}.csv`,
+                    )
+                  }
+                  className="rounded-lg border border-white/20 px-4 py-2 text-sm text-white"
+                >
+                  Export CSV
+                </button>
+              )}
               {canManage && (
                 <button
                   type="button"

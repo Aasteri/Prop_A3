@@ -131,6 +131,8 @@ model Site {
   code      String   @unique // JKW, MPP, GZ2, GZ3
   name      String
   location  String?
+  latitude  Decimal? @db.Decimal(10, 7)
+  longitude Decimal? @db.Decimal(10, 7)
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -153,6 +155,15 @@ enum ProjectStatus {
   COMPLETE
 }
 
+/// PM process group — tracks where the project sits in Initiate→Close
+enum ProjectProcessGroup {
+  INITIATE
+  PLAN
+  EXECUTE
+  MONITOR
+  CLOSE
+}
+
 model Project {
   id              String        @id @default(cuid())
   siteId          String        @map("site_id")
@@ -162,6 +173,9 @@ model Project {
   location        String?
   contractRef     String?       @map("contract_ref")
   status          ProjectStatus @default(PLANNING)
+  processGroup    ProjectProcessGroup @default(INITIATE) @map("process_group")
+  /// Numeric budget for finance reports (optional; charter.budgetRange remains narrative)
+  budgetAmount    Decimal?      @map("budget_amount") @db.Decimal(14, 2)
   fcdaPermitUrl   String?       @map("fcda_permit_url")
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
@@ -187,6 +201,8 @@ model Project {
   labourSchedules LabourSchedule[]
   progressReports ProgressReport[]
   planningCycles PlanningCycle[]
+  workforceEntries WorkforceEntry[]
+  qcPlans          QcPlan[]
 
   @@map("projects")
 }
@@ -857,6 +873,8 @@ model MaterialRequestLine {
   quantityApproved  Decimal?        @map("quantity_approved") @db.Decimal(12, 3)
   quantityIssued    Decimal         @default(0) @map("quantity_issued") @db.Decimal(12, 3)
   unit              String?
+  unitCost          Decimal?        @map("unit_cost") @db.Decimal(14, 2)
+  amount            Decimal?        @db.Decimal(14, 2)
   urgency           MaterialUrgency @default(NORMAL)
   remark            String?
   sortOrder         Int             @default(0) @map("sort_order")
@@ -1950,6 +1968,8 @@ model ArtisanProfile {
   trades            Json?
   bio               String?               @db.Text
   serviceAreas      String?               @map("service_areas") @db.Text
+  latitude          Decimal?              @db.Decimal(10, 7)
+  longitude         Decimal?              @db.Decimal(10, 7)
   source            ArtisanSource         @default(EXTERNAL)
   status            ArtisanApprovalStatus @default(PENDING_REVIEW)
   avgRating         Decimal?              @map("avg_rating") @db.Decimal(3, 2)
@@ -2485,6 +2505,8 @@ model ProjectInspection {
   inspectedBy        String?          @map("inspected_by")
   sectionSignedAt    DateTime?        @map("section_signed_at")
   sectionSignedBy    String?          @map("section_signed_by")
+  latitude           Decimal?         @db.Decimal(10, 7)
+  longitude          Decimal?         @db.Decimal(10, 7)
   createdAt          DateTime         @default(now()) @map("created_at")
   updatedAt          DateTime         @updatedAt @map("updated_at")
 
@@ -2492,6 +2514,71 @@ model ProjectInspection {
 
   @@index([projectId, category])
   @@map("project_inspections")
+}
+
+/// Person-day workforce time & pay (separate from labour schedule planning)
+model WorkforceEntry {
+  id          String   @id @default(cuid())
+  projectId   String   @map("project_id")
+  workDate    DateTime @map("work_date") @db.Date
+  workerName  String   @map("worker_name")
+  trade       String?
+  hoursWorked Decimal  @map("hours_worked") @db.Decimal(8, 2)
+  ratePerHour Decimal  @map("rate_per_hour") @db.Decimal(14, 2)
+  amountPaid  Decimal  @map("amount_paid") @db.Decimal(14, 2)
+  paymentRef  String?  @map("payment_ref")
+  notes       String?  @db.Text
+  createdById String?  @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, workDate])
+  @@map("workforce_entries")
+}
+
+enum QcPlanStatus {
+  DRAFT
+  ACTIVE
+  COMPLETE
+}
+
+/// Quality control planning (ITP) — distinct from execution inspections
+model QcPlan {
+  id          String       @id @default(cuid())
+  number      String       @unique
+  projectId   String       @map("project_id")
+  title       String
+  status      QcPlanStatus @default(DRAFT)
+  preparedBy  String?      @map("prepared_by")
+  notes       String?      @db.Text
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  project Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items   QcPlanItem[]
+
+  @@index([projectId, status])
+  @@map("qc_plans")
+}
+
+model QcPlanItem {
+  id            String    @id @default(cuid())
+  planId        String    @map("plan_id")
+  sortOrder     Int       @default(0) @map("sort_order")
+  activity      String
+  inspectionPoint String  @map("inspection_point")
+  acceptanceCriteria String? @map("acceptance_criteria") @db.Text
+  method        String?
+  responsible   String?
+  plannedDate   DateTime? @map("planned_date") @db.Date
+  linkedSection String?   @map("linked_section")
+  notes         String?   @db.Text
+
+  plan QcPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@map("qc_plan_items")
 }
 
 enum TenancyOfferStatus {

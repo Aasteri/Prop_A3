@@ -1,7 +1,10 @@
 import {
+  BadRequestException,
+  Body,
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   UploadedFile,
   UseGuards,
@@ -9,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import { ProjectProcessGroup } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorator';
 import { ProjectsService } from './projects.service';
@@ -26,6 +30,18 @@ export class ProjectsController {
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.projects.findOne(id, user);
+  }
+
+  @Patch(':id/process-group')
+  setProcessGroup(
+    @Param('id') id: string,
+    @Body() body: { processGroup?: ProjectProcessGroup },
+    @CurrentUser() user: AuthUser,
+  ) {
+    if (!body?.processGroup) {
+      throw new BadRequestException('processGroup is required');
+    }
+    return this.projects.setProcessGroup(id, body.processGroup, user);
   }
 
   @Post(':id/fcda-permit')

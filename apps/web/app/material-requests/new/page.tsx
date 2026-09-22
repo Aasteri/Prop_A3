@@ -13,6 +13,7 @@ type LineRow = {
   specification: string;
   quantityRequested: number;
   unit: string;
+  unitCost: number | '';
   urgency: 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
 };
 
@@ -24,6 +25,7 @@ const defaultLine: LineRow = {
   specification: '',
   quantityRequested: 1,
   unit: 'bags',
+  unitCost: '',
   urgency: 'NORMAL',
 };
 
@@ -69,7 +71,14 @@ export default function NewMaterialRequestPage() {
           requiredDate,
           area: area || undefined,
           notes: notes || undefined,
-          lines: validLines,
+          lines: validLines.map((l) => ({
+            material: l.material,
+            specification: l.specification || undefined,
+            quantityRequested: l.quantityRequested,
+            unit: l.unit,
+            unitCost: l.unitCost === '' ? undefined : Number(l.unitCost),
+            urgency: l.urgency,
+          })),
         }),
       });
 
@@ -175,6 +184,22 @@ export default function NewMaterialRequestPage() {
                   onChange={(e) => {
                     const next = [...lines];
                     next[i] = { ...next[i], unit: e.target.value };
+                    setLines(next);
+                  }}
+                  className={INPUT}
+                />
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  placeholder="Unit cost ₦"
+                  value={line.unitCost}
+                  onChange={(e) => {
+                    const next = [...lines];
+                    next[i] = {
+                      ...next[i],
+                      unitCost: e.target.value === '' ? '' : Number(e.target.value),
+                    };
                     setLines(next);
                   }}
                   className={INPUT}

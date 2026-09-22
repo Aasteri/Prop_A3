@@ -133,8 +133,8 @@ export const GUIDE_SECTIONS: GuideSection[] = [
         body: 'Open the staff login. Your role (CEO, PROJECT_MANAGER, SALES, FINANCE, FOREMAN, etc.) controls menus and buttons.',
       },
       {
-        title: 'Use the hubs',
-        body: 'Projects hub, Properties hub, and Procurement hub group related screens. Prefer hubs when you are unsure where a feature lives. Public artisan marketplace is separate at /marketplace (seekers, clients, artisans).',
+        title: 'Use process-group menus',
+        body: 'Staff sidebar is organised by process groups: Projects (Initiate→Close), Property (Onboard→Exit), Procurement (Plan→Close & Pay). Each stage page lists modules in chronological order. Sales & CRM is its own section (listings, CRM, viewings). Project pulse at /projects-hub shows which process group each project is in. Public artisan marketplace remains at /marketplace.',
       },
       {
         title: 'User guide roles',

@@ -54,6 +54,17 @@ export class InvoicesController {
     stream.pipe(res);
   }
 
+  @Get(':id/pdf')
+  async invoicePdf(@Param('id') id: string, @Res() res: Response) {
+    const file = await this.invoices.getInvoicePdf(id);
+    const stream = file.getStream();
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="invoice-${id}.pdf"`,
+    });
+    stream.pipe(res);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.invoices.findOne(id);

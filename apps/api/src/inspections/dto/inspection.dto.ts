@@ -3,6 +3,7 @@ import {
   IsDateString,
   IsEnum,
   IsIn,
+  IsNumber,
   IsOptional,
   IsString,
   ValidateNested,
@@ -61,6 +62,14 @@ export class CreateInspectionDto {
   @IsOptional()
   @IsString()
   sectionSignedBy?: string;
+
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
 }
 
 export class UpdateInspectionDto {
@@ -89,4 +98,12 @@ export class UpdateInspectionDto {
   @IsOptional()
   @IsString()
   sectionSignedBy?: string;
+
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
 }

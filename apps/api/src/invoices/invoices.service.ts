@@ -568,6 +568,31 @@ export class InvoicesService {
     });
   }
 
+  async getInvoicePdf(id: string): Promise<StreamableFile> {
+    const invoice = await this.findOne(id);
+    const { buildInvoicePdf } = await import('./invoice.pdf');
+    const buffer = await buildInvoicePdf({
+      invoiceNumber: invoice.invoiceNumber,
+      clientName: invoice.clientName,
+      issueDate: invoice.issueDate,
+      status: invoice.status,
+      invoiceType: invoice.invoiceType,
+      revisedTotal: Number(invoice.revisedTotal),
+      paidTotal: Number(invoice.paidTotal),
+      outstanding: Number(invoice.outstanding),
+      lines: invoice.lines.map((l) => ({
+        description: l.description,
+        quantity: Number(l.quantity),
+        unitPrice: Number(l.unitPrice),
+        lineTotal: Number(l.totalAmount),
+      })),
+    });
+    return new StreamableFile(buffer, {
+      type: 'application/pdf',
+      disposition: `attachment; filename="${invoice.invoiceNumber}.pdf"`,
+    });
+  }
+
   listApprovedChanges(projectId?: string) {
     return this.prisma.projectChangeLog.findMany({
       where: {

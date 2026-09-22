@@ -65,6 +65,8 @@ export default function InspectionsPage() {
     result: 'PENDING',
     notes: '',
     sectionSignedBy: '',
+    latitude: '',
+    longitude: '',
   });
   const [checklist, setChecklist] = useState<ChecklistRow[]>([]);
 
@@ -237,6 +239,8 @@ export default function InspectionsPage() {
           notes: form.notes || undefined,
           checklist: payloadChecklist.length ? payloadChecklist : undefined,
           sectionSignedBy: form.sectionSignedBy.trim() || undefined,
+          latitude: form.latitude ? Number(form.latitude) : undefined,
+          longitude: form.longitude ? Number(form.longitude) : undefined,
         }),
       });
       setShowForm(false);
@@ -468,6 +472,29 @@ export default function InspectionsPage() {
                 rows={2}
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className={LABEL}>Latitude (optional)</label>
+              <input
+                type="number"
+                step="any"
+                className={INPUT}
+                value={form.latitude}
+                onChange={(e) => setForm({ ...form, latitude: e.target.value })}
+                placeholder="9.05"
+              />
+            </div>
+            <div>
+              <label className={LABEL}>Longitude (optional)</label>
+              <input
+                type="number"
+                step="any"
+                className={INPUT}
+                value={form.longitude}
+                onChange={(e) => setForm({ ...form, longitude: e.target.value })}
+                placeholder="7.49"
               />
             </div>
             <div className="sm:col-span-2">

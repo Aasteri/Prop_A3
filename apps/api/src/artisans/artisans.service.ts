@@ -192,6 +192,25 @@ export class ArtisansService {
     return updated;
   }
 
+  async updateLocation(
+    id: string,
+    dto: { latitude: number; longitude: number },
+    user: AuthUser,
+  ) {
+    this.assertCanManage(user);
+    await this.findOne(id, user);
+    return this.prisma.artisanProfile.update({
+      where: { id },
+      data: {
+        latitude: dto.latitude,
+        longitude: dto.longitude,
+      },
+      include: {
+        user: { select: { id: true, email: true, isActive: true, role: true } },
+      },
+    });
+  }
+
   private async createArtisanUser(opts: {
     email: string;
     password: string;

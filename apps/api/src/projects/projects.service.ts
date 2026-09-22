@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
+import { ProjectProcessGroup, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { DocumentsService } from '../documents/documents.service';
@@ -42,6 +42,28 @@ export class ProjectsService {
           ? {}
           : { siteId: { in: user.siteIds } }),
       },
+      include: {
+        site: true,
+        milestones: { orderBy: { stage: 'asc' } },
+      },
+    });
+  }
+
+  async setProcessGroup(id: string, processGroup: ProjectProcessGroup, user: AuthUser) {
+    if (
+      user.role !== UserRole.PROJECT_MANAGER &&
+      user.role !== UserRole.CEO &&
+      user.role !== UserRole.ADMIN
+    ) {
+      throw new ForbiddenException('Only PM, CEO, or Admin can set process group');
+    }
+
+    const project = await this.findOne(id, user);
+    if (!project) throw new NotFoundException('Project not found');
+
+    return this.prisma.project.update({
+      where: { id },
+      data: { processGroup },
       include: {
         site: true,
         milestones: { orderBy: { stage: 'asc' } },

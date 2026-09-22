@@ -110,6 +110,8 @@ export class InspectionsService {
           : undefined,
         sectionSignedBy: signedBy,
         sectionSignedAt: signedBy ? new Date() : undefined,
+        latitude: dto.latitude,
+        longitude: dto.longitude,
       },
       include,
     });

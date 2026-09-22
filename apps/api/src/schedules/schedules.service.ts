@@ -271,4 +271,23 @@ export class SchedulesService {
       throw new ForbiddenException('Not allowed to manage schedules');
     }
   }
+
+  async exportWorkTasksCsv(user: AuthUser, projectId?: string) {
+    const tasks = await this.findWorkTasks(user, projectId);
+    const header =
+      'wbsNumber,taskTitle,taskOwner,startDate,dueDate,progressPct,isPaymentMilestone,project';
+    const rows = tasks.map((t) =>
+      [
+        t.wbsNumber,
+        `"${(t.taskTitle ?? '').replace(/"/g, '""')}"`,
+        t.taskOwner ?? '',
+        t.startDate?.toISOString().slice(0, 10) ?? '',
+        t.dueDate?.toISOString().slice(0, 10) ?? '',
+        Number(t.progressPct ?? 0),
+        t.isPaymentMilestone ? 'yes' : 'no',
+        `"${t.project.name.replace(/"/g, '""')}"`,
+      ].join(','),
+    );
+    return [header, ...rows].join('\n');
+  }
 }

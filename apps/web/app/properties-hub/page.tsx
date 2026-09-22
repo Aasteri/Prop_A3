@@ -1,99 +1,22 @@
 'use client';
 
 import { HubPage } from '@/components/ModulePage';
+import { PROPERTY_STAGES } from '@/lib/process-stages';
 
+/** Optional overview — Property stages also appear in the sidebar. */
 export default function PropertiesHubPage() {
   return (
     <HubPage
-      eyebrow="Pillar · Properties"
-      title="Property management & sales"
-      subtitle="One property asset can be leased, maintained, remitted, listed, inspected, and sold — with CRM routing for propA3 vs external agents."
-      links={[
-        {
-          href: '/property-management',
-          title: 'Property management',
-          description: 'Vacancy → marketing → tenancy → remittance lifecycle.',
-          icon: 'home',
-          status: 'live',
-        },
-        {
-          href: '/tenant-applications',
-          title: 'Tenant applications',
-          description: 'Bio-data form, screening, 4×0–10 FM evaluation.',
-          icon: 'key',
-          status: 'live',
-        },
-        {
-          href: '/tenancies',
-          title: 'Tenancies',
-          description: 'Agreements, renewals (3mo/1mo), inventories, deposits.',
-          icon: 'contract',
-          status: 'live',
-        },
-        {
-          href: '/pm-engagements',
-          title: 'PM fee schedules',
-          description: 'Per-owner Doc 10/11/12 fee % for offers and applications.',
-          icon: 'contract',
-          status: 'live',
-        },
-        {
-          href: '/inventories',
-          title: 'Inventories',
-          description: 'Move-in / move-out condition, keys, meters, 7-day discrepancy.',
-          icon: 'clipboard',
-          status: 'live',
-        },
-        {
-          href: '/maintenance',
-          title: 'Maintenance',
-          description: 'Photo requests, SC spend gate, artisan WO, tenant confirm.',
-          icon: 'wrench',
-          status: 'live',
-        },
-        {
-          href: '/estate-terrier',
-          title: 'Estate terrier',
-          description: 'Unit rent roll and occupancy register.',
-          icon: 'map',
-          status: 'live',
-        },
-        {
-          href: '/listings',
-          title: 'Sales listings',
-          description: 'Sale & JV listings; propA3 vs external agent source.',
-          icon: 'tag',
-          status: 'live',
-        },
-        {
-          href: '/crm',
-          title: 'Sales CRM',
-          description: 'Buyer interest → pipeline through sale.',
-          icon: 'users',
-          status: 'live',
-        },
-        {
-          href: '/service-charges',
-          title: 'Service charges',
-          description: 'Ledger + available balance as maintenance spend ceiling.',
-          icon: 'wallet',
-          status: 'live',
-        },
-        {
-          href: '/remittances',
-          title: 'Landlord remittances',
-          description: 'Gross rent − expenses → net paid to landlord.',
-          icon: 'transfer',
-          status: 'live',
-        },
-        {
-          href: '/viewings',
-          title: 'Viewings & inspections',
-          description: 'Mandatory physical inspection + platform response.',
-          icon: 'eye',
-          status: 'live',
-        },
-      ]}
+      eyebrow="Pillar · Property"
+      title="Property process groups"
+      subtitle="Onboard → Let → Occupy & Collect → Maintain → Exit. Sales & CRM is a separate sidebar section."
+      links={PROPERTY_STAGES.map((s, i) => ({
+        href: s.href,
+        title: `${i + 1}. ${s.label}`,
+        description: s.subtitle,
+        icon: 'building',
+        status: 'live' as const,
+      }))}
     />
   );
 }

@@ -280,6 +280,9 @@ export async function downloadPdf(path: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+/** Same as downloadPdf — works for CSV and other binary/text attachments. */
+export const downloadFile = downloadPdf;
+
 export async function uploadFcdaPermit(projectId: string, file: File) {
   const token = getToken();
   const form = new FormData();

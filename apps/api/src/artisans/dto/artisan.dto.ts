@@ -3,6 +3,7 @@ import {
   IsBoolean,
   IsEmail,
   IsEnum,
+  IsNumber,
   IsOptional,
   IsString,
   MinLength,
@@ -152,6 +153,14 @@ export class PublicArtisanApplyDto {
 export class UpdateArtisanStatusDto {
   @IsEnum(ArtisanApprovalStatus)
   status!: ArtisanApprovalStatus;
+}
+
+export class UpdateArtisanLocationDto {
+  @IsNumber()
+  latitude!: number;
+
+  @IsNumber()
+  longitude!: number;
 }
 
 export class ListArtisansQueryDto {

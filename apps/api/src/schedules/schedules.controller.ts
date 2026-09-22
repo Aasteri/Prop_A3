@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Param,
   Patch,
   Post,
@@ -28,6 +29,12 @@ export class WorkTasksController {
   @Get()
   findAll(@CurrentUser() user: AuthUser, @Query('projectId') projectId?: string) {
     return this.schedules.findWorkTasks(user, projectId);
+  }
+
+  @Get('export.csv')
+  @Header('Content-Type', 'text/csv')
+  exportCsv(@CurrentUser() user: AuthUser, @Query('projectId') projectId?: string) {
+    return this.schedules.exportWorkTasksCsv(user, projectId);
   }
 
   @Post()

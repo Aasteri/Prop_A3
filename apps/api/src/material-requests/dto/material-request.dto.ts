@@ -29,6 +29,11 @@ export class MaterialLineDto {
   unit?: string;
 
   @IsOptional()
+  @IsNumber()
+  @Min(0)
+  unitCost?: number;
+
+  @IsOptional()
   @IsEnum(MaterialUrgency)
   urgency?: MaterialUrgency;
 
