@@ -65,11 +65,11 @@ export const PROJECT_STAGES: ProcessStageDef[] = [
         status: 'live',
       },
       {
-        href: '/projects/coming-soon/feasibility',
+        href: '/feasibility',
         title: '4. Feasibility & stakeholders',
         description: 'Preliminary feasibility, budget band, and stakeholder register.',
         icon: 'users',
-        status: 'building',
+        status: 'live',
       },
     ],
   },
@@ -440,11 +440,11 @@ export const PROPERTY_STAGES: ProcessStageDef[] = [
         status: 'live',
       },
       {
-        href: '/property/coming-soon/deposit-settlement',
+        href: '/inventories?type=MOVE_OUT',
         title: '3. Deposit settlement',
-        description: 'Caution / deposit reconciliation at exit.',
+        description: 'Complete MOVE_OUT inventory, then settle deposit on the inventory detail.',
         icon: 'wallet',
-        status: 'building',
+        status: 'live',
       },
     ],
   },
@@ -491,14 +491,14 @@ export const PROCUREMENT_STAGES: ProcessStageDef[] = [
         status: 'live',
       },
       {
-        href: '/procurement/goods',
+        href: '/procurement/goods?focus=pr',
         title: '2. Goods (PR)',
         description: 'Purchase requisitions for warehouse/external supply.',
         icon: 'package',
         status: 'live',
       },
       {
-        href: '/procurement/services',
+        href: '/procurement/services?tab=requests',
         title: '3. Service requests',
         description: 'Artisan / labour service demands.',
         icon: 'users',
@@ -515,7 +515,7 @@ export const PROCUREMENT_STAGES: ProcessStageDef[] = [
     subtitle: 'Commit supply: POs, works contracts, artisan assignment.',
     links: [
       {
-        href: '/procurement/goods',
+        href: '/procurement/goods?focus=po',
         title: '1. Purchase orders',
         description: 'PO against approved requisitions.',
         icon: 'package',
@@ -529,7 +529,7 @@ export const PROCUREMENT_STAGES: ProcessStageDef[] = [
         status: 'live',
       },
       {
-        href: '/procurement/services',
+        href: '/procurement/services?tab=artisans',
         title: '3. Assign artisans',
         description: 'KYC artisans, estimate, and assign.',
         icon: 'users',
@@ -546,14 +546,14 @@ export const PROCUREMENT_STAGES: ProcessStageDef[] = [
     subtitle: 'Receive goods, issue to site, and value works in progress.',
     links: [
       {
-        href: '/procurement/goods',
+        href: '/procurement/goods?focus=grn',
         title: '1. GRN / delivery',
         description: 'Goods received against PO.',
         icon: 'package',
         status: 'live',
       },
       {
-        href: '/material-requests',
+        href: '/material-requests?status=APPROVED',
         title: '2. Site issue',
         description: 'Issue approved material requests to site.',
         icon: 'package',
@@ -592,8 +592,8 @@ export const PROCUREMENT_STAGES: ProcessStageDef[] = [
       },
       {
         href: '/invoices',
-        title: '3. Invoices',
-        description: 'Client / commercial invoices linked to works and sales.',
+        title: '3. Client invoices',
+        description: 'Client / commercial AR invoices (not supplier AP).',
         icon: 'invoice',
         status: 'live',
       },

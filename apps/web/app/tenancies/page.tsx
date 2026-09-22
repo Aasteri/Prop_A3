@@ -353,6 +353,22 @@ export default function TenanciesPage() {
                     <Link href="/inventories" className="text-xs text-[#e87722] hover:underline">
                       Inventory
                     </Link>
+                    {(r.status === 'ACTIVE' || r.status === 'PENDING_MOVE_IN') && (
+                      <button
+                        type="button"
+                        className="text-xs text-red-700 hover:underline"
+                        onClick={async () => {
+                          if (!window.confirm('Terminate this tenancy?')) return;
+                          await api(`/tenancies/${r.id}`, {
+                            method: 'PATCH',
+                            body: JSON.stringify({ status: 'TERMINATED' }),
+                          });
+                          load();
+                        }}
+                      >
+                        End tenancy
+                      </button>
+                    )}
                     {(r.status === 'PENDING_MOVE_IN' || r.status === 'DRAFT') && (
                       <button
                         type="button"

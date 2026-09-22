@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyProjectGate } from '@/components/EmptyEntityGate';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, downloadFile, getToken, getUser, type AuthUser } from '@/lib/api';
@@ -216,6 +217,10 @@ export default function WorkSchedulePage() {
           </div>
         </header>
 
+        {!projects.length ? (
+          <EmptyProjectGate moduleLabel="the work schedule" />
+        ) : (
+          <>
         <div className={`${CARD} p-4 sm:p-5`}>
           <label className={LABEL}>Project</label>
           <SearchableSelect
@@ -454,6 +459,8 @@ export default function WorkSchedulePage() {
             filteredCount={filteredCount}
             onPageChange={setPage}
           />
+        )}
+          </>
         )}
       </div>
     </AppShell>

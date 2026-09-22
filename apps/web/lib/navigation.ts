@@ -40,7 +40,10 @@ export const STAFF_NAV: NavGroup[] = [
         href: '/projects/initiate',
         label: 'Initiate',
         icon: 'flag',
-        match: (p) => p.startsWith('/projects/initiate') || p.startsWith('/projects/coming-soon/feasibility'),
+        match: (p) =>
+          p.startsWith('/projects/initiate') ||
+          p.startsWith('/feasibility') ||
+          p.startsWith('/projects/coming-soon/feasibility'),
       },
       {
         href: '/projects/plan',

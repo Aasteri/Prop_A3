@@ -313,6 +313,12 @@ export default function WorksProcurementPage() {
                   </td>
                   <td className="px-4 py-3">{r.status}</td>
                   <td className="px-4 py-3 space-x-2 whitespace-nowrap">
+                    <Link
+                      href={`/ivcs?projectId=${r.project.id}&worksContractId=${r.id}`}
+                      className="text-[#1a2744] hover:underline"
+                    >
+                      Create IVC
+                    </Link>
                     {r.status === 'ACTIVE' && (
                       <button
                         type="button"

@@ -15,6 +15,8 @@ export default function ProjectsInitiatePage() {
       title={stage.title}
       subtitle={stage.subtitle}
       links={stage.links}
+      startHref="/projects/new"
+      startLabel="Create project"
     />
   );
 }

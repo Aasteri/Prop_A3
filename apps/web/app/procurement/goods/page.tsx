@@ -1,8 +1,8 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, getToken } from '@/lib/api';
@@ -33,8 +33,12 @@ type PurchaseOrder = {
   receipts: { id: string; number: string }[];
 };
 
-export default function GoodsProcurementPage() {
+function GoodsInner() {
   const router = useRouter();
+  const search = useSearchParams();
+  const focus = search.get('focus') || 'pr';
+  const prRef = useRef<HTMLElement>(null);
+  const poRef = useRef<HTMLElement>(null);
   const [rows, setRows] = useState<Requisition[]>([]);
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -72,6 +76,17 @@ export default function GoodsProcurementPage() {
     }
     load();
   }, [router]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (focus === 'po' || focus === 'grn') {
+        poRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        prRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 150);
+    return () => clearTimeout(t);
+  }, [focus, rows.length, orders.length]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -153,7 +168,6 @@ export default function GoodsProcurementPage() {
   }
 
   return (
-    <AppShell>
       <div className="space-y-6">
         <header className={PAGE_HEADER}>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#e87722]">
@@ -169,13 +183,33 @@ export default function GoodsProcurementPage() {
                 separate live flow.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowForm((v) => !v)}
-              className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white"
-            >
-              {showForm ? 'Cancel' : 'New PR'}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/procurement/goods?focus=pr"
+                className="rounded-lg border border-white/20 px-3 py-1.5 text-sm text-white"
+              >
+                PRs
+              </Link>
+              <Link
+                href="/procurement/goods?focus=po"
+                className="rounded-lg border border-white/20 px-3 py-1.5 text-sm text-white"
+              >
+                POs
+              </Link>
+              <Link
+                href="/procurement/goods?focus=grn"
+                className="rounded-lg border border-white/20 px-3 py-1.5 text-sm text-white"
+              >
+                GRN
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowForm((v) => !v)}
+                className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white"
+              >
+                {showForm ? 'Cancel' : 'New PR'}
+              </button>
+            </div>
           </div>
         </header>
 
@@ -254,7 +288,10 @@ export default function GoodsProcurementPage() {
           </Link>
         </div>
 
-        <section className="space-y-3">
+        <section
+          ref={prRef}
+          className={`space-y-3 ${focus === 'pr' ? 'rounded-xl ring-2 ring-[#e87722]/30 p-2' : ''}`}
+        >
           <h2 className="text-base font-semibold text-[#1a2744]">Purchase requisitions</h2>
           {rows.length > 0 && (
             <ListToolbar
@@ -312,7 +349,10 @@ export default function GoodsProcurementPage() {
           )}
         </section>
 
-        <section className="space-y-3">
+        <section
+          ref={poRef}
+          className={`space-y-3 ${focus === 'po' || focus === 'grn' ? 'rounded-xl ring-2 ring-[#e87722]/30 p-2' : ''}`}
+        >
           <h2 className="text-base font-semibold text-[#1a2744]">Purchase orders & receipts</h2>
           {orders.length > 0 && (
             <ListToolbar
@@ -366,6 +406,15 @@ export default function GoodsProcurementPage() {
           )}
         </section>
       </div>
+  );
+}
+
+export default function GoodsProcurementPage() {
+  return (
+    <AppShell>
+      <Suspense fallback={<p className="text-slate-500">Loading…</p>}>
+        <GoodsInner />
+      </Suspense>
     </AppShell>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyProjectGate } from '@/components/EmptyEntityGate';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, getToken } from '@/lib/api';
 import { useFilteredList } from '@/lib/use-filtered-list';
@@ -98,9 +99,7 @@ export default function MilestonesIndexPage() {
               </Link>
             );
           })}
-          {!projects.length && (
-            <p className="text-sm text-slate-500">No projects available.</p>
-          )}
+          {!projects.length && <EmptyProjectGate moduleLabel="milestones" />}
         </div>
         {projects.length > 0 && (
           <PaginationBar

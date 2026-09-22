@@ -10,15 +10,34 @@ export function HubPage({
   title,
   subtitle,
   links,
+  startHref,
+  startLabel,
 }: {
   eyebrow: string;
   title: string;
   subtitle: string;
   links: HubLink[];
+  startHref?: string;
+  startLabel?: string;
 }) {
   return (
     <AppShell>
-      <ModuleHub eyebrow={eyebrow} title={title} subtitle={subtitle} links={links} />
+      <div className="space-y-4">
+        {startHref && startLabel ? (
+          <div className={`${CARD} flex flex-wrap items-center justify-between gap-3 p-4`}>
+            <p className="text-sm text-slate-600">
+              Start here if you do not have a project yet — every module below needs one.
+            </p>
+            <Link
+              href={startHref}
+              className="inline-flex rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white hover:bg-[#d06818]"
+            >
+              {startLabel}
+            </Link>
+          </div>
+        ) : null}
+        <ModuleHub eyebrow={eyebrow} title={title} subtitle={subtitle} links={links} />
+      </div>
     </AppShell>
   );
 }

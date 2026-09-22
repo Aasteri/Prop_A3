@@ -203,6 +203,8 @@ model Project {
   planningCycles PlanningCycle[]
   workforceEntries WorkforceEntry[]
   qcPlans          QcPlan[]
+  feasibility      ProjectFeasibility?
+  stakeholders     ProjectStakeholder[]
 
   @@map("projects")
 }
@@ -2579,6 +2581,53 @@ model QcPlanItem {
   plan QcPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@map("qc_plan_items")
+}
+
+enum FeasibilityDecision {
+  PENDING
+  GO
+  NO_GO
+  HOLD
+}
+
+model ProjectFeasibility {
+  id              String               @id @default(cuid())
+  projectId       String               @unique @map("project_id")
+  budgetBand      String?              @map("budget_band")
+  siteNotes       String?              @map("site_notes") @db.Text
+  clientNeed      String?              @map("client_need") @db.Text
+  objectives      String?              @db.Text
+  constraints     String?              @db.Text
+  decision        FeasibilityDecision  @default(PENDING)
+  decidedAt       DateTime?            @map("decided_at")
+  decidedBy       String?              @map("decided_by")
+  notes           String?              @db.Text
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_feasibilities")
+}
+
+model ProjectStakeholder {
+  id          String   @id @default(cuid())
+  projectId   String   @map("project_id")
+  name        String
+  role        String?
+  organisation String?
+  interest    String?
+  influence   String?
+  contact     String?
+  notes       String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("project_stakeholders")
 }
 
 enum TenancyOfferStatus {

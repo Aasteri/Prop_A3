@@ -57,6 +57,7 @@ import { PaystackModule } from './paystack/paystack.module';
 import { CompanySettingsModule } from './company-settings/company-settings.module';
 import { MarketplaceModule } from './marketplace/marketplace.module';
 import { ProjectOpsModule } from './project-ops/project-ops.module';
+import { FeasibilityModule } from './feasibility/feasibility.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -73,6 +74,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     SitesModule,
     ProjectsModule,
     ProjectOpsModule,
+    FeasibilityModule,
     SiteTrackerModule,
     ChangeLogModule,
     MaterialRequestsModule,

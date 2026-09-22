@@ -15,6 +15,7 @@ import { memoryStorage } from 'multer';
 import { ProjectProcessGroup } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorator';
+import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
 import { ProjectsService } from './projects.service';
 
 @Controller('projects')
@@ -27,9 +28,23 @@ export class ProjectsController {
     return this.projects.findAll(user);
   }
 
+  @Post()
+  create(@Body() dto: CreateProjectDto, @CurrentUser() user: AuthUser) {
+    return this.projects.create(dto, user);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.projects.findOne(id, user);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateProjectDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.projects.update(id, dto, user);
   }
 
   @Patch(':id/process-group')

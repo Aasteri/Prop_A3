@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyProjectGate } from '@/components/EmptyEntityGate';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, getToken } from '@/lib/api';
 import { BTN_GHOST_ON_DARK, BTN_SECONDARY, CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
@@ -129,6 +130,10 @@ export default function CostTrackersPage() {
           </div>
         </header>
 
+        {!projects.length ? (
+          <EmptyProjectGate moduleLabel="cost trackers" />
+        ) : (
+          <>
         <div className={`${CARD} p-4 sm:p-5`}>
           <label className={LABEL}>Project</label>
           <SearchableSelect
@@ -315,6 +320,8 @@ export default function CostTrackersPage() {
                 </table>
               </div>
             )}
+          </>
+        )}
           </>
         )}
       </div>

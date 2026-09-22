@@ -18,6 +18,14 @@ export class EstateTerrierController {
     return this.terrier.findEstates(user);
   }
 
+  @Post('estates')
+  createEstate(
+    @Body() body: { code: string; name: string; title?: string; location?: string },
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.terrier.createEstate(body, user);
+  }
+
   @Get('estates/:estateId/vacant-units')
   vacantUnits(@Param('estateId') estateId: string, @CurrentUser() user: AuthUser) {
     return this.terrier.listVacantRows(estateId, user);

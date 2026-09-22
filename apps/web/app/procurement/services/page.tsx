@@ -102,6 +102,8 @@ export default function ServicesProcurementPage() {
       router.replace('/login');
       return;
     }
+    const t = new URLSearchParams(window.location.search).get('tab');
+    if (t === 'artisans' || t === 'requests') setTab(t);
     load();
   }, [router]);
 

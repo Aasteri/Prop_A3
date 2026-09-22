@@ -84,6 +84,14 @@ export default function ProjectsHubPage() {
             modules, or advance the pulse when the team moves on.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
+            {(canEdit || user?.role === 'PROJECT_MANAGER') && (
+              <Link
+                href="/projects/new"
+                className="rounded-lg bg-[#e87722] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#d06818]"
+              >
+                New project
+              </Link>
+            )}
             {PROJECT_STAGES.map((s) => (
               <Link
                 key={s.href}
@@ -133,7 +141,14 @@ export default function ProjectsHubPage() {
                 const meta = PROCESS_GROUP_META[p.processGroup] ?? PROCESS_GROUP_META.INITIATE;
                 return (
                   <tr key={p.id}>
-                    <td className="px-4 py-3 font-medium text-[#1a2744]">{p.name}</td>
+                    <td className="px-4 py-3 font-medium text-[#1a2744]">
+                      <Link
+                        href={`/projects/new?edit=${p.id}`}
+                        className="hover:text-[#e87722] hover:underline"
+                      >
+                        {p.name}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3 text-slate-600">
                       {p.site.code} · {p.site.name}
                     </td>
@@ -156,8 +171,16 @@ export default function ProjectsHubPage() {
               })}
               {!projects.length && !error && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
-                    No projects yet.
+                  <td colSpan={5} className="px-4 py-8 text-center">
+                    <p className="text-slate-500">No projects yet.</p>
+                    {canEdit && (
+                      <Link
+                        href="/projects/new"
+                        className="mt-3 inline-flex rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white"
+                      >
+                        Create project
+                      </Link>
+                    )}
                   </td>
                 </tr>
               )}

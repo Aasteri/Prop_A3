@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyProjectGate } from '@/components/EmptyEntityGate';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, downloadPdf, getToken, getUser, type AuthUser } from '@/lib/api';
@@ -46,6 +47,7 @@ export default function ChartersPage() {
   const [tab, setTab] = useState<'charters' | 'kickoffs'>('charters');
   const [showCharter, setShowCharter] = useState(false);
   const [showKickoff, setShowKickoff] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [charterForm, setCharterForm] = useState({
     projectId: '',
@@ -112,30 +114,84 @@ export default function ChartersPage() {
     e.preventDefault();
     setError('');
     try {
-      await api('/charters', {
-        method: 'POST',
-        body: JSON.stringify({
-          projectId: charterForm.projectId,
-          title: charterForm.title,
-          executiveSummary: charterForm.executiveSummary,
-          goals: linesToList(charterForm.goals),
-          deliverables: linesToList(charterForm.deliverables),
-          businessCase: charterForm.businessCase || undefined,
-          benefits: charterForm.benefits || undefined,
-          costs: charterForm.costs || undefined,
-          budgetRange: charterForm.budgetRange || undefined,
-          timeline: charterForm.timeline || undefined,
-          risks: linesToList(charterForm.risks),
-          scopeIn: linesToList(charterForm.scopeIn),
-          scopeOut: linesToList(charterForm.scopeOut),
-          team: linesToList(charterForm.team),
-          successCriteria: linesToList(charterForm.successCriteria),
-        }),
-      });
+      const payload = {
+        projectId: charterForm.projectId,
+        title: charterForm.title,
+        executiveSummary: charterForm.executiveSummary,
+        goals: linesToList(charterForm.goals),
+        deliverables: linesToList(charterForm.deliverables),
+        businessCase: charterForm.businessCase || undefined,
+        benefits: charterForm.benefits || undefined,
+        costs: charterForm.costs || undefined,
+        budgetRange: charterForm.budgetRange || undefined,
+        timeline: charterForm.timeline || undefined,
+        risks: linesToList(charterForm.risks),
+        scopeIn: linesToList(charterForm.scopeIn),
+        scopeOut: linesToList(charterForm.scopeOut),
+        team: linesToList(charterForm.team),
+        successCriteria: linesToList(charterForm.successCriteria),
+      };
+      if (editingId) {
+        await api(`/charters/${editingId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+      } else {
+        await api('/charters', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+      }
       setShowCharter(false);
+      setEditingId(null);
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create charter');
+      setError(err instanceof Error ? err.message : 'Failed to save charter');
+    }
+  }
+
+  async function startEditCharter(id: string) {
+    setError('');
+    try {
+      const c = await api<{
+        id: string;
+        projectId: string;
+        title: string;
+        executiveSummary: string;
+        goals: string[];
+        deliverables: string[];
+        businessCase: string | null;
+        benefits: string | null;
+        costs: string | null;
+        budgetRange: string | null;
+        timeline: string | null;
+        risks: string[];
+        scopeIn: string[];
+        scopeOut: string[];
+        team: string[];
+        successCriteria: string[];
+      }>(`/charters/${id}`);
+      setEditingId(c.id);
+      setCharterForm({
+        projectId: c.projectId,
+        title: c.title,
+        executiveSummary: c.executiveSummary,
+        goals: (c.goals ?? []).join('\n'),
+        deliverables: (c.deliverables ?? []).join('\n'),
+        businessCase: c.businessCase ?? '',
+        benefits: c.benefits ?? '',
+        costs: c.costs ?? '',
+        budgetRange: c.budgetRange ?? '',
+        timeline: c.timeline ?? '',
+        risks: (c.risks ?? []).join('\n'),
+        scopeIn: (c.scopeIn ?? []).join('\n'),
+        scopeOut: (c.scopeOut ?? []).join('\n'),
+        team: (c.team ?? []).join('\n'),
+        successCriteria: (c.successCriteria ?? []).join('\n'),
+      });
+      setShowCharter(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load charter');
     }
   }
 
@@ -214,6 +270,10 @@ export default function ChartersPage() {
           </p>
         )}
 
+        {!projects.length ? (
+          <EmptyProjectGate moduleLabel="charters and kick-offs" />
+        ) : (
+          <>
         <Link href="/projects-hub" className="text-sm font-medium text-[#e87722] hover:underline">
           ← Projects hub
         </Link>
@@ -223,7 +283,15 @@ export default function ChartersPage() {
             {canManage && (
               <button
                 type="button"
-                onClick={() => setShowCharter((v) => !v)}
+                onClick={() => {
+                  if (showCharter) {
+                    setShowCharter(false);
+                    setEditingId(null);
+                  } else {
+                    setEditingId(null);
+                    setShowCharter(true);
+                  }
+                }}
                 className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white"
               >
                 {showCharter ? 'Cancel' : 'New charter'}
@@ -266,6 +334,9 @@ export default function ChartersPage() {
                 </div>
                 {(
                   [
+                    ['businessCase', 'Business case'],
+                    ['benefits', 'Benefits'],
+                    ['costs', 'Costs'],
                     ['goals', 'Goals (one per line)'],
                     ['deliverables', 'Deliverables'],
                     ['risks', 'Risks'],
@@ -309,7 +380,7 @@ export default function ChartersPage() {
                     type="submit"
                     className="rounded-lg bg-[#1a2744] px-4 py-2 text-sm text-white"
                   >
-                    Save draft charter
+                    {editingId ? 'Update draft charter' : 'Save draft charter'}
                   </button>
                 </div>
               </form>
@@ -345,6 +416,15 @@ export default function ChartersPage() {
                       >
                         PDF
                       </button>
+                      {canManage && c.status === 'DRAFT' && (
+                        <button
+                          type="button"
+                          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-900"
+                          onClick={() => startEditCharter(c.id)}
+                        >
+                          Edit
+                        </button>
+                      )}
                       {canManage && c.status === 'DRAFT' && (
                         <button
                           type="button"
@@ -553,6 +633,8 @@ export default function ChartersPage() {
                 onPageChange={kickoffList.setPage}
               />
             )}
+          </>
+        )}
           </>
         )}
       </div>

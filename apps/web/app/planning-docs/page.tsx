@@ -15,6 +15,8 @@ import {
   type AuthUser,
   type DocumentRecord,
 } from '@/lib/api';
+import { getApiBaseUrl } from '@/lib/api-base';
+import { EmptyProjectGate } from '@/components/EmptyEntityGate';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
 const PLANNING_CATEGORIES = [
@@ -183,6 +185,10 @@ export default function PlanningDocsPage() {
           </div>
         </header>
 
+        {!projects.length ? (
+          <EmptyProjectGate moduleLabel="planning documents" />
+        ) : (
+          <>
         <div className="flex flex-wrap gap-3">
           <div className="w-full max-w-md">
             <SearchableSelect
@@ -263,6 +269,7 @@ export default function PlanningDocsPage() {
                 <th className="px-4 py-3 font-medium">Title</th>
                 <th className="px-4 py-3 font-medium">Version</th>
                 <th className="px-4 py-3 font-medium">Uploaded</th>
+                <th className="px-4 py-3 font-medium">File</th>
               </tr>
             </thead>
             <tbody>
@@ -274,11 +281,21 @@ export default function PlanningDocsPage() {
                   <td className="px-4 py-3">
                     {d.createdAt ? new Date(d.createdAt).toLocaleString() : '—'}
                   </td>
+                  <td className="px-4 py-3">
+                    <a
+                      href={`${getApiBaseUrl()}${d.fileUrl.startsWith('/') ? '' : '/'}${d.fileUrl}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[#e87722] hover:underline"
+                    >
+                      Open
+                    </a>
+                  </td>
                 </tr>
               ))}
               {!docs.length && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
+                  <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
                     No planning documents for this project yet.
                   </td>
                 </tr>
@@ -294,6 +311,8 @@ export default function PlanningDocsPage() {
             filteredCount={filteredCount}
             onPageChange={setPage}
           />
+        )}
+          </>
         )}
       </div>
     </AppShell>

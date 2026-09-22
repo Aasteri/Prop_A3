@@ -163,6 +163,11 @@ export default function InventoriesPage() {
     filters: [kindFilter, ...(statusFilter.options.length ? [statusFilter] : [])],
   });
 
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('type');
+    if (t === 'MOVE_OUT' || t === 'MOVE_IN') setFilter('kind', t);
+  }, [setFilter]);
+
   return (
     <AppShell>
       <div className="space-y-6">

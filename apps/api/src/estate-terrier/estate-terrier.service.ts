@@ -1,4 +1,9 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
@@ -78,6 +83,24 @@ export class EstateTerrierService {
         })),
       },
     };
+  }
+
+  async createEstate(
+    body: { code: string; name: string; title?: string; location?: string },
+    user: AuthUser,
+  ) {
+    this.assertCanManage(user);
+    const code = body.code?.trim().toUpperCase();
+    const name = body.name?.trim();
+    if (!code || !name) throw new BadRequestException('code and name required');
+    return this.prisma.rentalEstate.create({
+      data: {
+        code,
+        name,
+        title: body.title?.trim() || name,
+        location: body.location?.trim() || null,
+      },
+    });
   }
 
   async createRow(dto: CreateTerrierRowDto, user: AuthUser) {
