@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MarketplaceShell } from '@/components/MarketplaceShell';
-import { api, getToken } from '@/lib/api';
+import { PhotoAttachField } from '@/components/PhotoAttachField';
+import { api, getToken, uploadPhotos } from '@/lib/api';
 import {
   clearMarketplaceDraft,
   hasPendingMarketplaceDraft,
@@ -39,6 +40,7 @@ export function MarketplaceClient({
   const [description, setDescription] = useState('');
   const [locationText, setLocationText] = useState('');
   const [addressText, setAddressText] = useState('');
+  const [photos, setPhotos] = useState<File[]>([]);
   const [error, setError] = useState('');
   const [ok, setOk] = useState('');
   const [loading, setLoading] = useState(false);
@@ -144,6 +146,7 @@ export function MarketplaceClient({
     setError('');
     setOk('');
     try {
+      const photoUrls = photos.length ? await uploadPhotos(photos) : undefined;
       const job = await api<{ id: string; publicId: string }>('/marketplace/jobs', {
         method: 'POST',
         body: JSON.stringify({
@@ -152,10 +155,12 @@ export function MarketplaceClient({
           description: jobDescription,
           locationText: jobLocation,
           addressText: jobAddress,
+          photoUrls,
         }),
       });
       clearMarketplaceDraft();
       setDraftPending(false);
+      setPhotos([]);
       setOk(`Request submitted (${job.publicId}). Admin will assign artisans to quote.`);
       router.push(`/marketplace/jobs/${job.id}`);
     } catch (err) {
@@ -329,6 +334,15 @@ export function MarketplaceClient({
                     placeholder="Street / plot — unlocked in chat after you pay job fee"
                   />
                 </div>
+                {authed && (
+                  <PhotoAttachField
+                    label="Photos of the work needed"
+                    hint="Optional · helps artisans quote accurately"
+                    files={photos}
+                    onChange={setPhotos}
+                    maxFiles={6}
+                  />
+                )}
                 {error && <p className="text-sm text-red-600">{error}</p>}
                 {ok && <p className="text-sm text-emerald-700">{ok}</p>}
                 <button

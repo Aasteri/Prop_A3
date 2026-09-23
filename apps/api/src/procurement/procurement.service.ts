@@ -237,6 +237,9 @@ export class ProcurementService {
           supplierInvoiceNo: dto.supplierInvoiceNo,
           receivedAt: dto.receivedAt ? new Date(dto.receivedAt) : new Date(),
           notes: dto.notes,
+          attachmentUrls: dto.attachmentUrls?.length
+            ? (dto.attachmentUrls as never)
+            : undefined,
           lines: {
             create: dto.lines.map((l) => ({
               description: l.description,

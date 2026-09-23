@@ -1652,6 +1652,8 @@ model PropertyInventory {
   moveDate             DateTime?       @map("move_date") @db.Date
   photoEvidence        Boolean         @default(false) @map("photo_evidence")
   videoEvidence        Boolean         @default(false) @map("video_evidence")
+  /// Uploaded evidence paths from POST /uploads/photos
+  photoUrls            Json?           @map("photo_urls")
   evidenceGivenToTenantAt DateTime?    @map("evidence_given_to_tenant_at") @db.Date
   frontDoorKeys        Int?            @map("front_door_keys")
   backDoorKeys         Int?            @map("back_door_keys")
@@ -1962,6 +1964,8 @@ model ArtisanProfile {
   guarantorName     String?               @map("guarantor_name")
   guarantorPhone    String?               @map("guarantor_phone")
   guarantorAddress  String?               @map("guarantor_address") @db.Text
+  /// ID / CAC / trade cert paths from POST /uploads/photos
+  kycDocumentUrls   Json?                 @map("kyc_document_urls")
   email             String?
   altPhone          String?               @map("alt_phone")
   bankName          String?               @map("bank_name")
@@ -2320,6 +2324,8 @@ model GoodsReceipt {
   supplierInvoiceNo String? @map("supplier_invoice_no")
   receivedAt     DateTime @map("received_at")
   notes          String?  @db.Text
+  /// Delivery note / receipt photo paths from POST /uploads/photos
+  attachmentUrls Json?    @map("attachment_urls")
   createdAt      DateTime @default(now()) @map("created_at")
 
   po    PurchaseOrder      @relation(fields: [poId], references: [id])

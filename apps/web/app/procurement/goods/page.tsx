@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
-import { api, getToken } from '@/lib/api';
+import { api, getToken, uploadPhotos } from '@/lib/api';
 import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
@@ -147,11 +147,30 @@ function GoodsInner() {
 
   async function receivePo(po: PurchaseOrder) {
     const invoiceNo = window.prompt('Supplier invoice number') || undefined;
+    const attach = window.confirm(
+      'Attach delivery note / receipt photos?\n\nOK = pick files · Cancel = record GRN without attachments',
+    );
+    let attachmentUrls: string[] | undefined;
+    if (attach) {
+      const files = await new Promise<File[]>((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*,application/pdf';
+        input.multiple = true;
+        input.onchange = () => resolve(Array.from(input.files ?? []).slice(0, 6));
+        input.oncancel = () => resolve([]);
+        input.click();
+      });
+      if (files.length) {
+        attachmentUrls = await uploadPhotos(files);
+      }
+    }
     await api('/procurement/receipts', {
       method: 'POST',
       body: JSON.stringify({
         poId: po.id,
         supplierInvoiceNo: invoiceNo,
+        attachmentUrls,
         lines: po.lines.map((l) => {
           const qty = Number(l.qty);
           return {

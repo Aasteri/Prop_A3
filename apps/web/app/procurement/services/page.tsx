@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { PhotoAttachField } from '@/components/PhotoAttachField';
 import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
-import { api, getToken } from '@/lib/api';
+import { api, getToken, uploadPhotos } from '@/lib/api';
 import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
@@ -89,8 +90,9 @@ export default function ServicesProcurementPage() {
     description: '',
     component: '',
     workRequired: '',
-    photoUrl: 'https://placeholder.local/photo.jpg',
   });
+  const [reqPhotos, setReqPhotos] = useState<File[]>([]);
+  const [kycDocs, setKycDocs] = useState<File[]>([]);
 
   const load = () => {
     api<Artisan[]>('/artisans').then(setArtisans).catch(console.error);
@@ -111,6 +113,7 @@ export default function ServicesProcurementPage() {
     e.preventDefault();
     setError('');
     try {
+      const kycDocumentUrls = kycDocs.length ? await uploadPhotos(kycDocs) : undefined;
       await api('/artisans', {
         method: 'POST',
         body: JSON.stringify({
@@ -118,9 +121,11 @@ export default function ServicesProcurementPage() {
           businessName: artisanForm.businessName || undefined,
           address: artisanForm.address || undefined,
           trades: [artisanForm.trades],
+          kycDocumentUrls,
         }),
       });
       setShowArtisan(false);
+      setKycDocs([]);
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed');
@@ -139,6 +144,11 @@ export default function ServicesProcurementPage() {
     e.preventDefault();
     setError('');
     try {
+      if (!reqPhotos.length) {
+        setError('Attach at least one photo of the work needed.');
+        return;
+      }
+      const photoUrls = await uploadPhotos(reqPhotos);
       await api('/service-requests', {
         method: 'POST',
         body: JSON.stringify({
@@ -146,10 +156,17 @@ export default function ServicesProcurementPage() {
           description: reqForm.description,
           component: reqForm.component,
           workRequired: reqForm.workRequired,
-          photoUrls: [reqForm.photoUrl],
+          photoUrls,
         }),
       });
       setShowReq(false);
+      setReqPhotos([]);
+      setReqForm({
+        tradeCode: 'plumber',
+        description: '',
+        component: '',
+        workRequired: '',
+      });
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed');
@@ -297,6 +314,15 @@ export default function ServicesProcurementPage() {
               <label className={LABEL}>Guarantor phone</label>
               <input className={INPUT} required value={artisanForm.guarantorPhone} onChange={(e) => setArtisanForm({ ...artisanForm, guarantorPhone: e.target.value })} />
             </div>
+            <div className="sm:col-span-2">
+              <PhotoAttachField
+                label="KYC documents"
+                hint="Optional · ID, CAC, or trade certificate (images / PDF)"
+                files={kycDocs}
+                onChange={setKycDocs}
+                maxFiles={6}
+              />
+            </div>
             <div className="sm:col-span-2 flex gap-2">
               <button type="submit" className="rounded-lg bg-[#1a2744] px-4 py-2 text-sm text-white">Save KYC</button>
               <button type="button" onClick={() => setShowArtisan(false)} className="rounded-lg border px-4 py-2 text-sm text-slate-900">Cancel</button>
@@ -329,9 +355,15 @@ export default function ServicesProcurementPage() {
               <textarea className={INPUT} required rows={2} value={reqForm.workRequired} onChange={(e) => setReqForm({ ...reqForm, workRequired: e.target.value })} />
             </div>
             <div className="sm:col-span-2">
-              <label className={LABEL}>Photo URL (≥1 required)</label>
-              <input className={INPUT} required value={reqForm.photoUrl} onChange={(e) => setReqForm({ ...reqForm, photoUrl: e.target.value })} />
+              <PhotoAttachField
+                label="Photos of the issue"
+                required
+                files={reqPhotos}
+                onChange={setReqPhotos}
+                maxFiles={6}
+              />
             </div>
+            {error && <p className="sm:col-span-2 text-sm text-red-600">{error}</p>}
             <div className="sm:col-span-2 flex gap-2">
               <button type="submit" className="rounded-lg bg-[#1a2744] px-4 py-2 text-sm text-white">Submit</button>
               <button type="button" onClick={() => setShowReq(false)} className="rounded-lg border px-4 py-2 text-sm text-slate-900">Cancel</button>

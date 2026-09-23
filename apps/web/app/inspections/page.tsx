@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { PhotoAttachField } from '@/components/PhotoAttachField';
 import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
-import { api, getToken } from '@/lib/api';
+import { api, getToken, uploadPhotos } from '@/lib/api';
 import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
@@ -69,6 +70,7 @@ export default function InspectionsPage() {
     longitude: '',
   });
   const [checklist, setChecklist] = useState<ChecklistRow[]>([]);
+  const [photos, setPhotos] = useState<File[]>([]);
 
   const selectedSection = useMemo(
     () => meta.sections.find((s) => s.title === form.section),
@@ -226,6 +228,7 @@ export default function InspectionsPage() {
       }));
 
     try {
+      const photoUrls = photos.length ? await uploadPhotos(photos) : undefined;
       await api('/inspections', {
         method: 'POST',
         body: JSON.stringify({
@@ -241,9 +244,11 @@ export default function InspectionsPage() {
           sectionSignedBy: form.sectionSignedBy.trim() || undefined,
           latitude: form.latitude ? Number(form.latitude) : undefined,
           longitude: form.longitude ? Number(form.longitude) : undefined,
+          photoUrls,
         }),
       });
       setShowForm(false);
+      setPhotos([]);
       load(projectFilter || undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to log inspection');
@@ -472,6 +477,16 @@ export default function InspectionsPage() {
                 rows={2}
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <PhotoAttachField
+                label="Evidence photos"
+                hint="Optional · images or PDF of the inspected work"
+                files={photos}
+                onChange={setPhotos}
+                maxFiles={8}
               />
             </div>
 

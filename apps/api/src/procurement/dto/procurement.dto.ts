@@ -196,6 +196,11 @@ export class CreateGoodsReceiptDto {
   @IsString()
   notes?: string;
 
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  attachmentUrls?: string[];
+
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })

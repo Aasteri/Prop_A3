@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { PhotoAttachField } from '@/components/PhotoAttachField';
 import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
-import { api, getToken } from '@/lib/api';
+import { api, getToken, uploadPhotos } from '@/lib/api';
 import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
@@ -54,6 +55,7 @@ export default function MaintenancePage() {
     description: '',
     urgency: 'MEDIUM',
   });
+  const [photos, setPhotos] = useState<File[]>([]);
 
   const propertyOptions = useMemo(
     () => [
@@ -123,6 +125,11 @@ export default function MaintenancePage() {
     e.preventDefault();
     setError('');
     try {
+      if (!photos.length) {
+        setError('Attach at least one photo of the issue.');
+        return;
+      }
+      const photoUrls = await uploadPhotos(photos);
       await api('/maintenance', {
         method: 'POST',
         body: JSON.stringify({
@@ -134,9 +141,11 @@ export default function MaintenancePage() {
           component: form.component || undefined,
           description: form.description,
           urgency: form.urgency,
+          photoUrls,
         }),
       });
       setShowForm(false);
+      setPhotos([]);
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create request');
@@ -280,6 +289,15 @@ export default function MaintenancePage() {
                 rows={3}
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <PhotoAttachField
+                label="Photos of the issue"
+                required
+                files={photos}
+                onChange={setPhotos}
+                maxFiles={6}
               />
             </div>
             {error && <p className="sm:col-span-2 text-sm text-red-600">{error}</p>}

@@ -1,4 +1,6 @@
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsDateString,
   IsEnum,
@@ -34,6 +36,12 @@ export class CreateInventoryDto {
   @IsOptional()
   @IsBoolean()
   videoEvidence?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(12)
+  @IsString({ each: true })
+  photoUrls?: string[];
 
   @IsOptional()
   @IsInt()
@@ -85,6 +93,12 @@ export class UpdateInventoryDto {
   @IsOptional()
   @IsBoolean()
   videoEvidence?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(12)
+  @IsString({ each: true })
+  photoUrls?: string[];
 
   @IsOptional()
   @IsInt()

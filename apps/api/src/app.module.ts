@@ -58,6 +58,7 @@ import { CompanySettingsModule } from './company-settings/company-settings.modul
 import { MarketplaceModule } from './marketplace/marketplace.module';
 import { ProjectOpsModule } from './project-ops/project-ops.module';
 import { FeasibilityModule } from './feasibility/feasibility.module';
+import { UploadsModule } from './uploads/uploads.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -75,6 +76,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     ProjectsModule,
     ProjectOpsModule,
     FeasibilityModule,
+    UploadsModule,
     SiteTrackerModule,
     ChangeLogModule,
     MaterialRequestsModule,

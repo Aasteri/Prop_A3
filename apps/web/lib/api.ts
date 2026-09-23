@@ -405,6 +405,34 @@ export async function uploadDocument(
   return res.json() as Promise<DocumentRecord>;
 }
 
+/** Upload images/PDFs via shared POST /uploads/photos → store returned paths in photoUrls. */
+export async function uploadPhotos(files: File[]): Promise<string[]> {
+  if (!files.length) return [];
+  const token = getToken();
+  const form = new FormData();
+  for (const f of files) form.append('photos', f);
+
+  const res = await fetch(`${API_URL}/api/uploads/photos`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+
+  if (!res.ok) {
+    let message = res.statusText;
+    try {
+      const body = await res.json();
+      message = body.message ?? message;
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(message, res.status);
+  }
+
+  const body = (await res.json()) as { urls: string[] };
+  return body.urls ?? [];
+}
+
 export async function generateAllocationLetter(clientId: string, projectId: string) {
   return api<DocumentRecord>('/documents/allocation-letter', {
     method: 'POST',

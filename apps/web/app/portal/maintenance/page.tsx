@@ -4,8 +4,9 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PortalShell } from '@/components/PortalShell';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { PhotoAttachField } from '@/components/PhotoAttachField';
 import { SearchableSelect } from '@/components/SearchableSelect';
-import { api, getToken } from '@/lib/api';
+import { api, getToken, uploadPhotos } from '@/lib/api';
 import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
@@ -28,22 +29,6 @@ type MaintRow = {
   }[];
 };
 
-function filesToDataUrls(files: FileList | null): Promise<string[]> {
-  if (!files?.length) return Promise.resolve([]);
-  const list = Array.from(files).slice(0, 4);
-  return Promise.all(
-    list.map(
-      (file) =>
-        new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result));
-          reader.onerror = () => reject(reader.error);
-          reader.readAsDataURL(file);
-        }),
-    ),
-  );
-}
-
 export default function PortalMaintenancePage() {
   const router = useRouter();
   const [properties, setProperties] = useState<PropertyOpt[]>([]);
@@ -58,6 +43,7 @@ export default function PortalMaintenancePage() {
     description: '',
     urgency: 'MEDIUM',
   });
+  const [photos, setPhotos] = useState<File[]>([]);
 
   const {
     query,
@@ -101,15 +87,12 @@ export default function PortalMaintenancePage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
-    const fileInput = (e.target as HTMLFormElement).elements.namedItem(
-      'photos',
-    ) as HTMLInputElement;
     try {
-      const photoUrls = await filesToDataUrls(fileInput.files);
-      if (!photoUrls.length) {
+      if (!photos.length) {
         setError('Please attach at least one photo of the issue.');
         return;
       }
+      const photoUrls = await uploadPhotos(photos);
       await api('/client-portal/maintenance', {
         method: 'POST',
         body: JSON.stringify({
@@ -123,6 +106,7 @@ export default function PortalMaintenancePage() {
         }),
       });
       setShowForm(false);
+      setPhotos([]);
       setForm((f) => ({ ...f, description: '', component: '' }));
       load();
     } catch (err) {
@@ -241,8 +225,14 @@ export default function PortalMaintenancePage() {
               />
             </div>
             <div>
-              <label className={LABEL}>Photos (required)</label>
-              <input name="photos" type="file" accept="image/*" multiple required className={INPUT} />
+              <PhotoAttachField
+                label="Photos"
+                required
+                accept="image/*"
+                files={photos}
+                onChange={setPhotos}
+                maxFiles={6}
+              />
             </div>
             <div className="sm:col-span-2">
               <label className={LABEL}>Description</label>

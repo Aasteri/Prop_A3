@@ -112,6 +112,7 @@ export class InspectionsService {
         sectionSignedAt: signedBy ? new Date() : undefined,
         latitude: dto.latitude,
         longitude: dto.longitude,
+        photoUrls: dto.photoUrls?.length ? (dto.photoUrls as unknown as Prisma.InputJsonValue) : undefined,
       },
       include,
     });
@@ -161,6 +162,12 @@ export class InspectionsService {
             ? signedBy
               ? new Date()
               : null
+            : undefined,
+        latitude: dto.latitude,
+        longitude: dto.longitude,
+        photoUrls:
+          dto.photoUrls !== undefined
+            ? (dto.photoUrls as unknown as Prisma.InputJsonValue)
             : undefined,
       },
       include,

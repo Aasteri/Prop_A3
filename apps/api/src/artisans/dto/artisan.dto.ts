@@ -58,6 +58,11 @@ export class CreateArtisanDto {
   guarantorAddress?: string;
 
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  kycDocumentUrls?: string[];
+
+  @IsOptional()
   @IsString()
   bankName?: string;
 

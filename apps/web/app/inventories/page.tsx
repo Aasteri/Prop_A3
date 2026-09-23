@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { PhotoAttachField } from '@/components/PhotoAttachField';
 import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
-import { api, getToken } from '@/lib/api';
+import { api, getToken, uploadPhotos } from '@/lib/api';
 import { useFilteredList, type FilterDef } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
@@ -55,6 +56,7 @@ export default function InventoriesPage() {
     photoEvidence: true,
     notes: '',
   });
+  const [photos, setPhotos] = useState<File[]>([]);
 
   const load = () => {
     api<Inventory[]>('/inventories').then(setRows).catch(console.error);
@@ -73,6 +75,11 @@ export default function InventoriesPage() {
     e.preventDefault();
     setError('');
     try {
+      if (form.photoEvidence && !photos.length) {
+        setError('Attach photographic evidence, or uncheck “Photographic evidence taken”.');
+        return;
+      }
+      const photoUrls = photos.length ? await uploadPhotos(photos) : undefined;
       const created = await api<{ id: string }>('/inventories', {
         method: 'POST',
         body: JSON.stringify({
@@ -85,7 +92,8 @@ export default function InventoriesPage() {
           backDoorKeys: Number(form.backDoorKeys) || undefined,
           electricReading: form.electricReading || undefined,
           waterReading: form.waterReading || undefined,
-          photoEvidence: form.photoEvidence,
+          photoEvidence: form.photoEvidence || Boolean(photoUrls?.length),
+          photoUrls,
           notes: form.notes || undefined,
         }),
       });
@@ -279,6 +287,17 @@ export default function InventoriesPage() {
               />
               Photographic evidence taken
             </label>
+            {form.photoEvidence && (
+              <div className="sm:col-span-2">
+                <PhotoAttachField
+                  label="Evidence photos"
+                  required
+                  files={photos}
+                  onChange={setPhotos}
+                  maxFiles={10}
+                />
+              </div>
+            )}
             {error && <p className="sm:col-span-2 text-sm text-red-600">{error}</p>}
             <div className="sm:col-span-2">
               <button type="submit" className="rounded-lg bg-[#1a2744] px-4 py-2 text-sm text-white">

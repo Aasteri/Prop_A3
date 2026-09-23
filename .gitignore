@@ -33,8 +33,8 @@ prisma/*.db
 # PM2
 .pm2/
 
-# Uploads (local dev)
-uploads/
+# Uploads (local/runtime file storage at repo root only)
+/uploads/
 
 # Test
 coverage/

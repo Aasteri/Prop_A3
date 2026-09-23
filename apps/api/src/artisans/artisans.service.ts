@@ -98,6 +98,9 @@ export class ArtisansService {
         guarantorName: dto.guarantorName,
         guarantorPhone: dto.guarantorPhone,
         guarantorAddress: dto.guarantorAddress,
+        kycDocumentUrls: dto.kycDocumentUrls?.length
+          ? (dto.kycDocumentUrls as never)
+          : undefined,
         bankName: dto.bankName,
         bankAccountName: dto.bankAccountName,
         bankAccountNumber: dto.bankAccountNumber,

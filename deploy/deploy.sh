@@ -76,7 +76,7 @@ fi
 npm run build --workspace=apps/web
 
 echo "==> Ensuring upload directories exist..."
-mkdir -p uploads/{site-logs,payments,fcda,documents,marketplace}
+mkdir -p uploads/{site-logs,payments,fcda,documents,marketplace,photos}
 
 echo "==> Starting / reloading PM2..."
 if pm2 describe propa3-api >/dev/null 2>&1; then
