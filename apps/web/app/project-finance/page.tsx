@@ -179,8 +179,6 @@ function FinanceInner() {
           emptyLabel="Select…"
           placeholder="Search projects…"
         />
-          </>
-        )}
       </div>
 
       {error && (
@@ -265,6 +263,8 @@ function FinanceInner() {
           </div>
         </>
       )}
+          </>
+        )}
     </div>
   );
 }

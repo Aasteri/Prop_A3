@@ -154,8 +154,6 @@ function AnalysisInner() {
           emptyLabel="Select…"
           placeholder="Search projects…"
         />
-          </>
-        )}
       </div>
 
       {error && (
@@ -295,6 +293,8 @@ function AnalysisInner() {
           </div>
         </>
       )}
+          </>
+        )}
     </div>
   );
 }
