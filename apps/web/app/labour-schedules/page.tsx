@@ -528,6 +528,14 @@ export default function LabourSchedulesPage() {
                         onChange={(e) => updateCreateLine(i, { supervisedBy: e.target.value })}
                       />
                     </div>
+                    <div className="sm:col-span-2">
+                      <label className={LABEL}>Remark</label>
+                      <input
+                        className={INPUT}
+                        value={line.remark}
+                        onChange={(e) => updateCreateLine(i, { remark: e.target.value })}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -598,10 +606,73 @@ export default function LabourSchedulesPage() {
               <div className="space-y-4">
                 <div>
                   <h2 className="text-lg font-semibold text-[#1a2744]">{detail.number}</h2>
-                  <p className="text-sm text-slate-600">
-                    {detail.projectTitle ?? detail.project.name}
-                    {detail.projectManager ? ` · PM: ${detail.projectManager}` : ''}
-                  </p>
+                  {canManage ? (
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className={LABEL}>Project title</label>
+                        <input
+                          className={INPUT}
+                          value={detail.projectTitle ?? ''}
+                          onChange={(e) =>
+                            setDetail({ ...detail, projectTitle: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className={LABEL}>Project phase</label>
+                        <input
+                          className={INPUT}
+                          value={detail.projectPhase ?? ''}
+                          onChange={(e) =>
+                            setDetail({ ...detail, projectPhase: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className={LABEL}>Site/Project manager</label>
+                        <input
+                          className={INPUT}
+                          value={detail.projectManager ?? ''}
+                          onChange={(e) =>
+                            setDetail({ ...detail, projectManager: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className={LABEL}>Sheet no.</label>
+                        <input
+                          className={INPUT}
+                          value={detail.sheetNo ?? ''}
+                          onChange={(e) => setDetail({ ...detail, sheetNo: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className={LABEL}>Date</label>
+                        <input
+                          type="date"
+                          className={INPUT}
+                          value={(detail.scheduleDate ?? '').slice(0, 10)}
+                          onChange={(e) =>
+                            setDetail({ ...detail, scheduleDate: e.target.value || null })
+                          }
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className={LABEL}>Notes</label>
+                        <textarea
+                          className={INPUT}
+                          rows={2}
+                          value={detail.notes ?? ''}
+                          onChange={(e) => setDetail({ ...detail, notes: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-600">
+                      {detail.projectTitle ?? detail.project.name}
+                      {detail.projectManager ? ` · PM: ${detail.projectManager}` : ''}
+                    </p>
+                  )}
                 </div>
 
                 {canManage ? (
@@ -691,6 +762,27 @@ export default function LabourSchedulesPage() {
                             />
                           </div>
                           <div>
+                            <label className={LABEL}>Unit</label>
+                            <SearchableSelect
+                              className={INPUT}
+                              options={costUnitOptions}
+                              value={line.costUnit}
+                              onChange={(v) => updateEditLine(i, { costUnit: v })}
+                              placeholder="Unit…"
+                            />
+                          </div>
+                          <div>
+                            <label className={LABEL}>Total amount</label>
+                            <input
+                              type="number"
+                              className={INPUT}
+                              value={line.totalAmount}
+                              onChange={(e) =>
+                                updateEditLine(i, { totalAmount: e.target.value })
+                              }
+                            />
+                          </div>
+                          <div>
                             <label className={LABEL}>Supervised/Paid by</label>
                             <input
                               className={INPUT}
@@ -698,6 +790,14 @@ export default function LabourSchedulesPage() {
                               onChange={(e) =>
                                 updateEditLine(i, { supervisedBy: e.target.value })
                               }
+                            />
+                          </div>
+                          <div className="sm:col-span-3">
+                            <label className={LABEL}>Remark</label>
+                            <input
+                              className={INPUT}
+                              value={line.remark}
+                              onChange={(e) => updateEditLine(i, { remark: e.target.value })}
                             />
                           </div>
                         </div>
@@ -719,7 +819,7 @@ export default function LabourSchedulesPage() {
                         onClick={saveLines}
                         className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                       >
-                        {busy ? 'Saving…' : 'Save lines'}
+                        {busy ? 'Saving…' : 'Save schedule'}
                       </button>
                     </div>
                     {error && <p className="text-sm text-red-600">{error}</p>}
@@ -731,9 +831,12 @@ export default function LabourSchedulesPage() {
                         <tr>
                           <th className="py-2 pr-3">S/N</th>
                           <th className="py-2 pr-3">Description</th>
-                          <th className="py-2 pr-3">Team</th>
+                          <th className="py-2 pr-3">Trade</th>
                           <th className="py-2 pr-3">Leader</th>
-                          <th className="py-2">Size</th>
+                          <th className="py-2 pr-3">Size</th>
+                          <th className="py-2 pr-3">Cost</th>
+                          <th className="py-2 pr-3">Total</th>
+                          <th className="py-2">Remark</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -743,7 +846,18 @@ export default function LabourSchedulesPage() {
                             <td className="py-2 pr-3">{l.description}</td>
                             <td className="py-2 pr-3">{l.teamTrade ?? '—'}</td>
                             <td className="py-2 pr-3">{l.gangLeader ?? '—'}</td>
-                            <td className="py-2">{l.gangSize ?? '—'}</td>
+                            <td className="py-2 pr-3">{l.gangSize ?? '—'}</td>
+                            <td className="py-2 pr-3">
+                              {l.costPerUnit != null
+                                ? `${Number(l.costPerUnit).toLocaleString()}${l.costUnit ? `/${l.costUnit.toLowerCase()}` : ''}`
+                                : '—'}
+                            </td>
+                            <td className="py-2 pr-3">
+                              {l.totalAmount != null
+                                ? Number(l.totalAmount).toLocaleString()
+                                : '—'}
+                            </td>
+                            <td className="py-2">{l.remark ?? '—'}</td>
                           </tr>
                         ))}
                       </tbody>
