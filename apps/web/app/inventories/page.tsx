@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { AttachmentLinks } from '@/components/AttachmentLinks';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { PhotoAttachField } from '@/components/PhotoAttachField';
 import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
@@ -30,6 +31,7 @@ type Inventory = {
   electricReading: string | null;
   waterReading: string | null;
   photoEvidence: boolean;
+  photoUrls?: string[] | null;
   tenancy: {
     tenantName: string;
     property: { name: string };
@@ -350,6 +352,7 @@ export default function InventoriesPage() {
                       : ''}
                     {r.photoEvidence ? ' · photos' : ''}
                   </p>
+                  <AttachmentLinks urls={r.photoUrls} label="Evidence photos" />
                 </div>
                 <div className="flex gap-2">
                   <Link

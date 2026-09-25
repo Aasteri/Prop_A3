@@ -4,6 +4,8 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyProjectGate } from '@/components/EmptyEntityGate';
+import { AttachmentLinks } from '@/components/AttachmentLinks';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { PhotoAttachField } from '@/components/PhotoAttachField';
 import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
@@ -26,6 +28,7 @@ type Inspection = {
   result: string;
   notes: string | null;
   checklist: ChecklistRow[] | null;
+  photoUrls?: string[] | null;
   sectionSignedBy: string | null;
   inspectedAt: string;
   inspectedBy: string | null;
@@ -303,6 +306,11 @@ export default function InspectionsPage() {
           </div>
         </header>
 
+        {!projects.length ? (
+          <EmptyProjectGate moduleLabel="inspections" />
+        ) : (
+          <>
+
         <div className="flex flex-wrap gap-3">
           <div className="w-full max-w-xs">
             <SearchableSelect
@@ -568,7 +576,10 @@ export default function InspectionsPage() {
                       <span className="block text-xs text-slate-500">{r.inspectedBy}</span>
                     ) : null}
                   </td>
-                  <td className="px-4 py-3">{r.result}</td>
+                  <td className="px-4 py-3">
+                    {r.result}
+                    <AttachmentLinks urls={r.photoUrls} label="Evidence" className="mt-1" />
+                  </td>
                   <td className="px-4 py-3 space-x-2 whitespace-nowrap">
                     {r.result === 'PENDING' && (
                       <>
@@ -609,6 +620,8 @@ export default function InspectionsPage() {
             filteredCount={filteredCount}
             onPageChange={setPage}
           />
+        )}
+          </>
         )}
       </div>
     </AppShell>

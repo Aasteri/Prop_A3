@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyProjectGate } from '@/components/EmptyEntityGate';
 import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
 import { api, getToken, ApiError } from '@/lib/api';
 
@@ -74,6 +75,9 @@ export default function NewChangeLogPage() {
     <AppShell>
       <h1 className="mb-4 text-2xl font-semibold text-[#1a2744]">Raise Project Change</h1>
 
+      {!projects.length ? (
+        <EmptyProjectGate moduleLabel="change log" />
+      ) : (
       <form className="max-w-2xl space-y-4 rounded-xl border border-slate-200 bg-white p-6">
         <label className="block text-sm">
           <span className="mb-1 block font-medium">Project</span>
@@ -158,6 +162,7 @@ export default function NewChangeLogPage() {
           </button>
         </div>
       </form>
+      )}
     </AppShell>
   );
 }

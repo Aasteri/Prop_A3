@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyProjectGate } from '@/components/EmptyEntityGate';
 import { ProcessGroupPulse } from '@/components/ProcessGroupPulse';
 import { api, getToken, getUser, type AuthUser } from '@/lib/api';
 import { CARD, PAGE_HEADER } from '@/lib/ui';
@@ -171,16 +172,8 @@ export default function ProjectsHubPage() {
               })}
               {!projects.length && !error && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center">
-                    <p className="text-slate-500">No projects yet.</p>
-                    {canEdit && (
-                      <Link
-                        href="/projects/new"
-                        className="mt-3 inline-flex rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white"
-                      >
-                        Create project
-                      </Link>
-                    )}
+                  <td colSpan={5} className="px-4 py-8">
+                    <EmptyProjectGate moduleLabel="project pulse" />
                   </td>
                 </tr>
               )}

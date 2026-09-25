@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyProjectGate } from '@/components/EmptyEntityGate';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
 import { api, getToken, getUser, type AuthUser } from '@/lib/api';
@@ -331,6 +332,11 @@ export default function LabourSchedulesPage() {
             </div>
           </div>
         </header>
+
+        {!projects.length ? (
+          <EmptyProjectGate moduleLabel="labour schedules" />
+        ) : (
+          <>
 
         {showForm && canManage && (
           <form onSubmit={onCreate} className={`${CARD} space-y-4 p-6`}>
@@ -748,6 +754,8 @@ export default function LabourSchedulesPage() {
             )}
           </div>
         </div>
+          </>
+        )}
       </div>
     </AppShell>
   );

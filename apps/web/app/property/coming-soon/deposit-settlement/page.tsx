@@ -1,15 +1,18 @@
 'use client';
 
-import { BuildingModulePage } from '@/components/ModulePage';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default function DepositSettlementComingSoonPage() {
+/** Deposit settlement lives on MOVE_OUT inventories — keep old URL from breaking. */
+export default function DepositSettlementRedirectPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace('/inventories?type=MOVE_OUT');
+  }, [router]);
+
   return (
-    <BuildingModulePage
-      title="Deposit settlement"
-      description="Caution / deposit reconciliation at tenancy exit — Phase 2 of the Property process-group redesign."
-      specRefs={['Property Exit stage', 'Deposit settlement (review meeting)']}
-      backHref="/property/exit"
-      backLabel="Exit"
-    />
+    <p className="p-8 text-center text-sm text-slate-600">
+      Redirecting to move-out inventories for deposit settlement…
+    </p>
   );
 }

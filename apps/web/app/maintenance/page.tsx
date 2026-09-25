@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { AttachmentLinks } from '@/components/AttachmentLinks';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { PhotoAttachField } from '@/components/PhotoAttachField';
 import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
@@ -23,6 +24,7 @@ type MaintenanceRow = {
   tenantName: string | null;
   unitLabel: string | null;
   createdAt: string;
+  photoUrls?: string[] | null;
   property: {
     id: string;
     name: string;
@@ -343,6 +345,7 @@ export default function MaintenancePage() {
                   <p className="text-xs font-semibold text-[#e87722]">{r.number}</p>
                   <h2 className="mt-1 text-base font-semibold text-[#1a2744]">{r.property.name}</h2>
                   <p className="mt-1 text-sm text-slate-600">{r.description}</p>
+                  <AttachmentLinks urls={r.photoUrls} label="Photos" />
                   <p className="mt-2 text-xs text-slate-500">
                     {r.urgency} · {r.status}
                     {r.tenantName ? ` · ${r.tenantName}` : ''}

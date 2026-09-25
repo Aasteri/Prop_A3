@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyProjectGate } from '@/components/EmptyEntityGate';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, getToken, getUser, type AuthUser } from '@/lib/api';
 import { BTN_PRIMARY, BTN_SECONDARY, CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
@@ -183,6 +184,11 @@ export default function QcPlansPage() {
             </div>
           </div>
         </header>
+
+        {!projects.length ? (
+          <EmptyProjectGate moduleLabel="QC plans" />
+        ) : (
+          <>
 
         <div className={`${CARD} p-4 sm:p-5`}>
           <label className={LABEL}>Filter by project</label>
@@ -389,6 +395,8 @@ export default function QcPlansPage() {
             </div>
           )}
         </div>
+          </>
+        )}
       </div>
     </AppShell>
   );

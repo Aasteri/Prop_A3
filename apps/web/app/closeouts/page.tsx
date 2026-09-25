@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyProjectGate } from '@/components/EmptyEntityGate';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, downloadPdf, getToken, getUser, type AuthUser } from '@/lib/api';
@@ -190,6 +191,11 @@ export default function CloseoutsPage() {
           </div>
         </header>
 
+        {!projects.length ? (
+          <EmptyProjectGate moduleLabel="closeouts" />
+        ) : (
+          <>
+
         {showForm && (
           <form onSubmit={onSubmit} className={`${CARD} grid gap-4 p-6 sm:grid-cols-2`}>
             <div className="sm:col-span-2">
@@ -374,6 +380,8 @@ export default function CloseoutsPage() {
             filteredCount={filteredCount}
             onPageChange={setPage}
           />
+        )}
+          </>
         )}
       </div>
     </AppShell>

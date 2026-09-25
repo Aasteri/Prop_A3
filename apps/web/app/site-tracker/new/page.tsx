@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyProjectGate } from '@/components/EmptyEntityGate';
 import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { api, getToken, ApiError, uploadSiteLogPhotos } from '@/lib/api';
@@ -218,6 +219,9 @@ export default function NewSiteLogPage() {
       <OfflineBanner />
       <h1 className="mb-4 text-2xl font-semibold text-[#1a2744]">New Daily Site Log</h1>
 
+      {!projects.length ? (
+        <EmptyProjectGate moduleLabel="site daily logs" />
+      ) : (
       <form className="space-y-6">
         <Section title="1. Header">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -448,6 +452,7 @@ export default function NewSiteLogPage() {
           </button>
         </div>
       </form>
+      )}
     </AppShell>
   );
 }

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyProjectGate } from '@/components/EmptyEntityGate';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, downloadPdf, getToken } from '@/lib/api';
 import { BTN_GHOST_ON_DARK, BTN_SECONDARY, CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
@@ -135,6 +136,11 @@ function AnalysisInner() {
         </div>
       </header>
 
+        {!projects.length ? (
+          <EmptyProjectGate moduleLabel="project analysis" />
+        ) : (
+          <>
+
       <div className={`${CARD} p-4 sm:p-5`}>
         <label className={LABEL}>Project</label>
         <SearchableSelect
@@ -148,6 +154,8 @@ function AnalysisInner() {
           emptyLabel="Select…"
           placeholder="Search projects…"
         />
+          </>
+        )}
       </div>
 
       {error && (

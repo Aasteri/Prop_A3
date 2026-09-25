@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { AttachmentLinks } from '@/components/AttachmentLinks';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { PhotoAttachField } from '@/components/PhotoAttachField';
 import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
@@ -20,6 +21,7 @@ type Artisan = {
   status: string;
   avgRating: string | number | null;
   guarantorName: string | null;
+  kycDocumentUrls?: string[] | null;
 };
 
 type ServiceReq = {
@@ -33,6 +35,7 @@ type ServiceReq = {
   labourAmount: string | number | null;
   materialsAmount: string | number | null;
   platformFee: string | number | null;
+  photoUrls?: string[] | null;
   artisan: { id: string; fullName: string; phone: string } | null;
 };
 
@@ -390,6 +393,7 @@ export default function ServicesProcurementPage() {
                     {Array.isArray(a.trades) ? ` · ${(a.trades as string[]).join(', ')}` : ''}
                     {a.avgRating != null ? ` · ★ ${Number(a.avgRating).toFixed(1)}` : ''}
                   </p>
+                  <AttachmentLinks urls={a.kycDocumentUrls} label="KYC documents" />
                 </div>
                 {a.status === 'PENDING_REVIEW' && (
                   <button type="button" onClick={() => approveArtisan(a.id)} className="rounded-md bg-green-700 px-3 py-1.5 text-xs text-white">
@@ -436,6 +440,7 @@ export default function ServicesProcurementPage() {
                         ? ` · labour ₦${Number(r.labourAmount).toLocaleString()} · fee ₦${Number(r.platformFee ?? 0).toLocaleString()}`
                         : ''}
                     </p>
+                    <AttachmentLinks urls={r.photoUrls} label="Photos" />
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {r.status === 'SUBMITTED' && (

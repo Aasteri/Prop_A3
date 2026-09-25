@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyProjectGate } from '@/components/EmptyEntityGate';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, getToken, getUser, type AuthUser } from '@/lib/api';
@@ -188,6 +189,11 @@ export default function PlanningCyclesPage() {
             )}
           </div>
         </header>
+
+        {!projects.length ? (
+          <EmptyProjectGate moduleLabel="planning cycles" />
+        ) : (
+          <>
 
         {error && (
           <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -406,6 +412,8 @@ export default function PlanningCyclesPage() {
             filteredCount={filteredCount}
             onPageChange={setPage}
           />
+        )}
+          </>
         )}
       </div>
     </AppShell>
