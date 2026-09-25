@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyPropertyGate } from '@/components/EmptyEntityGate';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, getToken } from '@/lib/api';
@@ -172,13 +173,18 @@ export default function TenanciesPage() {
             <button
               type="button"
               onClick={() => setShowForm((v) => !v)}
-              className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white hover:bg-[#d06818]"
+              disabled={!properties.length}
+              className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white hover:bg-[#d06818] disabled:opacity-50"
             >
               {showForm ? 'Cancel' : 'New tenancy'}
             </button>
           </div>
         </header>
 
+        {!properties.length ? (
+          <EmptyPropertyGate moduleLabel="tenancies" />
+        ) : (
+          <>
         {showForm && (
           <form onSubmit={onSubmit} className={`${CARD} grid gap-4 p-6 sm:grid-cols-2`}>
             <div>
@@ -422,6 +428,8 @@ export default function TenanciesPage() {
           filteredCount={filteredCount}
           onPageChange={setPage}
         />
+          </>
+        )}
       </div>
     </AppShell>
   );

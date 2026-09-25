@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyProjectGate } from '@/components/EmptyEntityGate';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, getToken } from '@/lib/api';
@@ -150,7 +151,8 @@ export default function WorksProcurementPage() {
               <button
                 type="button"
                 onClick={() => setShowForm((v) => !v)}
-                className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white"
+                disabled={!projects.length}
+                className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
                 {showForm ? 'Cancel' : 'New contract'}
               </button>
@@ -158,6 +160,10 @@ export default function WorksProcurementPage() {
           </div>
         </header>
 
+        {!projects.length ? (
+          <EmptyProjectGate moduleLabel="works contracts" />
+        ) : (
+          <>
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
             {error}
@@ -358,6 +364,8 @@ export default function WorksProcurementPage() {
             filteredCount={filteredCount}
             onPageChange={setPage}
           />
+        )}
+          </>
         )}
       </div>
     </AppShell>

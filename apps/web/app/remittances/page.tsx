@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyPropertyGate } from '@/components/EmptyEntityGate';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, downloadPdf, getToken } from '@/lib/api';
@@ -212,13 +213,18 @@ export default function RemittancesPage() {
             <button
               type="button"
               onClick={() => setShowForm((v) => !v)}
-              className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white"
+              disabled={!properties.length}
+              className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
               {showForm ? 'Cancel' : 'New remittance'}
             </button>
           </div>
         </header>
 
+        {!properties.length ? (
+          <EmptyPropertyGate moduleLabel="landlord remittances" />
+        ) : (
+          <>
         {showForm && (
           <form onSubmit={onSubmit} className={`${CARD} grid gap-4 p-6 sm:grid-cols-2`}>
             <div>
@@ -432,6 +438,8 @@ export default function RemittancesPage() {
           filteredCount={filteredCount}
           onPageChange={setPage}
         />
+          </>
+        )}
       </div>
     </AppShell>
   );

@@ -10,6 +10,21 @@ const LIVE_REDIRECTS: Record<string, string> = {
   'qc-planning': '/qc-plans',
   workforce: '/workforce',
   'qc-execution': '/inspections',
+  charters: '/charters',
+  'work-schedule': '/work-schedule',
+  'planning-docs': '/planning-docs',
+  'cost-trackers': '/cost-trackers',
+  'project-finance': '/project-finance',
+  'labour-schedules': '/labour-schedules',
+  'planning-cycles': '/planning-cycles',
+  'progress-reports': '/progress-reports',
+  retrospectives: '/retrospectives',
+  closeouts: '/closeouts',
+  inspections: '/inspections',
+  'site-tracker': '/site-tracker',
+  'material-requests': '/material-requests',
+  'change-log': '/change-log',
+  ivcs: '/ivcs',
 };
 
 export default function ProjectsComingSoonPage() {

@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyEntityGate } from '@/components/EmptyEntityGate';
 import { SearchableSelect } from '@/components/SearchableSelect';
 import { api, ApiError, getToken } from '@/lib/api';
 
@@ -169,6 +170,16 @@ export default function NewTenantApplicationPage() {
         </div>
       )}
 
+      {!estates.length ? (
+        <EmptyEntityGate
+          title="No estates yet"
+          description="Create an estate and vacant units in the estate terrier before starting a tenant application."
+          actionHref="/estate-terrier"
+          actionLabel="Open estate terrier"
+          secondaryHref="/properties-hub"
+          secondaryLabel="Properties hub"
+        />
+      ) : (
       <form className="max-w-3xl space-y-6 rounded-xl border border-slate-200 bg-white p-6">
         <section className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm sm:col-span-2">
@@ -297,6 +308,7 @@ export default function NewTenantApplicationPage() {
           </button>
         </div>
       </form>
+      )}
     </AppShell>
   );
 }

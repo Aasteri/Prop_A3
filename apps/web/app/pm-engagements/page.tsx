@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { EmptyPropertyGate } from '@/components/EmptyEntityGate';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, downloadPdf, getToken } from '@/lib/api';
 import { useFilteredList } from '@/lib/use-filtered-list';
@@ -134,13 +135,18 @@ export default function PmEngagementsPage() {
             <button
               type="button"
               onClick={() => setShowForm((v) => !v)}
-              className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white"
+              disabled={!properties.length}
+              className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
               {showForm ? 'Cancel' : 'New engagement'}
             </button>
           </div>
         </header>
 
+        {!properties.length ? (
+          <EmptyPropertyGate moduleLabel="PM engagements" />
+        ) : (
+          <>
         {showForm && (
           <form onSubmit={onSubmit} className={`${CARD} grid gap-4 p-6 sm:grid-cols-2`}>
             <div>
@@ -316,6 +322,8 @@ export default function PmEngagementsPage() {
             filteredCount={filteredCount}
             onPageChange={setPage}
           />
+        )}
+          </>
         )}
       </div>
     </AppShell>

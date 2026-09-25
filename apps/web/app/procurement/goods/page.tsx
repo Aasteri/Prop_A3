@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { AttachmentLinks } from '@/components/AttachmentLinks';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
+import { PhotoAttachField } from '@/components/PhotoAttachField';
 import { api, getToken, uploadPhotos } from '@/lib/api';
 import { useFilteredList } from '@/lib/use-filtered-list';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
@@ -45,6 +46,10 @@ function GoodsInner() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
+  const [receivePoId, setReceivePoId] = useState<string | null>(null);
+  const [grnInvoiceNo, setGrnInvoiceNo] = useState('');
+  const [grnFiles, setGrnFiles] = useState<File[]>([]);
+  const [grnBusy, setGrnBusy] = useState(false);
   const [form, setForm] = useState({
     justification: '',
     neededBy: '',
@@ -146,45 +151,38 @@ function GoodsInner() {
     load();
   }
 
-  async function receivePo(po: PurchaseOrder) {
-    const invoiceNo = window.prompt('Supplier invoice number') || undefined;
-    const attach = window.confirm(
-      'Attach delivery note / receipt photos?\n\nOK = pick files · Cancel = record GRN without attachments',
-    );
-    let attachmentUrls: string[] | undefined;
-    if (attach) {
-      const files = await new Promise<File[]>((resolve) => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*,application/pdf';
-        input.multiple = true;
-        input.onchange = () => resolve(Array.from(input.files ?? []).slice(0, 6));
-        input.oncancel = () => resolve([]);
-        input.click();
-      });
-      if (files.length) {
-        attachmentUrls = await uploadPhotos(files);
-      }
-    }
-    await api('/procurement/receipts', {
-      method: 'POST',
-      body: JSON.stringify({
-        poId: po.id,
-        supplierInvoiceNo: invoiceNo,
-        attachmentUrls,
-        lines: po.lines.map((l) => {
-          const qty = Number(l.qty);
-          return {
-            description: l.description,
-            qtyOrdered: qty,
-            qtyReceived: qty,
-            qtyAccepted: qty,
-            qtyRejected: 0,
-          };
+  async function submitGrn(po: PurchaseOrder) {
+    setGrnBusy(true);
+    setError('');
+    try {
+      const attachmentUrls = grnFiles.length ? await uploadPhotos(grnFiles) : undefined;
+      await api('/procurement/receipts', {
+        method: 'POST',
+        body: JSON.stringify({
+          poId: po.id,
+          supplierInvoiceNo: grnInvoiceNo.trim() || undefined,
+          attachmentUrls,
+          lines: po.lines.map((l) => {
+            const qty = Number(l.qty);
+            return {
+              description: l.description,
+              qtyOrdered: qty,
+              qtyReceived: qty,
+              qtyAccepted: qty,
+              qtyRejected: 0,
+            };
+          }),
         }),
-      }),
-    });
-    load();
+      });
+      setReceivePoId(null);
+      setGrnInvoiceNo('');
+      setGrnFiles([]);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to record GRN');
+    } finally {
+      setGrnBusy(false);
+    }
   }
 
   return (
@@ -409,13 +407,59 @@ function GoodsInner() {
                   o.status === 'PARTIALLY_RECEIVED') && (
                   <button
                     type="button"
-                    onClick={() => receivePo(o)}
+                    onClick={() => {
+                      setReceivePoId(o.id);
+                      setGrnInvoiceNo('');
+                      setGrnFiles([]);
+                    }}
                     className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium hover:bg-slate-50 text-slate-900"
                   >
                     Record GRN
                   </button>
                 )}
               </div>
+              {receivePoId === o.id && (
+                <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
+                  <div>
+                    <label className={LABEL}>Supplier invoice number (optional)</label>
+                    <input
+                      className={INPUT}
+                      value={grnInvoiceNo}
+                      onChange={(e) => setGrnInvoiceNo(e.target.value)}
+                      placeholder="Invoice / DN ref"
+                    />
+                  </div>
+                  <PhotoAttachField
+                    label="Delivery note / receipt photos"
+                    hint="Optional · images or PDF · max 6"
+                    maxFiles={6}
+                    files={grnFiles}
+                    onChange={setGrnFiles}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={grnBusy}
+                      onClick={() => submitGrn(o)}
+                      className="rounded-lg bg-[#e87722] px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                    >
+                      {grnBusy ? 'Saving…' : 'Save GRN'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={grnBusy}
+                      onClick={() => {
+                        setReceivePoId(null);
+                        setGrnFiles([]);
+                        setGrnInvoiceNo('');
+                      }}
+                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-900 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
           {orders.length === 0 && (

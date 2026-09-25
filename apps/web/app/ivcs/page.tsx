@@ -209,7 +209,8 @@ export default function IvcsPage() {
               <button
                 type="button"
                 onClick={() => setShowForm((v) => !v)}
-                className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white"
+                disabled={!projects.length}
+                className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
                 {showForm ? 'Cancel' : 'New IVC'}
               </button>
@@ -219,9 +220,8 @@ export default function IvcsPage() {
 
         {!projects.length ? (
           <EmptyProjectGate moduleLabel="IVCs" />
-        ) : null}
-
-
+        ) : (
+          <>
         {error && (
           <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
@@ -505,6 +505,8 @@ export default function IvcsPage() {
             filteredCount={filteredCount}
             onPageChange={setPage}
           />
+        )}
+          </>
         )}
       </div>
     </AppShell>

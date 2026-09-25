@@ -59,7 +59,7 @@ export default function MarketplaceJobPage() {
     message: '',
   });
   const [proofFile, setProofFile] = useState<File | null>(null);
-  const [proofUrl, setProofUrl] = useState('');
+  const [bankRef, setBankRef] = useState('');
   const [payMethods, setPayMethods] = useState<{
     paystack: { available: boolean; label: string };
     bankTransferProof: { available: boolean; label: string };
@@ -170,7 +170,7 @@ export default function MarketplaceJobPage() {
           method: 'POST',
           body: JSON.stringify({
             method: 'BANK_TRANSFER_PROOF',
-            proofUrl: proofUrl || undefined,
+            proofUrl: bankRef || undefined,
             isDeposit: false,
           }),
         });
@@ -393,8 +393,8 @@ export default function MarketplaceJobPage() {
                 <label className={LABEL}>Bank transfer reference (optional)</label>
                 <input
                   className={INPUT}
-                  value={proofUrl}
-                  onChange={(e) => setProofUrl(e.target.value)}
+                  value={bankRef}
+                  onChange={(e) => setBankRef(e.target.value)}
                   placeholder="e.g. bank ref — not a public file URL"
                 />
                 <p className="mt-1 text-xs text-slate-500">
