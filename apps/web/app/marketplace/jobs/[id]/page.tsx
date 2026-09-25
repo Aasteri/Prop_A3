@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MarketplaceShell } from '@/components/MarketplaceShell';
+import { AttachmentLinks } from '@/components/AttachmentLinks';
 import { api, getToken, getUser, type AuthUser } from '@/lib/api';
 import { getApiBaseUrl } from '@/lib/api-base';
 import { CARD, INPUT, LABEL } from '@/lib/ui';
@@ -38,6 +39,7 @@ type Job = {
   platformFeePctSnapshot: string | number | null;
   platformFeeAmount: string | number | null;
   escrowPaidAt: string | null;
+  photoUrls?: string[] | null;
   quotes: Quote[];
   payments?: { id: string; status: string; amount: string | number; method: string }[];
 };
@@ -235,6 +237,7 @@ export default function MarketplaceJobPage() {
           <p className="text-xs text-slate-500">{job.publicId}</p>
           <h1 className="text-xl font-semibold text-[#1a2744]">{job.title}</h1>
           <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{job.description}</p>
+          <AttachmentLinks urls={job.photoUrls} label="Job photos" />
           {job.locationText && (
             <p className="mt-2 text-sm">
               <span className="font-medium">Area:</span> {job.locationText}
@@ -378,7 +381,7 @@ export default function MarketplaceJobPage() {
             <div className="mt-3 space-y-2 text-sm">
               <p>{payMethods?.bankTransferProof.label}</p>
               <div>
-                <label className={LABEL}>Upload payment proof (image / PDF)</label>
+                <label className={LABEL}>Upload bank proof (image / PDF)</label>
                 <input
                   className={INPUT}
                   type="file"
@@ -387,13 +390,16 @@ export default function MarketplaceJobPage() {
                 />
               </div>
               <div>
-                <label className={LABEL}>Or paste proof URL / transfer reference</label>
+                <label className={LABEL}>Bank transfer reference (optional)</label>
                 <input
                   className={INPUT}
                   value={proofUrl}
                   onChange={(e) => setProofUrl(e.target.value)}
-                  placeholder="Optional if you uploaded a file"
+                  placeholder="e.g. bank ref — not a public file URL"
                 />
+                <p className="mt-1 text-xs text-slate-500">
+                  Prefer uploading the receipt above. This field is for a transfer reference only.
+                </p>
               </div>
               <button
                 type="button"

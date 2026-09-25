@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { AttachmentLinks } from '@/components/AttachmentLinks';
+import { EmptyTenancyGate } from '@/components/EmptyEntityGate';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { PhotoAttachField } from '@/components/PhotoAttachField';
 import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
@@ -198,13 +199,18 @@ export default function InventoriesPage() {
             <button
               type="button"
               onClick={() => setShowForm((v) => !v)}
-              className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white"
+              disabled={!tenancies.length}
+              className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
               {showForm ? 'Cancel' : 'New inventory'}
             </button>
           </div>
         </header>
 
+        {!tenancies.length ? (
+          <EmptyTenancyGate moduleLabel="inventories" />
+        ) : (
+          <>
         {showForm && (
           <form onSubmit={onSubmit} className={`${CARD} grid gap-4 p-6 sm:grid-cols-2`}>
             <div>
@@ -387,6 +393,8 @@ export default function InventoriesPage() {
           filteredCount={filteredCount}
           onPageChange={setPage}
         />
+          </>
+        )}
       </div>
     </AppShell>
   );

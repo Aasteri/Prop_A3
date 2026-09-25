@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { AttachmentLinks } from '@/components/AttachmentLinks';
+import { EmptyPropertyGate } from '@/components/EmptyEntityGate';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { PhotoAttachField } from '@/components/PhotoAttachField';
 import { SearchableSelect, optionsFromValues } from '@/components/SearchableSelect';
@@ -220,13 +221,18 @@ export default function MaintenancePage() {
             <button
               type="button"
               onClick={() => setShowForm((v) => !v)}
-              className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white hover:bg-[#d06818]"
+              disabled={!properties.length}
+              className="rounded-lg bg-[#e87722] px-4 py-2 text-sm font-medium text-white hover:bg-[#d06818] disabled:opacity-50"
             >
               {showForm ? 'Cancel' : 'Log request'}
             </button>
           </div>
         </header>
 
+        {!properties.length ? (
+          <EmptyPropertyGate moduleLabel="maintenance requests" />
+        ) : (
+          <>
         {showForm && (
           <form onSubmit={onSubmit} className={`${CARD} grid gap-4 p-6 sm:grid-cols-2`}>
             <div>
@@ -435,6 +441,8 @@ export default function MaintenancePage() {
             filteredCount={filteredCount}
             onPageChange={setPage}
           />
+        )}
+          </>
         )}
       </div>
     </AppShell>

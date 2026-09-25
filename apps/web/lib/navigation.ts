@@ -42,8 +42,7 @@ export const STAFF_NAV: NavGroup[] = [
         icon: 'flag',
         match: (p) =>
           p.startsWith('/projects/initiate') ||
-          p.startsWith('/feasibility') ||
-          p.startsWith('/projects/coming-soon/feasibility'),
+          p.startsWith('/feasibility'),
       },
       {
         href: '/projects/plan',
@@ -51,8 +50,7 @@ export const STAFF_NAV: NavGroup[] = [
         icon: 'calendar',
         match: (p) =>
           p.startsWith('/projects/plan') ||
-          p.startsWith('/qc-plans') ||
-          p.startsWith('/projects/coming-soon/qc-planning'),
+          p.startsWith('/qc-plans'),
       },
       {
         href: '/projects/execute',
@@ -62,8 +60,7 @@ export const STAFF_NAV: NavGroup[] = [
           p.startsWith('/projects/execute') ||
           p.startsWith('/workforce') ||
           p.startsWith('/cost-trackers') ||
-          p.startsWith('/projects/coming-soon/workforce') ||
-          p.startsWith('/projects/coming-soon/qc-execution'),
+          p.startsWith('/inspections'),
       },
       {
         href: '/projects/monitor',
@@ -115,7 +112,7 @@ export const STAFF_NAV: NavGroup[] = [
         label: 'Exit',
         icon: 'contract',
         match: (p) =>
-          p.startsWith('/property/exit') || p.startsWith('/property/coming-soon'),
+          p.startsWith('/property/exit') || p.startsWith('/inventories'),
       },
     ],
   },

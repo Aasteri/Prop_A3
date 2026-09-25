@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PortalShell } from '@/components/PortalShell';
+import { AttachmentLinks } from '@/components/AttachmentLinks';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { PhotoAttachField } from '@/components/PhotoAttachField';
 import { SearchableSelect } from '@/components/SearchableSelect';
@@ -20,6 +21,7 @@ type MaintRow = {
   urgency: string;
   status: string;
   createdAt: string;
+  photoUrls?: string[] | null;
   property: { id: string; name: string };
   workOrders: {
     id: string;
@@ -269,6 +271,7 @@ export default function PortalMaintenancePage() {
                     {r.number} · {r.property.name}
                   </p>
                   <p className="mt-1 text-sm text-slate-600">{r.description}</p>
+                  <AttachmentLinks urls={r.photoUrls} label="Photos" />
                   <p className="mt-2 text-xs text-slate-500">
                     {r.category ?? 'General'} · {r.urgency} · {r.status} ·{' '}
                     {new Date(r.createdAt).toLocaleString()}

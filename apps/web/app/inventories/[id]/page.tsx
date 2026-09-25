@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { AttachmentLinks } from '@/components/AttachmentLinks';
 import { api, downloadPdf, getToken } from '@/lib/api';
 import { CARD, INPUT, LABEL, PAGE_HEADER } from '@/lib/ui';
 
@@ -36,6 +37,7 @@ type InventoryDetail = {
   electricReading: string | null;
   waterReading: string | null;
   photoEvidence: boolean;
+  photoUrls?: string[] | null;
   roomsJson: RoomsMatrix | null;
   tenancy: {
     id: string;
@@ -250,6 +252,16 @@ export default function InventoryDetailPage() {
             </div>
           </div>
         </header>
+
+        <div className={`${CARD} p-4`}>
+          <AttachmentLinks
+            urls={row.photoUrls}
+            label={row.photoEvidence ? 'Photographic evidence' : 'Attachments'}
+          />
+          {!row.photoUrls?.length && row.photoEvidence ? (
+            <p className="text-xs text-slate-500">Marked as photographed — no files linked yet.</p>
+          ) : null}
+        </div>
 
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">

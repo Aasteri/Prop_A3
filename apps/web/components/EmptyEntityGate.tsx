@@ -58,3 +58,37 @@ export function EmptyProjectGate({
     />
   );
 }
+
+export function EmptyPropertyGate({
+  moduleLabel = 'this module',
+}: {
+  moduleLabel?: string;
+}) {
+  return (
+    <EmptyEntityGate
+      title="No properties yet"
+      description={`Add a property asset before you can use ${moduleLabel}.`}
+      actionHref="/property-management"
+      actionLabel="Create property"
+      secondaryHref="/properties-hub"
+      secondaryLabel="Properties hub"
+    />
+  );
+}
+
+export function EmptyTenancyGate({
+  moduleLabel = 'this module',
+}: {
+  moduleLabel?: string;
+}) {
+  return (
+    <EmptyEntityGate
+      title="No tenancies yet"
+      description={`Create or activate a tenancy before you can use ${moduleLabel}.`}
+      actionHref="/tenancies"
+      actionLabel="Open tenancies"
+      secondaryHref="/properties-hub"
+      secondaryLabel="Properties hub"
+    />
+  );
+}

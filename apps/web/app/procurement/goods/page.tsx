@@ -4,6 +4,7 @@ import { FormEvent, Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { AttachmentLinks } from '@/components/AttachmentLinks';
 import { ListToolbar, PaginationBar } from '@/components/ListToolbar';
 import { api, getToken, uploadPhotos } from '@/lib/api';
 import { useFilteredList } from '@/lib/use-filtered-list';
@@ -30,7 +31,7 @@ type PurchaseOrder = {
   supplier: { legalName: string };
   pr: { number: string } | null;
   lines: { id: string; description: string; qty: string | number; unitPrice: string | number }[];
-  receipts: { id: string; number: string }[];
+  receipts: { id: string; number: string; attachmentUrls?: string[] | null }[];
 };
 
 function GoodsInner() {
@@ -394,6 +395,14 @@ function GoodsInner() {
                     {o.paymentBeforeDelivery ? ' · pay before delivery' : ''}
                     {o.receipts[0] ? ` · ${o.receipts[0].number}` : ''}
                   </p>
+                  {o.receipts.map((r) => (
+                    <AttachmentLinks
+                      key={r.id}
+                      urls={r.attachmentUrls}
+                      label={`GRN ${r.number}`}
+                      className="mt-2"
+                    />
+                  ))}
                 </div>
                 {(o.status === 'APPROVED' ||
                   o.status === 'SENT' ||
