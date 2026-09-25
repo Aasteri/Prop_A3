@@ -123,6 +123,9 @@ export default function CostTrackersPage() {
               <Link href="/workforce" className={BTN_GHOST_ON_DARK}>
                 Workforce form
               </Link>
+              <Link href="/project-cashbooks" className={BTN_GHOST_ON_DARK}>
+                Site cashbook
+              </Link>
               <Link href="/project-finance" className={BTN_GHOST_ON_DARK}>
                 Finance report
               </Link>

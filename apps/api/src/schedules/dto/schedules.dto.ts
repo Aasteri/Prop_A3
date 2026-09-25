@@ -313,3 +313,121 @@ export class UpdateLabourScheduleDto {
   @Type(() => LabourScheduleLineDto)
   lines!: LabourScheduleLineDto[];
 }
+
+export class PlantEquipmentLineDto {
+  @IsInt()
+  @Min(1)
+  sn!: number;
+
+  @IsString()
+  description!: string;
+
+  @IsOptional()
+  @IsString()
+  nameSource?: string;
+
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @IsOptional()
+  @IsString()
+  startTime?: string;
+
+  @IsOptional()
+  @IsString()
+  endTime?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  qtyUsed?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  costPerUnit?: number;
+
+  @IsOptional()
+  @IsString()
+  costUnit?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  totalAmount?: number;
+
+  @IsOptional()
+  @IsString()
+  supervisedBy?: string;
+
+  @IsOptional()
+  @IsString()
+  remark?: string;
+}
+
+export class CreatePlantEquipmentScheduleDto {
+  @IsString()
+  projectId!: string;
+
+  @IsOptional()
+  @IsString()
+  projectTitle?: string;
+
+  @IsOptional()
+  @IsString()
+  projectPhase?: string;
+
+  @IsOptional()
+  @IsString()
+  projectManager?: string;
+
+  @IsOptional()
+  @IsString()
+  sheetNo?: string;
+
+  @IsOptional()
+  @IsDateString()
+  scheduleDate?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PlantEquipmentLineDto)
+  lines?: PlantEquipmentLineDto[];
+}
+
+export class UpdatePlantEquipmentScheduleDto {
+  @IsOptional()
+  @IsString()
+  projectTitle?: string;
+
+  @IsOptional()
+  @IsString()
+  projectPhase?: string;
+
+  @IsOptional()
+  @IsString()
+  projectManager?: string;
+
+  @IsOptional()
+  @IsString()
+  sheetNo?: string;
+
+  @IsOptional()
+  @IsDateString()
+  scheduleDate?: string | null;
+
+  @IsOptional()
+  @IsString()
+  notes?: string | null;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PlantEquipmentLineDto)
+  lines!: PlantEquipmentLineDto[];
+}

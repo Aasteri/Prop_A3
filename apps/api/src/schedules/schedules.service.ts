@@ -9,9 +9,12 @@ import { AuthUser } from '../common/decorators/current-user.decorator';
 import {
   BulkWorkTasksDto,
   CreateLabourScheduleDto,
+  CreatePlantEquipmentScheduleDto,
   CreateWorkTaskDto,
   LabourScheduleLineDto,
+  PlantEquipmentLineDto,
   UpdateLabourScheduleDto,
+  UpdatePlantEquipmentScheduleDto,
   UpdateWorkTaskDto,
 } from './dto/schedules.dto';
 
@@ -194,6 +197,84 @@ export class SchedulesService {
     });
   }
 
+  // ── Plant & equipment schedules (Abraham paper form) ─────────────
+
+  findPlantEquipmentSchedules(user: AuthUser, projectId?: string) {
+    this.assertCanView(user);
+    return this.prisma.plantEquipmentSchedule.findMany({
+      where: projectId ? { projectId } : undefined,
+      include: scheduleInclude,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findPlantEquipmentSchedule(id: string, user: AuthUser) {
+    this.assertCanView(user);
+    const row = await this.prisma.plantEquipmentSchedule.findUnique({
+      where: { id },
+      include: scheduleInclude,
+    });
+    if (!row) throw new NotFoundException('Plant & equipment schedule not found');
+    return row;
+  }
+
+  async createPlantEquipmentSchedule(dto: CreatePlantEquipmentScheduleDto, user: AuthUser) {
+    this.assertCanManage(user);
+    const project = await this.requireProject(dto.projectId);
+    const year = new Date().getFullYear();
+    const stamp = Date.now().toString(36).toUpperCase().slice(-5);
+
+    return this.prisma.plantEquipmentSchedule.create({
+      data: {
+        number: `PEQ-${year}-${stamp}`,
+        projectId: dto.projectId,
+        projectTitle: dto.projectTitle ?? project.name,
+        projectPhase: dto.projectPhase,
+        projectManager:
+          dto.projectManager ?? `${user.firstName} ${user.lastName}`.trim(),
+        sheetNo: dto.sheetNo,
+        scheduleDate: dto.scheduleDate ? new Date(dto.scheduleDate) : undefined,
+        notes: dto.notes,
+        lines: dto.lines?.length
+          ? { create: dto.lines.map((l) => this.mapPlantLineData(l)) }
+          : undefined,
+      },
+      include: scheduleInclude,
+    });
+  }
+
+  async updatePlantEquipmentSchedule(
+    id: string,
+    dto: UpdatePlantEquipmentScheduleDto,
+    user: AuthUser,
+  ) {
+    this.assertCanManage(user);
+    await this.findPlantEquipmentSchedule(id, user);
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.plantEquipmentScheduleLine.deleteMany({ where: { scheduleId: id } });
+      return tx.plantEquipmentSchedule.update({
+        where: { id },
+        data: {
+          ...(dto.projectTitle !== undefined ? { projectTitle: dto.projectTitle } : {}),
+          ...(dto.projectPhase !== undefined ? { projectPhase: dto.projectPhase } : {}),
+          ...(dto.projectManager !== undefined
+            ? { projectManager: dto.projectManager }
+            : {}),
+          ...(dto.sheetNo !== undefined ? { sheetNo: dto.sheetNo } : {}),
+          ...(dto.scheduleDate !== undefined
+            ? { scheduleDate: dto.scheduleDate ? new Date(dto.scheduleDate) : null }
+            : {}),
+          ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
+          lines: {
+            create: dto.lines.map((l) => this.mapPlantLineData(l)),
+          },
+        },
+        include: scheduleInclude,
+      });
+    });
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────
 
   private mapWorkTaskData(dto: CreateWorkTaskDto) {
@@ -225,6 +306,25 @@ export class SchedulesService {
       gangSize: l.gangSize,
       workStart: l.workStart ? new Date(l.workStart) : undefined,
       workEnd: l.workEnd ? new Date(l.workEnd) : undefined,
+      costPerUnit:
+        l.costPerUnit != null ? new Prisma.Decimal(l.costPerUnit) : undefined,
+      costUnit: l.costUnit,
+      totalAmount:
+        l.totalAmount != null ? new Prisma.Decimal(l.totalAmount) : undefined,
+      supervisedBy: l.supervisedBy,
+      remark: l.remark,
+    };
+  }
+
+  private mapPlantLineData(l: PlantEquipmentLineDto) {
+    return {
+      sn: l.sn,
+      description: l.description,
+      nameSource: l.nameSource,
+      startDate: l.startDate ? new Date(l.startDate) : undefined,
+      startTime: l.startTime,
+      endTime: l.endTime,
+      qtyUsed: l.qtyUsed != null ? new Prisma.Decimal(l.qtyUsed) : undefined,
       costPerUnit:
         l.costPerUnit != null ? new Prisma.Decimal(l.costPerUnit) : undefined,
       costUnit: l.costUnit,

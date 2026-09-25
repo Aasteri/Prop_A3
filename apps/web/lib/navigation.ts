@@ -50,7 +50,9 @@ export const STAFF_NAV: NavGroup[] = [
         icon: 'calendar',
         match: (p) =>
           p.startsWith('/projects/plan') ||
-          p.startsWith('/qc-plans'),
+          p.startsWith('/qc-plans') ||
+          p.startsWith('/labour-schedules') ||
+          p.startsWith('/plant-equipment-schedules'),
       },
       {
         href: '/projects/execute',
@@ -60,6 +62,7 @@ export const STAFF_NAV: NavGroup[] = [
           p.startsWith('/projects/execute') ||
           p.startsWith('/workforce') ||
           p.startsWith('/cost-trackers') ||
+          p.startsWith('/project-cashbooks') ||
           p.startsWith('/inspections'),
       },
       {

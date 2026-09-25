@@ -377,7 +377,7 @@ export default function LabourSchedulesPage() {
                 />
               </div>
               <div>
-                <label className={LABEL}>Project manager</label>
+                <label className={LABEL}>Site/Project manager</label>
                 <input
                   className={INPUT}
                   value={form.projectManager}
@@ -447,7 +447,7 @@ export default function LabourSchedulesPage() {
                       />
                     </div>
                     <div>
-                      <label className={LABEL}>Team / trade</label>
+                      <label className={LABEL}>Trade</label>
                       <input
                         className={INPUT}
                         value={line.teamTrade}
@@ -463,7 +463,7 @@ export default function LabourSchedulesPage() {
                       />
                     </div>
                     <div>
-                      <label className={LABEL}>Gang size</label>
+                      <label className={LABEL}>No. in a gang</label>
                       <input
                         type="number"
                         min={0}
@@ -491,7 +491,7 @@ export default function LabourSchedulesPage() {
                       />
                     </div>
                     <div>
-                      <label className={LABEL}>Cost / unit</label>
+                      <label className={LABEL}>Cost/day or hr</label>
                       <input
                         type="number"
                         min={0}
@@ -521,7 +521,7 @@ export default function LabourSchedulesPage() {
                       />
                     </div>
                     <div>
-                      <label className={LABEL}>Supervised by</label>
+                      <label className={LABEL}>Supervised/Paid by</label>
                       <input
                         className={INPUT}
                         value={line.supervisedBy}
@@ -631,7 +631,7 @@ export default function LabourSchedulesPage() {
                             />
                           </div>
                           <div>
-                            <label className={LABEL}>Team</label>
+                            <label className={LABEL}>Trade</label>
                             <input
                               className={INPUT}
                               value={line.teamTrade}
@@ -651,7 +651,7 @@ export default function LabourSchedulesPage() {
                             />
                           </div>
                           <div>
-                            <label className={LABEL}>Size</label>
+                            <label className={LABEL}>No. in a gang</label>
                             <input
                               type="number"
                               className={INPUT}
@@ -680,7 +680,7 @@ export default function LabourSchedulesPage() {
                             />
                           </div>
                           <div>
-                            <label className={LABEL}>Cost</label>
+                            <label className={LABEL}>Cost/day or hr</label>
                             <input
                               type="number"
                               className={INPUT}
@@ -691,7 +691,7 @@ export default function LabourSchedulesPage() {
                             />
                           </div>
                           <div>
-                            <label className={LABEL}>Supervised</label>
+                            <label className={LABEL}>Supervised/Paid by</label>
                             <input
                               className={INPUT}
                               value={line.supervisedBy}

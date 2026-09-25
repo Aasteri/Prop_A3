@@ -15,8 +15,10 @@ import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorat
 import {
   BulkWorkTasksDto,
   CreateLabourScheduleDto,
+  CreatePlantEquipmentScheduleDto,
   CreateWorkTaskDto,
   UpdateLabourScheduleDto,
+  UpdatePlantEquipmentScheduleDto,
   UpdateWorkTaskDto,
 } from './dto/schedules.dto';
 import { SchedulesService } from './schedules.service';
@@ -89,5 +91,35 @@ export class LabourSchedulesController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.schedules.updateLabourSchedule(id, dto, user);
+  }
+}
+
+@Controller('plant-equipment-schedules')
+@UseGuards(JwtAuthGuard)
+export class PlantEquipmentSchedulesController {
+  constructor(private readonly schedules: SchedulesService) {}
+
+  @Get()
+  findAll(@CurrentUser() user: AuthUser, @Query('projectId') projectId?: string) {
+    return this.schedules.findPlantEquipmentSchedules(user, projectId);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.schedules.findPlantEquipmentSchedule(id, user);
+  }
+
+  @Post()
+  create(@Body() dto: CreatePlantEquipmentScheduleDto, @CurrentUser() user: AuthUser) {
+    return this.schedules.createPlantEquipmentSchedule(dto, user);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdatePlantEquipmentScheduleDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.schedules.updatePlantEquipmentSchedule(id, dto, user);
   }
 }

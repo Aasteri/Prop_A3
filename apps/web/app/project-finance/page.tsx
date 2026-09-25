@@ -257,6 +257,9 @@ function FinanceInner() {
             <Link href="/cost-trackers" className={BTN_SECONDARY}>
               Cost trackers
             </Link>
+            <Link href="/project-cashbooks" className={BTN_SECONDARY}>
+              Site cashbook
+            </Link>
             <Link href="/invoices" className={BTN_SECONDARY}>
               Client invoices
             </Link>

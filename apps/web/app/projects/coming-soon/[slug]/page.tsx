@@ -16,6 +16,8 @@ const LIVE_REDIRECTS: Record<string, string> = {
   'cost-trackers': '/cost-trackers',
   'project-finance': '/project-finance',
   'labour-schedules': '/labour-schedules',
+  'plant-equipment-schedules': '/plant-equipment-schedules',
+  'project-cashbooks': '/project-cashbooks',
   'planning-cycles': '/planning-cycles',
   'progress-reports': '/progress-reports',
   retrospectives: '/retrospectives',

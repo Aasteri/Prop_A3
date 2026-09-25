@@ -199,6 +199,8 @@ model Project {
   ivcs           InterimValuationCertificate[]
   workTasks      WorkScheduleTask[]
   labourSchedules LabourSchedule[]
+  plantEquipmentSchedules PlantEquipmentSchedule[]
+  cashbooks        ProjectCashbook[]
   progressReports ProgressReport[]
   planningCycles PlanningCycle[]
   workforceEntries WorkforceEntry[]
@@ -534,6 +536,93 @@ model LabourScheduleLine {
 
   @@index([scheduleId, sn])
   @@map("labour_schedule_lines")
+}
+
+/// FORM_PLANT_EQUIPMENT_SCHEDULE — Abraham paper form (hire / usage)
+model PlantEquipmentSchedule {
+  id             String    @id @default(cuid())
+  number         String    @unique
+  projectId      String    @map("project_id")
+  projectTitle   String?   @map("project_title")
+  projectPhase   String?   @map("project_phase")
+  projectManager String?   @map("project_manager")
+  sheetNo        String?   @map("sheet_no")
+  scheduleDate   DateTime? @map("schedule_date") @db.Date
+  notes          String?   @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  lines   PlantEquipmentScheduleLine[]
+
+  @@index([projectId])
+  @@map("plant_equipment_schedules")
+}
+
+model PlantEquipmentScheduleLine {
+  id           String    @id @default(cuid())
+  scheduleId   String    @map("schedule_id")
+  sn           Int
+  description  String
+  nameSource   String?   @map("name_source")
+  startDate    DateTime? @map("start_date") @db.Date
+  startTime    String?   @map("start_time") // HH:mm
+  endTime      String?   @map("end_time")
+  qtyUsed      Decimal?  @map("qty_used") @db.Decimal(14, 2)
+  costPerUnit  Decimal?  @map("cost_per_unit") @db.Decimal(14, 2)
+  costUnit     String?   @map("cost_unit") // DAY | HOUR
+  totalAmount  Decimal?  @map("total_amount") @db.Decimal(14, 2)
+  supervisedBy String?   @map("supervised_by")
+  remark       String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  schedule PlantEquipmentSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId, sn])
+  @@map("plant_equipment_schedule_lines")
+}
+
+/// Abraham "Expenses and inflow Project record" site cashbook
+model ProjectCashbook {
+  id          String   @id @default(cuid())
+  number      String   @unique
+  projectId   String   @map("project_id")
+  /// Free-text code e.g. AAA/GZP/DPLX/PLOT/530/2026/I
+  projectCode String?  @map("project_code")
+  title       String?
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  lines   ProjectCashbookLine[]
+
+  @@index([projectId])
+  @@map("project_cashbooks")
+}
+
+model ProjectCashbookLine {
+  id           String    @id @default(cuid())
+  cashbookId   String    @map("cashbook_id")
+  sn           Int
+  entryDate    DateTime? @map("entry_date") @db.Date
+  description  String?
+  received     Decimal?  @map("received") @db.Decimal(14, 2)
+  balanceInAcc Decimal?  @map("balance_in_acc") @db.Decimal(14, 2)
+  qty          Decimal?  @db.Decimal(14, 2)
+  unit         String?
+  rate         Decimal?  @db.Decimal(14, 2)
+  amount       Decimal?  @db.Decimal(14, 2)
+  total        Decimal?  @db.Decimal(14, 2)
+  remark       String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  cashbook ProjectCashbook @relation(fields: [cashbookId], references: [id], onDelete: Cascade)
+
+  @@index([cashbookId, sn])
+  @@map("project_cashbook_lines")
 }
 
 /// Sheet 3 / FORM_PROGRESS_REPORT — Rockvilla-style stakeholder report

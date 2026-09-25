@@ -47,6 +47,7 @@ import { ChartersModule } from './charters/charters.module';
 import { RetrospectivesModule } from './retrospectives/retrospectives.module';
 import { IvcsModule } from './ivcs/ivcs.module';
 import { SchedulesModule } from './schedules/schedules.module';
+import { ProjectCashbooksModule } from './project-cashbooks/project-cashbooks.module';
 import { ProgressReportsModule } from './progress-reports/progress-reports.module';
 import { PlanningCyclesModule } from './planning-cycles/planning-cycles.module';
 import { EthicsModule } from './ethics/ethics.module';
@@ -117,6 +118,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     RetrospectivesModule,
     IvcsModule,
     SchedulesModule,
+    ProjectCashbooksModule,
     ProgressReportsModule,
     PlanningCyclesModule,
     EthicsModule,

@@ -17,6 +17,9 @@
 | Construction checklist infographic (107 items) | [`ALL_TYPES_CONSTRUCTION_CHECKLIST.txt`](./ALL_TYPES_CONSTRUCTION_CHECKLIST.txt) |
 | Professional ethics infographic (10 principles) | [`PROFESSIONAL_ETHICS_SITE_SUPERVISOR.txt`](./PROFESSIONAL_ETHICS_SITE_SUPERVISOR.txt) |
 | Daily / Weekly / Monthly planning infographic | [`DAILY_WEEKLY_MONTHLY_PLANNING.txt`](./DAILY_WEEKLY_MONTHLY_PLANNING.txt) |
+| **Expenses & inflow project record (Abraham Sep 2026)** | [`PROJECT_EXPENSES_INFLOW_RECORD.md`](./PROJECT_EXPENSES_INFLOW_RECORD.md) |
+| **Plant & equipment schedule (paper form)** | [`PLANT_EQUIPMENT_SCHEDULE.md`](./PLANT_EQUIPMENT_SCHEDULE.md) · photo [`PLANT_EQUIPMENT_SCHEDULE_FORM.jpg`](./PLANT_EQUIPMENT_SCHEDULE_FORM.jpg) |
+| Labour schedule paper form photo | [`LABOUR_SCHEDULE_FORM.jpg`](./LABOUR_SCHEDULE_FORM.jpg) |
 
 ---
 
